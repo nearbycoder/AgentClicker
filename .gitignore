@@ -1,0 +1,54 @@
+# Unity (project lives in Unity/)
+Unity/[Ll]ibrary/
+Unity/[Tt]emp/
+Unity/[Oo]bj/
+Unity/[Bb]uild/
+Unity/[Bb]uilds/
+Unity/[Ll]ogs/
+Unity/[Uu]ser[Ss]ettings/
+Unity/[Mm]emory[Cc]aptures/
+Unity/[Rr]ecordings/
+Unity/*.csproj
+Unity/*.sln
+Unity/*.slnx
+Unity/.vs/
+Unity/.vscode/
+Unity/.idea/
+Unity/.utmp/
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.unityproj
+crashlytics-buildid.txt
+mono_crash.*
+sysinfo.txt
+
+# Build output, logs, raw captures
+/Builds/
+/Logs/
+/Recordings/
+*.log
+
+# Blender
+*.blend1
+*.blend@
+Blender/previews/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editors / OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+*.swp
+.idea/
+.vscode/
