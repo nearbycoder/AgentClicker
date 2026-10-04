@@ -58,7 +58,8 @@ namespace AgentClicker
             float? dayLengthOverride = null;
             string tourDir = null;
             bool benchmark = false, demo = false;
-            string recordPath = null;
+            string recordPath = null, trailerDir = null;
+            bool trailerStills = false;
             for (int i = 0; i < args.Length; i++)
             {
                 if (args[i] == "-reset") SaveSystem.Delete();
@@ -67,6 +68,11 @@ namespace AgentClicker
                 if (args[i] == "-benchmark") benchmark = true;
                 if (args[i] == "-demo") demo = true;
                 if (args[i] == "-record" && i + 1 < args.Length) { recordPath = args[i + 1]; demo = true; }
+                if ((args[i] == "-trailer" || args[i] == "-trailer-stills") && i + 1 < args.Length)
+                {
+                    trailerDir = args[i + 1];
+                    trailerStills = args[i] == "-trailer-stills";
+                }
             }
             _automated = tourDir != null || benchmark;
 
@@ -76,7 +82,17 @@ namespace AgentClicker
                 Settings = new GameSettings();
                 SavingEnabled = false;
             }
-            GameState state = _automated || demo ? null : SaveSystem.Load();
+            if (trailerDir != null)
+            {
+                // store trailer: best looks, game SFX only (the edit lays the music under it), never touches the save
+                Settings = new GameSettings
+                {
+                    quality = 3, vsync = false, fpsCap = 5, throttleInBackground = false, masterVolume = 1f,
+                    musicVolume = 0f, tutorialTips = false, autoOpenStoryMail = false,
+                };
+                SavingEnabled = false;
+            }
+            GameState state = _automated || demo || trailerDir != null ? null : SaveSystem.Load();
             Model = new GameModel(state, 0, dayLengthOverride ?? Settings.DayLengthSeconds);
             if (state != null)
             {
@@ -96,7 +112,13 @@ namespace AgentClicker
             Menu = gameObject.AddComponent<MenuUI>();
             Calls = gameObject.AddComponent<CallUI>();
 
-            if (demo)
+            if (trailerDir != null)
+            {
+                var trailer = gameObject.AddComponent<Trailer>();
+                trailer.OutputDir = trailerDir;
+                trailer.StillsOnly = trailerStills;
+            }
+            else if (demo)
                 gameObject.AddComponent<Demo>().RecordPath = recordPath;
             else if (benchmark)
             {

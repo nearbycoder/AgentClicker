@@ -114,6 +114,9 @@ namespace AgentClicker.Util
             if (_music) _music.volume = 0.55f * _musicVolume * _musicDuck * _musicFade;
         }
 
+        /// <summary>The synthesised clip for a sound (its first variant), e.g. for exporting trailer stingers.</summary>
+        public AudioClip Clip(Sound s) => _clips.TryGetValue(s, out var v) ? v[0] : null;
+
         public void Play(Sound s, float volume = 1f, float pitch = 1f)
         {
             if (!_clips.TryGetValue(s, out var variants)) return;
