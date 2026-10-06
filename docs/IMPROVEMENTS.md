@@ -1,8 +1,8 @@
 # Agent Clicker: improvement plan
 
 Written on 2026-10-06, after v0.1.0 (published 2026-10-04). This document ranks what would most raise the
-game's quality for a real player, then records each round's scope and results. Round 1 (branch `improvements`)
-is merged into `main`; round 2 is on `improvements-2`.
+game's quality for a real player, then records each round's scope and results. Rounds 1 and 2 (branches
+`improvements` and `improvements-2`) are merged into `main`; round 3 is on `improvements-3`.
 
 ## Baseline (what was run, and what it showed)
 
@@ -330,3 +330,88 @@ Deferred, and why:
 
 Owner decisions (unchanged): Windows Build Support, browser hosting, the offline-earnings cap (kept at 10% for
 1 hour), license, signing, releases and tags.
+
+## Round 3 scope
+
+Picked from what is still open after round 2: the deferred "next goal" tracker (#9, designed below), the
+browser build's untested engines and audio, and two things a browser player needs before the build is hosted
+anywhere. Gamepad (#10) and localization (#13) stay deferred (large), and so do the owner's decisions (Windows
+Build Support, hosting, the offline cap of 10% for 1 hour, license, releases).
+
+Supporting work, not a player item: `Tools/tour.sh` and `Tools/benchmark.sh` run the player with a throwaway
+`XDG_CONFIG_HOME` under `Logs/`, so a tool run can't write Unity's own window and session prefs into the real
+`~/.config/unity3d/Nearby Games/Agent Clicker/` (the game's save and settings were already kept out). Checked by
+hashing that folder before and after the round.
+
+### 1. A "next goal" card
+
+Two stretches of the first Factory run go long without a new agent type (Architect → Product Manager about 30
+minutes for the bot, the first Orchestrator → the Factory about an hour), and the Factory's checklist is only
+visible on its own tab. The design:
+
+* A pure C# `NextGoal` (in `Core`) picks one goal from the model, in this order. Before this division's Factory:
+  the cheapest story agent type you don't own yet (each is revealed once the previous one is hired), then the
+  Orchestrator Clusters the Factory needs, then the Zero-Gravity Recliner, then the Factory's price. After it:
+  the next frontier agent type you don't own, then the next vested Stock Option (with the reorg). Each goal has
+  a title, what you have, what you need, and an estimate at the current rate.
+* CorpOS shows it as a small card at the top of the ACTIVITY panel (which is empty above the log): "NEXT GOAL",
+  the title, a progress bar and "1.1B / 2.4B · about 6m". Clicking it opens the store tab where the goal is
+  bought.
+* No balance change: the goal only displays what the store and Factory tab already know.
+* The same "about 6m at your current rate" estimate is added to the store's hover info for agents, upgrades and
+  gadgets you can't afford yet.
+
+**Acceptance**: the goal follows the order above at every stage (fresh game, mid game, every Factory
+requirement, after the Factory, after all frontier agents); progress is always between 0 and 1; along a full
+bot run to the first Factory there is always a goal, and every goal the bot sees is eventually met. The balance
+test is unchanged. **Verify**: EditMode tests for each stage and one that walks the `BalanceSimulator` run;
+tour screenshots of the card early, mid, late and after the Factory, and a tour check that clicking it opens
+the right tab.
+
+### 2. The browser build in WebKit, with audio and save-on-hide checks
+
+Rounds 1 and 2 only ran the browser build in headless Chrome, never checked that audio actually plays, and a
+browser player who closes the tab can lose up to 15 seconds since the last autosave (including a big purchase).
+
+* Run the build in Playwright's WebKit (the engine behind Safari; a Linux build of it, not Safari itself) as
+  well as Chromium: load, new game, autopilot login, SHIP CODE, hire, save, reload, CONTINUE. Fix whatever
+  breaks.
+* An audio probe in the test page (an analyser on the page's `AudioContext`) measures whether the game's
+  output is non-silent after the first click, in both engines.
+* The page saves when it is hidden or closed (`visibilitychange` / `pagehide` → the game saves and flushes
+  IndexedDB), so closing the tab right after buying keeps the purchase.
+
+**Acceptance**: the full flow passes in both engines with no page errors; the audio probe reads a non-silent
+signal after the first click in both (or the result is reported honestly if an engine can't be probed);
+credits earned after the last autosave survive "hide the tab, reload". **Verify**: one Playwright script per
+engine (output in `Logs/`), screenshots in `docs/media/improvements/round3/`.
+
+### 3. Move a career between browsers and computers
+
+A browser save lives in that browser's site storage: clearing site data, switching browsers or moving to the
+desktop build loses the career, and there's no way to keep a copy.
+
+* Settings → Gameplay gets a SAVE FILE row. In the browser: DOWNLOAD SAVE (the save JSON as
+  `agentclicker_save.json`) and LOAD SAVE FILE (a file picker). On the desktop: OPEN SAVE FOLDER, since the
+  same file can be copied in or out there. One format both ways, so a browser download works on the desktop and
+  the other way round.
+* A loaded file is checked (`SaveSystem.Validate`: parses, has a started career, day ≥ 1) and replaces the
+  current career only after a confirmation that names both careers (division, day, credits).
+
+**Acceptance**: a downloaded save loads into a fresh browser profile and continues with the same credits and
+day; garbage, an empty file and a non-save JSON are rejected with a message and change nothing.
+**Verify**: EditMode tests for `Validate`; Playwright: download, then a new browser context with empty
+storage, LOAD SAVE FILE through the file chooser, CONTINUE, compare credits and day.
+
+### 4. Help that matches the game
+
+The How to Play card predates rounds 1–2: it doesn't mention that the day runs itself when you're away, the
+"While you were away" card, daily asks, Focus draining, or the phone keys.
+
+* Rewrite How to Play to cover those in the same space, and add the Settings → Gameplay options it refers to.
+
+**Acceptance**: every mechanic in the README's "How to play" section is in the card, and it fits the card
+without the auto-sizer shrinking it below its minimum. **Verify**: tour screenshot of the card.
+
+Whole round: `Tools/unity.sh tests` (including the balance simulation) passes, the tour passes, the benchmark is
+re-run and compared within the same session, screenshots go to `docs/media/improvements/round3/`.
