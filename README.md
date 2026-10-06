@@ -181,7 +181,9 @@ build made on Linux. It is unsigned and hasn't been tested on a Mac. If macOS re
 `xattr -cr "Agent Clicker.app"` and then `codesign --force --deep -s - "Agent Clicker.app"`.
 
 Saves live in `~/.config/unity3d/Nearby Games/Agent Clicker/` on Linux (Unity's `persistentDataPath`), and
-settings are stored separately in PlayerPrefs.
+settings are stored separately in PlayerPrefs. Each save replaces `agentclicker_save.json` in one step and keeps
+the previous one as `agentclicker_save.json.bak`; if the main file is ever missing or damaged, the game loads
+the newest readable copy instead.
 
 ## Build from source
 
@@ -193,7 +195,7 @@ editor at `~/Unity/Hub/Editor/6000.6.2f1/Editor/Unity`, or set `UNITY_EDITOR` to
 ```sh
 Tools/unity.sh setup       # URP, post-processing, player settings, reimport models (idempotent)
 Tools/unity.sh scene       # regenerate Assets/Scenes/Main.unity from the models (the scene is committed)
-Tools/unity.sh tests       # 101 EditMode tests, including the economy balance simulation
+Tools/unity.sh tests       # 105 EditMode tests, including the economy balance simulation
 Tools/unity.sh build       # Linux player → Builds/Linux
 Tools/unity.sh build-mac   # universal macOS player → Builds/Mac
 Tools/play.sh              # run the Linux build (adds -force-wayland on Wayland)
