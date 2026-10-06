@@ -91,9 +91,10 @@ browser tab, so this is the cheapest platform reach available. It needs these fi
   `persistentDataPath` lives in IndexedDB and isn't flushed after `File.WriteAllText`; this still needs
   confirming. A browser player who loses their career on reload would never come back, so this blocks
   shipping.
-* **Post-processing is off.** The browser console says the FSR upscaling shader is stripped, so "Post
-  processing render passes will not execute". That's why the office looks flatter in the browser
-  (no bloom, AO or grading). The fix is to use bilinear upscaling instead of FSR on WebGL.
+* ~~**Post-processing is off.**~~ *Corrected in round 2:* the console warning about the FSR upscaling shader
+  is generic. In this URP version an unsupported FSR shader only disables the FSR pass itself
+  (`Fsr1UpscalePostProcessPass`), and a side-by-side of the title screen shows the same grading and vignette
+  in the browser as on desktop. No fix was needed.
 * **Music.** `Sfx` renders the lo-fi loop with `Task.Run`. WebGL has no worker threads, so the loop
   probably never finishes or blocks the main thread. Unverified: headless Chrome can't tell us what
   was audible. The fix is to render it in slices from a coroutine on WebGL.
@@ -200,3 +201,35 @@ EditMode test for the mail trigger.
   produces the build; publishing is the owner's call.
 * **Offline earnings (#7)**: keep 10% / 1 hour, or raise the cap once the day runs itself.
 * **License**: still none, which matters more once the game is on a public web page.
+
+## Round 2 results (2026-10-06)
+
+All five scoped items landed on `improvements`, one commit each. Tests: **106/106** (96 at baseline). Screenshots
+are in [`docs/media/improvements/`](media/improvements).
+
+| Item | Commit | Verified by |
+|---|---|---|
+| 1. Idle-friendly day cycle | `0500405` | 5 EditMode tests (an idle hour produces in every day; input, blockers and WORK LATE hold it); a new autopilot segment in `Tools/tour.sh` logs PASS for clock-out, go home, clock-in and log-in in the built player |
+| 2. Crash-safe saves | `6ac68df` | 4 EditMode tests against a temp folder (backup kept, corrupt and missing main file recover, delete removes every copy) |
+| 3. Browser build | `7d72a4e` | `Tools/unity.sh build-webgl` (14 MB). Headless Chrome + Playwright on a local server: title without QUIT, new game, autopilot login, music ready after ~5–8 s, SHIP CODE, the save in IndexedDB before and after a reload (credits 61.46), CONTINUE restores it. 60 fps on this iGPU when the machine was quiet, 5–30 fps at load average 60–90 |
+| 4. Packaging + Linux launcher | `bd80297` | `Tools/package.sh` zip listings (no do-not-ship folders, exec bits kept); the launcher from an unpacked zip chose the Wayland backend and ran the tour |
+| 5. Busy-screen polish | `099f157` | New EditMode test for the day-1 mail rule; tour before/after shots; the browser run shows no inbox after login and the CEO's mail after the first clicks |
+
+Changes from the plan:
+* Day 1 mail: the CEO's email is still *delivered* first (tests and the trailer depend on that); what waits
+  for 10 clicks is the inbox *auto-opening*. Dana's email didn't need to move.
+* The chapter banner also moved to the upper part of the screen, so it no longer covers SHIP CODE even when it
+  starts before a model drop appears (as in the tour's mid-game shot).
+* A frame gap of over a minute (hidden browser tab, laptop sleep) is now credited like time away with the game
+  closed, on every platform. Browsers stop running hidden tabs, so without this a browser idle game would lose
+  that time.
+
+Open:
+* **One native crash.** A SIGSEGV on a Unity worker thread (no managed frames) ended one of five tour runs
+  of the item-1 build while the machine was at load average 70–90. The other four runs were clean, and it
+  hasn't been reproduced or explained. Worth running the tour a few more times on the development build
+  (`Builds/LinuxDev`, with symbols) on a quiet machine.
+* Not verified: Firefox and Safari, audible audio in the browser (headless), the macOS build (no Mac), Windows
+  (module not installed), and save crash-safety in a real power cut (only simulated in tests).
+* Still owner decisions: Windows Build Support, hosting the browser build, the offline-earnings cap, a license,
+  and release versioning (the project now says 0.2.0; nothing is tagged or released).
