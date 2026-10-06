@@ -46,6 +46,13 @@ namespace AgentClicker
             yield return Shot("00b3_settings_controls");
             _gm.Menu.SetSettingsTab(MenuUI.SettingsTab.Graphics);
             _gm.Menu.HideAll();
+            _gm.Menu.ShowHowToPlay();
+            yield return new WaitForSeconds(0.5f);
+            yield return Shot("00b4_how_to_play");
+            var (size, overflowing) = _gm.Menu.InfoTextFit();
+            Debug.Log(!overflowing && size >= 16f ? $"[Tour] PASS How to Play fits at {size:0.#} pt"
+                                                  : $"[Tour] FAIL How to Play at {size:0.#} pt, overflowing {overflowing}");
+            _gm.Menu.HideAll();
             _gm.Menu.ShowStoryCards(StoryDatabase.Intro(), null);
             yield return new WaitForSeconds(3.5f);
             yield return Shot("00c_intro_card");

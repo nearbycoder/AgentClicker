@@ -423,12 +423,18 @@ namespace AgentClicker.UI
 
         // ------------------------------------------------------------------ info / how to play
         const string HowToPlay =
-            "<b>Ship code.</b> Click SHIP CODE (or press Space) to earn compute credits. Steady clicking builds Focus (up to x3).\n\n" +
-            "<b>Hire agents.</b> Spend credits in the <color=#4DD0E1>ModelMart</color> on AI agents from frontier labs. They earn every second, " +
-            "and each costs 15% more than the last. Upgrades multiply them forever; office gadgets appear on your desk.\n\n" +
-            "<b>Work the day.</b> 9 to 5. Beat the quota for a ★ (+1% production). Catch model drops, fail over outages, take (or dodge) calls.\n\n" +
-            "<b>Build the <color=#FFD166>Software Factory</color>.</b> It doubles everything and unlocks frontier agents. There is no last agent.\n\n" +
-            "<b>Reorg, forever.</b> Roll the Factory out to the next division to start over with <color=#FFD166>Stock Options</color>: " +
+            "<b>Ship code.</b> Click SHIP CODE (or press Space) to earn compute credits. Steady clicking builds Focus, up to x3 " +
+            "per click; it drains as soon as you stop.\n\n" +
+            "<b>Hire agents.</b> Spend credits in the <color=#4DD0E1>ModelMart</color> on AI agents. They earn every second, and each " +
+            "costs 15% more than the last. Upgrades multiply them; office gadgets appear on your desk. The <b>NEXT GOAL</b> card says " +
+            "what to save for next.\n\n" +
+            "<b>Work the day.</b> 9 to 5. Beat the quota for a ★ and finish your manager's two asks for a bonus. Click gold model " +
+            "drops before they vanish, click an outage banner to fail over, and answer the phone with E (Q declines), replying with 1, 2 or 3.\n\n" +
+            "<b>Walk away.</b> Leave the game running and your agents clock you out after 5 PM, go home and log back in the next " +
+            "morning (Settings → Gameplay). A <i>While you were away</i> card sums it up. With the game closed they earn at a reduced rate.\n\n" +
+            "<b>Build the <color=#FFD166>Software Factory</color>.</b> Every agent type, five Orchestrator Clusters and the recliner. " +
+            "It doubles everything and unlocks frontier agents. There is no last agent.\n\n" +
+            "<b>Reorg, forever.</b> Roll the Factory out to the next division and start over with <color=#FFD166>Stock Options</color>: " +
             "+1% production each, permanently. Spend them on Board Room perks. <b>Trophies</b> add Clout, which influence upgrades turn into production.";
 
         void BuildInfo()
@@ -446,6 +452,15 @@ namespace AgentClicker.UI
             var back = UIKit.Button(card.transform, "Back", Theme.Accent, () => { _gm.Sfx.Play(Sound.UiClick); _info.gameObject.SetActive(false); }, 10);
             back.GetComponent<RectTransform>().TopLeft(660, 624, 200, 50);
             back.Label("BACK", 20, Theme.Bg);
+        }
+
+        public void ShowHowToPlay() => ShowInfo("How to play", HowToPlay);
+
+        /// <summary>The info card's text after layout: its auto-sized font size and whether it still overflows.</summary>
+        public (float size, bool overflowing) InfoTextFit()
+        {
+            _infoBody.ForceMeshUpdate();
+            return (_infoBody.fontSize, _infoBody.isTextOverflowing);
         }
 
         public void ShowInfo(string title, string body)
