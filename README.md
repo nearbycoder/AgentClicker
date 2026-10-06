@@ -284,8 +284,9 @@ docs/media/                   trailer, teaser loop, poster and screenshots
   rebuilds its own batch, pooled floating numbers faded with CanvasGroups, prewarmed font atlases,
   on-demand reflection probes, and a 15 fps cap when the window is unfocused. A late-game office ran at about
   1.7 ms of main-thread CPU at 60 fps while clicking 15 times a second on a quiet machine. On the shared, busy
-  development machine the same benchmark now reads 3.3–4.6 ms for both v0.1.0 and the current build, so treat
-  absolute numbers from `Tools/benchmark.sh` as machine-dependent.
+  development machine the same benchmark has read anywhere from 2.0 to 5.6 ms for v0.1.0 and later builds alike,
+  swinging run to run with the machine's load, so treat absolute numbers from `Tools/benchmark.sh` as
+  machine-dependent.
 * **A scripted trailer director.** `-trailer` mode plays a shot list with an on-screen cursor that clicks real
   UI through Input System events. `VideoCapture` locks time to a fixed 30 fps step, pipes frames to ffmpeg and
   records the game's own audio with `AudioRenderer`. `Tools/make_trailer.py` then cuts the shots, adds the

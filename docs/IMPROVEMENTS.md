@@ -73,7 +73,7 @@ Impact is for a real player. Effort: S (≤ half a day), M (about a day), L (sev
 | 6 | **Windows build.** The build script already has a Windows target; it needs Windows Build Support (Mono) installed in Unity Hub. It could be built here but not tested on Windows. | High: reach | S once the module exists | Medium: untested platform. **Blocked on the owner.** |
 | 7 | **Offline earnings review.** 10% for at most 1 hour is stingy for the genre once #1 lands; consider 2–4 hours, and show what the cap is earlier. A balance decision for the owner. | Medium | S | Medium: interacts with the Remote Work / Unlimited PTO perks |
 | 8 | **Reduce motion option.** One toggle for the camera dollies, button punches and floating numbers (the showcase camera already has its own toggle). | Low–medium (accessibility) | S–M | Low |
-| 9 | **Mid-game pacing goals.** Make the two long stretches visible goals (for example a "next unlock" line with progress), rather than rebalancing. | Medium | M | Medium: balance tests constrain it |
+| 9 | **Mid-game pacing goals.** *(Done in round 3 as the next goal card.)* Make the two long stretches visible goals (for example a "next unlock" line with progress), rather than rebalancing. | Medium | M | Medium: balance tests constrain it |
 | 10 | **Gamepad / Steam Deck support.** The UI is built from code with uGUI buttons; it would need explicit navigation and focus visuals. | Medium | L | Medium |
 | 11 | **Version and docs cleanup**: set `bundleVersion` to match the release (findings 8, 9). | Low | S | None |
 | 12 | **macOS verification.** Needs someone with a Mac (Apple Silicon and Intel) to run the build; signing and notarisation need an Apple Developer account. **Blocked on the owner.** | Medium | S–M | — |
@@ -415,3 +415,58 @@ without the auto-sizer shrinking it below its minimum. **Verify**: tour screensh
 
 Whole round: `Tools/unity.sh tests` (including the balance simulation) passes, the tour passes, the benchmark is
 re-run and compared within the same session, screenshots go to `docs/media/improvements/round3/`.
+
+## Round 3 results (2026-10-06)
+
+All four items landed on `improvements-3`, one commit each after the plan (`077bd6a`) and the tool change
+(`7486493`). Tests: **127/127** (110 after round 2), balance bot unchanged at 2h 09m. Screenshots are in
+[`docs/media/improvements/round3/`](media/improvements/round3).
+
+| Item | Commit | Verified by |
+|---|---|---|
+| 1. Next goal card + affordability estimates | `2e71b0a` | 7 EditMode tests, one walking the whole bot run (goals only move forward, one per story agent in order, the last is the Factory; never NaN at 1e308). Tour: the goal at day 1, mid game, late game, after the Factory and with every agent owned; a real mouse click on the card opens the Factory tab; a real hover over an unaffordable agent shows "about 3m 20s" |
+| 2. Browser: save on hide, one IndexedDB sync at a time, audio check | `e33b81f` | New `Tools/webtest.mjs` in headless Chromium on the real GPU (ANGLE/Vulkan). The round 2 build passes 7/8: hiding the tab lost the 20 clicks made since the last autosave. This build: 8/8, the clicks are saved on hide. Audio peak 0.11–0.22 after the first clicks (context running) |
+| 3. Save file: download / load in the browser, save folder on the desktop | `f15b34c` | 10 EditMode test cases for `SaveSystem.Validate`. Web test: DOWNLOAD gives `agentclicker_save.json`; in a fresh browser profile a JSON file that isn't a save is rejected and changes nothing; the real file loads after a confirmation, CONTINUE has the same clicks, day and agents (12/12 checks) |
+| 4. How to Play | `98b1c96` | Tour screenshot; it fits the card at its full 19 pt |
+
+Supporting work: `7486493` runs tour and benchmark players with `XDG_CONFIG_HOME` under `Logs/player-home`. The
+real `~/.config/unity3d/Nearby Games/Agent Clicker/` was hashed before and after the round: `prefs` (Unity's window
+and session keys) and the editor's analytics files are unchanged, there is no save, and the game's settings key was
+never written there. One file did change: `TestResults.xml`, which Unity's performance-testing package (a dependency
+of a dependency) writes into the editor's `persistentDataPath` after every EditMode run, as it did in earlier rounds.
+It isn't a save or settings file. Redirecting the editor's config folder would also move its license, so it was left.
+
+The tour also stopped passing its real-click checks mid-round when a new display appeared on the shared desktop: the
+Input System drops synthetic mouse events while the window isn't focused. The tour now sets the Input System to ignore
+focus (in tour mode only), and logs whether the window had focus. With that, all 12 tour checks pass.
+
+Changes from the plan:
+* The goal after every agent type is owned is "double your Stock Options" (a reorg worth taking), not "the next
+  option": deep in the endless game options vest many times a second, so that goal read "about 0s".
+* Along the bot's run the Office goal (the recliner) never shows: the bot buys the recliner before its fifth
+  Orchestrator. The tests cover it directly.
+* WebKit could not be tested (below), so item 2 is Chromium only.
+* The plan said the overlapping syncs would be checked. They only appeared in a slow software-rendered run of the
+  round 2 build (up to 6 at once); at GPU speed neither build overlaps, so the check passes for both. The new code
+  can't overlap by construction (Unity's per-write auto-sync is off, and the game runs one sync at a time), but it
+  wasn't re-measured under software rendering.
+
+Also measured: `Tools/benchmark.sh` A/B against the published v0.1.0 (downloaded to `Builds/`, deleted afterwards),
+alternating two runs each at load average about 50. With a 60 fps cap while clicking, main-thread CPU read 5.56 and
+3.87 ms for v0.1.0 and 2.97 and 1.99 ms for this build; uncapped figures swung 2–3x between runs of the same build.
+No sign of a regression; the difference is within the noise. Seven tour runs this round, no crashes (22 since
+the segfault, which is still unexplained).
+
+Deferred, and why:
+* **WebKit (Safari's engine)**: Playwright's WebKit build is linked against Ubuntu 24.04 libraries (ICU 74, flite,
+  libjxl 0.8, libbacktrace). CachyOS ships ICU 78, so it doesn't start. Getting it would mean installing old
+  libraries or a container image outside the repo, which is the owner's call. Real Safari still needs a Mac.
+* Firefox, real phones, audible audio through speakers: no Firefox build is cached, and headless only shows that
+  the game produces a signal.
+* Gamepad / Steam Deck (#10) and localization (#13): large, not started.
+* The desktop OPEN SAVE FOLDER button wasn't clicked in the tour (it would open a file manager on the shared
+  desktop). A browser-downloaded save wasn't loaded into the desktop build end to end; both use the same
+  `SaveSystem` and the round-trip is covered by tests.
+
+Owner decisions: unchanged (Windows Build Support, browser hosting, the offline cap of 10% for 1 hour, license,
+signing, releases and tags), plus whether WebKit testing is worth an Ubuntu container or a Mac.
