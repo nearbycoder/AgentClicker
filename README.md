@@ -46,6 +46,10 @@ second, and on upgrades that multiply them. A work day runs from 9 to 5 (five re
 you clock out for a performance review, and your agents work the night shift. Keep the rhythm going to build
 Focus, catch model drops when they appear, fail over when an API goes down, and keep an eye on the phone.
 
+Leave the game running and it keeps going without you: if nobody touches the mouse or keyboard after 5 PM,
+your agents clock Sam out, file the review, go home and log back in the next morning, so production never
+stalls on a dialog. Choosing **WORK LATE** keeps that day's overtime, and Settings → Gameplay turns it off.
+
 | Input | Action |
 |---|---|
 | Click **SHIP CODE**, or `Space` / `Enter` | Ship code by hand |
@@ -134,7 +138,8 @@ the pipeline booting, the camera pulls back, and Sam puts their feet up. Then th
 
 Graphics presets from Low to Ultra (MSAA, shadows, SSAO, render scale), display mode, resolution, V-Sync, a
 frame cap, field of view and post-processing. Separate volume sliders for effects, music and ambience. Work
-days of 3, 5, 8 or 12 minutes, tutorial tips, a purchase camera toggle and mouse sensitivity. The game
+days of 3, 5, 8 or 12 minutes, running the day while you're away, tutorial tips, a purchase camera toggle and
+mouse sensitivity. The game
 autosaves every 15 seconds, and your agents keep earning at a reduced rate while the game is closed.
 
 ## Content at a glance
@@ -188,7 +193,7 @@ editor at `~/Unity/Hub/Editor/6000.6.2f1/Editor/Unity`, or set `UNITY_EDITOR` to
 ```sh
 Tools/unity.sh setup       # URP, post-processing, player settings, reimport models (idempotent)
 Tools/unity.sh scene       # regenerate Assets/Scenes/Main.unity from the models (the scene is committed)
-Tools/unity.sh tests       # 96 EditMode tests, including the economy balance simulation
+Tools/unity.sh tests       # 101 EditMode tests, including the economy balance simulation
 Tools/unity.sh build       # Linux player → Builds/Linux
 Tools/unity.sh build-mac   # universal macOS player → Builds/Mac
 Tools/play.sh              # run the Linux build (adds -force-wayland on Wayland)

@@ -27,7 +27,7 @@ namespace AgentClicker.UI
         float _creditsY;
 
         // settings
-        enum SettingsTab { Graphics, Audio, Gameplay, Controls }
+        internal enum SettingsTab { Graphics, Audio, Gameplay, Controls }
         SettingsTab _tab;
         RectTransform _settingsBody;
         readonly Dictionary<SettingsTab, Button> _settingsTabs = new Dictionary<SettingsTab, Button>();
@@ -238,7 +238,7 @@ namespace AgentClicker.UI
             _settingsBack?.Invoke();
         }
 
-        void SetSettingsTab(SettingsTab tab)
+        internal void SetSettingsTab(SettingsTab tab)
         {
             _tab = tab;
             foreach (var kv in _settingsTabs) kv.Value.GetComponent<Image>().color = kv.Key == tab ? Theme.Accent2 : Theme.PanelLight;
@@ -274,6 +274,8 @@ namespace AgentClicker.UI
                     Stepper("Work day length", GameSettings.DayLengthNames, () => s.dayLength, v => s.dayLength = v, y,
                             "Real time from 9:00 AM to 5:00 PM"); Next();
                     Toggle("Show off new gadgets (camera)", () => s.purchaseShowcase, v => s.purchaseShowcase = v, y); Next();
+                    Toggle("Run the work day when I'm away", () => s.autopilotDay, v => s.autopilotDay = v, y,
+                           "Idle for a while after 5 PM: your agents clock you out, go home and log you back in"); Next();
                     Toggle("Tutorial tips", () => s.tutorialTips, v => s.tutorialTips = v, y); Next();
                     Toggle("Open important emails automatically", () => s.autoOpenStoryMail, v => s.autoOpenStoryMail = v, y); Next();
                     Slider("Mouse look sensitivity", 0.25f, 3f, () => s.mouseSensitivity, v => s.mouseSensitivity = v, y, v => $"{v:0.00}x"); Next();
@@ -331,9 +333,9 @@ namespace AgentClicker.UI
             Refresh();
         }
 
-        void Toggle(string label, Func<bool> get, Action<bool> set, float y)
+        void Toggle(string label, Func<bool> get, Action<bool> set, float y, string hint = null)
         {
-            var row = SettingRow(label, y);
+            var row = SettingRow(label, y, hint);
             Button b = null;
             TextMeshProUGUI t = null;
             void Refresh()

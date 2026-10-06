@@ -127,7 +127,7 @@ namespace AgentClicker.UI
             _loginEmail.rectTransform.Anchor(0, 0, 1, 0).Insets(40, 34, 40, -70);
         }
 
-        void StartLoginAnimation()
+        public void StartLoginAnimation()
         {
             if (_loginTyping >= 0) return;
             _loginTyping = 0;
@@ -595,7 +595,7 @@ namespace AgentClicker.UI
                 (met ? "<color=#3DDC97>Quota met.</color> " : "<color=#FF5D5D>Quota not met yet.</color> ") +
                 "Clock out for your performance review, or stay late. Overtime counts toward today's quota.",
                 19, Theme.TextDim, TextAlignmentOptions.Top).rectTransform.TopLeft(50, 100, 540, 90);
-            var stay = UIKit.Button(card, "Stay", Theme.PanelLight, CloseModal, 12);
+            var stay = UIKit.Button(card, "Stay", Theme.PanelLight, () => { CloseModal(); _gm.WorkLate(); }, 12);
             stay.GetComponent<RectTransform>().TopLeft(50, 220, 260, 64);
             stay.Label("WORK LATE", 22, Theme.Text);
             var go = UIKit.Button(card, "ClockOut", Theme.Warn, () => { CloseModal(); _gm.ClockOut(); }, 12);

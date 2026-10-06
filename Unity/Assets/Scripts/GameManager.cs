@@ -40,12 +40,16 @@ namespace AgentClicker
         public bool SuppressPurchaseToasts { get; set; }
         public bool InEnding { get; private set; }
         public bool OnTitle { get; private set; }
+        /// <summary>Runs the day when nobody is at the keyboard (see <see cref="DayAutopilot"/>). Off in scripted modes.</summary>
+        public DayAutopilot Autopilot { get; } = new DayAutopilot();
+        public bool AutopilotAllowed { get; set; } = true;
 
         float _saveTimer, _tutorialTimer;
         bool _boardRoomOnLogin;
         double _offlineGain;
         bool _automated;   // tour / benchmark: skip the title screen
         int _lastHour = -1;
+        bool _workLate, _autoCycled, _autoLogin;
         ProbeRefresher _probe;
         readonly System.Random _rng = new System.Random();
 
@@ -75,6 +79,7 @@ namespace AgentClicker
                 }
             }
             _automated = tourDir != null || benchmark;
+            AutopilotAllowed = !_automated && !demo && trailerDir == null;
 
             if (demo)
             {
@@ -337,6 +342,54 @@ namespace AgentClicker
 
             UpdateTutorial(dt);
             HandleKeys();
+            UpdateAutopilot();
+        }
+
+        // ------------------------------------------------------------------ autopilot
+        /// <summary>The player chose WORK LATE at 5 PM: the autopilot leaves today's overtime alone.</summary>
+        public void WorkLate() => _workLate = true;
+
+        void UpdateAutopilot()
+        {
+            if (!AutopilotAllowed || !Settings.autopilotDay) { Autopilot.Reset(); return; }
+            bool blocked = OnTitle || InEnding || Menu.Blocking || Calls.Busy || Model.ActiveCall != null;
+            var action = Autopilot.Tick(Model, Mathf.Min(Time.unscaledDeltaTime, 0.25f), PlayerInput(), blocked, _workLate);
+            switch (action)
+            {
+                case AutopilotAction.ClockOut:
+                    Debug.Log($"[Autopilot] clock out, day {Model.State.day}");
+                    _autoCycled = true;
+                    Computer.CloseModal();
+                    ClockOut();
+                    break;
+                case AutopilotAction.GoHome:
+                    Debug.Log($"[Autopilot] go home, day {Model.State.day}");
+                    _autoCycled = true;
+                    Computer.CloseModal();
+                    GoHome();
+                    break;
+                case AutopilotAction.ClockIn:
+                    Debug.Log($"[Autopilot] clock in, day {Model.State.day + 1}");
+                    _autoCycled = true;
+                    ClockIn();
+                    break;
+                case AutopilotAction.LogIn:
+                    Debug.Log($"[Autopilot] log in, day {Model.State.day}");
+                    _autoLogin = true;
+                    Computer.StartLoginAnimation();
+                    break;
+            }
+        }
+
+        /// <summary>Any key, click, wheel or deliberate mouse movement this frame.</summary>
+        static bool PlayerInput()
+        {
+            var kb = Keyboard.current;
+            if (kb != null && kb.anyKey.wasPressedThisFrame) return true;
+            var mouse = Mouse.current;
+            if (mouse == null) return false;
+            return mouse.leftButton.wasPressedThisFrame || mouse.rightButton.isPressed || mouse.middleButton.wasPressedThisFrame ||
+                   mouse.scroll.ReadValue().sqrMagnitude > 0.01f || mouse.delta.ReadValue().sqrMagnitude > 4f;
         }
 
         void HandleKeys()
@@ -488,6 +541,7 @@ namespace AgentClicker
         {
             OnTitle = false;
             InEnding = false;
+            _workLate = false;
             Time.timeScale = 1f;
             Office.Refresh(newDay);
             if (_probe) _probe.RequestRender(0.5f);
@@ -508,6 +562,13 @@ namespace AgentClicker
             Model.ClockIn();
             Sfx.Play(Sound.Login);
             Computer.ShowDesktop();
+            if (_autoLogin)
+            {
+                Computer.Toast(_autoCycled
+                    ? $"<color=#4DD0E1>AUTOPILOT</color>  You were away, so your agents clocked you out and back in. Day {Model.State.day}."
+                    : $"<color=#4DD0E1>AUTOPILOT</color>  You were away, so your agents logged you in. Day {Model.State.day}.", Theme.Accent, 8f);
+            }
+            _autoLogin = _autoCycled = false;
             if (_boardRoomOnLogin)
             {
                 // fresh division: spend the new options before the first click

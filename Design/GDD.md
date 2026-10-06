@@ -127,6 +127,11 @@ Cost of the *n*-th copy: `baseCost × 1.15^n`. Bulk buys: x1, x10, x100 and MAX.
   your quota (`max(150 × day, 0.9 × yesterday)`). Meeting the quota earns a
   ⭐ and a 10% bonus.
 * **Night shift**: agents earn 60 seconds of production at night (x1.5 with the Mini Fridge).
+* **Away from the keyboard** (`DayAutopilot`, on by default): agents only produce during the work day, so
+  an idle game would otherwise stop at the review. With no input, the game clocks out 30 s after 17:00,
+  goes home after 15 s on the review, clocks in after 8 s of night and logs in after 10 s, then toasts
+  what it did. Any input restarts the countdown; calls, menus, story cards and the ending hold it, and
+  choosing WORK LATE keeps that day's overtime.
 * **Promotions** come from lifetime earnings: Junior Developer → Developer →
   Senior Developer → Staff Engineer → Principal Engineer → AI Whisperer →
   Chief Agent Officer. Promotions change the office: the cubicle walls disappear,

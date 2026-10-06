@@ -35,6 +35,13 @@ namespace AgentClicker
             _gm.Menu.OpenSettings(() => { });
             yield return new WaitForSeconds(0.6f);
             yield return Shot("00b_settings");
+            _gm.Menu.SetSettingsTab(MenuUI.SettingsTab.Gameplay);
+            yield return new WaitForSeconds(0.4f);
+            yield return Shot("00b2_settings_gameplay");
+            _gm.Menu.SetSettingsTab(MenuUI.SettingsTab.Controls);
+            yield return new WaitForSeconds(0.4f);
+            yield return Shot("00b3_settings_controls");
+            _gm.Menu.SetSettingsTab(MenuUI.SettingsTab.Graphics);
             _gm.Menu.HideAll();
             _gm.Menu.ShowStoryCards(StoryDatabase.Intro(), null);
             yield return new WaitForSeconds(3.5f);
@@ -170,6 +177,9 @@ namespace AgentClicker
             yield return new WaitForSeconds(2.5f);
             yield return Shot("10_morning_day23");
 
+            // ---- autopilot: nobody touches the keyboard from 5 PM to the next morning ----------
+            yield return AutopilotSegment();
+
             // ---- the ending ---------------------------------------------------
             _gm.Login();
             s.credits = 1e13;
@@ -258,6 +268,45 @@ namespace AgentClicker
 
             Debug.Log("[Tour] done");
             Application.Quit();
+        }
+
+        IEnumerator AutopilotSegment()
+        {
+            var ap = _gm.Autopilot;
+            var defaults = new DayAutopilot();
+            _gm.Settings.autopilotDay = true;
+            _gm.AutopilotAllowed = true;
+            M.RandomEventsEnabled = false; // no phone call in the middle of the check
+            ap.ClockOutAfter = 3f; ap.GoHomeAfter = 3f; ap.ClockInAfter = 2f; ap.LogInAfter = 2f;
+            _gm.Login();
+            yield return new WaitForSeconds(1.5f);
+            M.State.dayMinutes = GameDatabase.WorkdayMinutes - 1f;
+            int day = M.State.day;
+            yield return WaitFor(() => _gm.Computer.ModalOpen, 5f);
+            yield return Shot("10a_autopilot_five_pm");
+            yield return WaitFor(() => M.Phase == GamePhase.Review, 8f);
+            yield return new WaitForSeconds(0.8f);
+            yield return Shot("10b_autopilot_review");
+            Debug.Log(M.Phase == GamePhase.Review ? "[Tour] PASS autopilot clocked out at 5 PM" : $"[Tour] FAIL autopilot did not clock out ({M.Phase})");
+            yield return WaitFor(() => M.Phase == GamePhase.Night, 8f);
+            yield return new WaitForSeconds(1.0f);
+            yield return Shot("10c_autopilot_night");
+            Debug.Log(M.Phase == GamePhase.Night ? "[Tour] PASS autopilot went home" : $"[Tour] FAIL autopilot did not go home ({M.Phase})");
+            yield return WaitFor(() => M.Phase == GamePhase.Working, 12f);
+            yield return new WaitForSeconds(2.0f);
+            yield return Shot("10d_autopilot_logged_in");
+            Debug.Log(M.Phase == GamePhase.Working && M.State.day == day + 1
+                ? $"[Tour] PASS autopilot clocked in and logged in (day {M.State.day})"
+                : $"[Tour] FAIL autopilot did not start the next day ({M.Phase}, day {M.State.day})");
+            _gm.AutopilotAllowed = false;
+            M.RandomEventsEnabled = true;
+            ap.ClockOutAfter = defaults.ClockOutAfter; ap.GoHomeAfter = defaults.GoHomeAfter;
+            ap.ClockInAfter = defaults.ClockInAfter; ap.LogInAfter = defaults.LogInAfter;
+        }
+
+        static IEnumerator WaitFor(System.Func<bool> done, float timeout)
+        {
+            for (float t = 0; t < timeout && !done(); t += Time.unscaledDeltaTime) yield return null;
         }
 
         static IEnumerator RealClick(Vector2 pos)
