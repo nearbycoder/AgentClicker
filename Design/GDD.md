@@ -155,8 +155,9 @@ Requirements: own at least 1 of every agent, at least 5 Orchestrator Clusters,
 and the Zero-Gravity Recliner. The Factory costs **3 trillion** credits.
 
 **Pacing.** `BalanceSimulator` plays greedily, catches every model drop and clicks 4/s
-for the first 30 minutes, then 1/s. It finishes in about 2.5 hours (around 31 in-game days),
-and an EditMode test fails if that drifts outside 1.5 to 5 hours. Real players should take roughly 3 to 4 hours.
+for the first 30 minutes, then 1/s. It finishes in 2h 09m (day 27 with five-minute days; `Tools/unity.sh tests`
+prints the run), and an EditMode test fails if that drifts outside 1.5 to 5 hours. Real players should take
+roughly 3 hours.
 
 When you buy it, the monitor shows the factory pipeline booting up. The camera
 pulls back, and your character reclines with their feet on the desk and hands behind their head.
@@ -245,7 +246,7 @@ has rapport-dependent cards for each character.
   ship, upgrade, model drop, production level, over-deliver, answer calls and install a gadget. Each pays
   30 s of production (at least 50 × day), and finishing both earns Dana +1.
 
-Balance with all of this: the greedy bot finishes in about 2h10m. It always takes the first reply, catches
+Balance with all of this: the greedy bot finishes in 2h 09m. It always takes the first reply, catches
 every drop and clicks 4/s early on, so human players should take roughly 3 hours.
 
 ## 17. The endless game
@@ -285,6 +286,10 @@ With one-hour laps (`Tools/unity.sh exec AgentClicker.EditorTools.BalanceReport.
 | Legal | 4m 30s | 105Sx | 45.7K |
 | Finance | 3m | 1.25Oc | 1.03M |
 | … The Board (10th) | 3m 46s | 9.5UDc | 1.05B |
+
+(Re-run on 2026-10-06 with the same results.) The EditMode test `Tools/unity.sh tests` runs a shorter career
+of four divisions with 20-minute laps, so it prints slower factories (Marketing about 59m, Sales and Legal
+about 47m); both are correct for their lap length.
 
 Growth keeps compounding (still about x6–7 per division by the tenth), while later factories stay at
 a few minutes. At that rate the trophy ladders that end at a centillion (1e303) are hundreds of hours away.

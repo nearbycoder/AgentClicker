@@ -393,9 +393,22 @@ namespace AgentClicker.UI
         public void ShowDrop(ModelDrop d)
         {
             _dropText.text = $"{d.LabName} just released <color=#FFD166>{d.ModelName}</color>! <size=85%><color=#8A97AD>Click to try it.</color></size>";
-            _dropCard.anchoredPosition = new Vector2(Random.Range(460f, 1150f), -Random.Range(110f, 560f));
+            var pos = DropCardPosition(_dropRng);
+            _dropCard.anchoredPosition = new Vector2(pos.x, -pos.y);
             _dropCard.gameObject.SetActive(true);
         }
+
+        public const float DropCardWidth = 400, DropCardHeight = 128;
+        /// <summary>
+        /// Where a model drop card's top-left corner may land (desktop pixels, y down): right of the SHIP CODE column,
+        /// below the chapter banner's band and above the toast stack, so the three never cover each other.
+        /// </summary>
+        public static readonly Rect DropCardArea = new Rect(460, 340, 690, 180);
+        readonly System.Random _dropRng = new System.Random();
+
+        public static Vector2 DropCardPosition(System.Random rng) =>
+            new Vector2(DropCardArea.x + (float)rng.NextDouble() * DropCardArea.width,
+                        DropCardArea.y + (float)rng.NextDouble() * DropCardArea.height);
 
         public void HideDrop()
         {
