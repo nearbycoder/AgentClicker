@@ -282,6 +282,7 @@ namespace AgentClicker
             _gm.Settings.autopilotDay = true;
             _gm.AutopilotAllowed = true;
             M.RandomEventsEnabled = false; // no phone call in the middle of the check
+            _gm.Away.MinSeconds = 3;       // the real threshold is 90 s; the tour can't wait that long
             ap.ClockOutAfter = 3f; ap.GoHomeAfter = 3f; ap.ClockInAfter = 2f; ap.LogInAfter = 2f;
             _gm.Login();
             yield return new WaitForSeconds(1.5f);
@@ -303,6 +304,13 @@ namespace AgentClicker
             Debug.Log(M.Phase == GamePhase.Working && M.State.day == day + 1
                 ? $"[Tour] PASS autopilot clocked in and logged in (day {M.State.day})"
                 : $"[Tour] FAIL autopilot did not start the next day ({M.Phase}, day {M.State.day})");
+            _gm.PlayerReturned(); // as if the mouse moved
+            yield return WaitFor(() => _gm.Computer.ModalOpen, 3f);
+            yield return new WaitForSeconds(0.6f);
+            yield return Shot("10e_away_report");
+            Debug.Log(_gm.Computer.ModalOpen ? "[Tour] PASS away report shown on return" : "[Tour] FAIL no away report on return");
+            _gm.Computer.CloseModal();
+            _gm.Away.MinSeconds = 90;
             _gm.AutopilotAllowed = false;
             M.RandomEventsEnabled = true;
             ap.ClockOutAfter = defaults.ClockOutAfter; ap.GoHomeAfter = defaults.GoHomeAfter;

@@ -51,6 +51,9 @@ namespace AgentClicker
         int _lastHour = -1;
         bool _workLate, _autoCycled, _autoLogin;
         int _pendingChapter;
+        /// <summary>Scores what happens while nobody is at the keyboard; reported when the player is back.</summary>
+        public AwayReport Away { get; private set; }
+        AwaySummary _pendingAway;
         ProbeRefresher _probe;
         readonly System.Random _rng = new System.Random();
 
@@ -154,6 +157,10 @@ namespace AgentClicker
                 side.Init(this);
             _probe = FindAnyObjectByType<ProbeRefresher>();
             HookEvents();
+            Away = new AwayReport(Model);
+            Model.ClockedOut += Away.OnReview;
+            Model.CallMissed += _ => Away.OnCallMissed();
+            Model.DropExpired += Away.OnDropExpired;
             ApplySettings(save: false);
 
             if (_automated)
@@ -344,8 +351,33 @@ namespace AgentClicker
 
             UpdateTutorial(dt);
             HandleKeys();
-            UpdateAutopilot();
+            bool input = PlayerInput();
+            UpdateAutopilot(input);
+            UpdateAway(input);
             UpdateChapterBanner();
+        }
+
+        void UpdateAway(bool input)
+        {
+            if (OnTitle || InEnding || !AutopilotAllowed) { Away.Restart(Model); return; }
+            Away.Tick(Time.unscaledDeltaTime);
+            if (input) PlayerReturned();
+            if (_pendingAway != null && Computer.DesktopShown && !Computer.ModalOpen && !Menu.Blocking && !Calls.Busy)
+            {
+                Computer.ShowAwayReport(_pendingAway);
+                _pendingAway = null;
+            }
+        }
+
+        /// <summary>The player touched the mouse or keyboard: report the absence if it was a real one.</summary>
+        public void PlayerReturned()
+        {
+            var summary = Away.Return(Model);
+            if (summary != null)
+            {
+                Debug.Log($"[Away] {summary.Days} day(s) in {NumberFormat.Duration(summary.Seconds)}, +{NumberFormat.Short(summary.Credits)}");
+                _pendingAway = summary;
+            }
         }
 
         /// <summary>Chapter banners wait until no modal, model drop, call or menu is on screen.</summary>
@@ -363,11 +395,11 @@ namespace AgentClicker
         /// <summary>The player chose WORK LATE at 5 PM: the autopilot leaves today's overtime alone.</summary>
         public void WorkLate() => _workLate = true;
 
-        void UpdateAutopilot()
+        void UpdateAutopilot(bool input)
         {
             if (!AutopilotAllowed || !Settings.autopilotDay) { Autopilot.Reset(); return; }
             bool blocked = OnTitle || InEnding || Menu.Blocking || Calls.Busy || Model.ActiveCall != null;
-            var action = Autopilot.Tick(Model, Mathf.Min(Time.unscaledDeltaTime, 0.25f), PlayerInput(), blocked, _workLate);
+            var action = Autopilot.Tick(Model, Mathf.Min(Time.unscaledDeltaTime, 0.25f), input, blocked, _workLate);
             switch (action)
             {
                 case AutopilotAction.ClockOut:

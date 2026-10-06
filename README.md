@@ -48,7 +48,9 @@ Focus, catch model drops when they appear, fail over when an API goes down, and 
 
 Leave the game running and it keeps going without you: if nobody touches the mouse or keyboard after 5 PM,
 your agents clock Sam out, file the review, go home and log back in the next morning, so production never
-stalls on a dialog. Choosing **WORK LATE** keeps that day's overtime, and Settings → Gameplay turns it off.
+stalls on a dialog. Choosing **WORK LATE** keeps that day's overtime, and Settings → Gameplay turns it off. When
+you come back after at least one end of day, a **While you were away** card sums up the days, the earnings,
+the quotas and the calls and model drops you missed.
 
 | Input | Action |
 |---|---|
