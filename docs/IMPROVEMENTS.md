@@ -1,8 +1,8 @@
-# Agent Clicker: improvement plan (round 2)
+# Agent Clicker: improvement plan
 
-Written on 2026-10-06 on the `improvements` branch, after v0.1.0 (published 2026-10-04). This document
-ranks what would most raise the game's quality for a real player and proposes the scope for the next
-round. Nothing here is implemented yet.
+Written on 2026-10-06, after v0.1.0 (published 2026-10-04). This document ranks what would most raise the
+game's quality for a real player, then records each round's scope and results. Round 1 (branch `improvements`)
+is merged into `main`; round 2 is on `improvements-2`.
 
 ## Baseline (what was run, and what it showed)
 
@@ -91,7 +91,7 @@ browser tab, so this is the cheapest platform reach available. It needs these fi
   `persistentDataPath` lives in IndexedDB and isn't flushed after `File.WriteAllText`; this still needs
   confirming. A browser player who loses their career on reload would never come back, so this blocks
   shipping.
-* ~~**Post-processing is off.**~~ *Corrected in round 2:* the console warning about the FSR upscaling shader
+* ~~**Post-processing is off.**~~ *Corrected in round 1:* the console warning about the FSR upscaling shader
   is generic. In this URP version an unsupported FSR shader only disables the FSR pass itself
   (`Fsr1UpscalePostProcessPass`), and a side-by-side of the title screen shows the same grading and vignette
   in the browser as on desktop. No fix was needed.
@@ -106,7 +106,7 @@ browser tab, so this is the cheapest platform reach available. It needs these fi
 Windows, by contrast, is a one-line build once the module is installed, but this machine can't verify
 it. The browser build can be verified end to end here.
 
-## Proposed scope for this round
+## Round 1 scope
 
 Five items, in order. Windows (#6) and macOS (#12) wait for the owner.
 
@@ -202,7 +202,7 @@ EditMode test for the mail trigger.
 * **Offline earnings (#7)**: keep 10% / 1 hour, or raise the cap once the day runs itself.
 * **License**: still none, which matters more once the game is on a public web page.
 
-## Round 2 results (2026-10-06)
+## Round 1 results (2026-10-06)
 
 All five scoped items landed on `improvements`, one commit each. Tests: **106/106** (96 at baseline). Screenshots
 are in [`docs/media/improvements/`](media/improvements).
@@ -233,3 +233,67 @@ Open:
   (module not installed), and save crash-safety in a real power cut (only simulated in tests).
 * Still owner decisions: Windows Build Support, hosting the browser build, the offline-earnings cap, a license,
   and release versioning (the project now says 0.2.0; nothing is tagged or released).
+
+## Round 2 scope
+
+Picked from the ranked list (#8, plus small parts of #9 and #11) and from what round 1 turned up. Balance stays
+as it is (the offline cap of 10% for 1 hour is an owner decision), and so do Windows, hosting and gamepad
+support (L effort).
+
+### 1. "While you were away" report
+
+Round 1 made the day run itself, but a returning player only sees the last toast ("Day 24"). They can't tell
+how many days passed, what was earned, whether the quota was met, or which calls and model drops were missed.
+
+* A pure C# `AwayReport` (in `Core`) starts with the autopilot's first action and collects: days worked, credits
+  earned, quotas met and missed, stars, missed calls and expired model drops.
+* On the first input after the autopilot has run at least one full day, CorpOS shows a dismissable
+  "WHILE YOU WERE AWAY" card with those numbers. Shorter absences keep today's toast.
+
+**Acceptance**: after an idle stretch of several days, the card lists the right day count and earnings; it
+appears once, on return, and never for an active player. **Verify**: EditMode tests (an idle hour driven by the
+autopilot, then the report's numbers checked against the model), plus a tour segment that idles through a
+day, simulates input, and logs PASS when the card shows (screenshot).
+
+### 2. Reduce motion (#8)
+
+* Settings → Gameplay → "Reduce motion" (off by default). Camera moves cut instead of flying (log-in dolly,
+  calls, view toggle, ending); gadget showcases are skipped; the title camera holds still; button punches,
+  pulses and the rising floating numbers stop moving (the numbers fade in place).
+
+**Acceptance**: with the option on, a camera mode change lands on its target in the next frame, and no pulse or
+punch changes scale. With it off, nothing changes. **Verify**: a tour segment that switches the camera with
+reduce motion on and logs PASS if it has reached the target one frame later, a screenshot of the setting, and
+the existing tour unchanged with the option off.
+
+### 3. A hosting-ready browser page
+
+Round 1's browser build uses Unity's default page: a fixed 1280×720 box with a "Unity Web Player" title.
+
+* A project WebGL template (`Assets/WebGLTemplates/AgentClicker`): the canvas fills the window, the page title
+  and colours match the game, a progress bar while loading, a fullscreen button, and a short notice on touch
+  devices ("needs a mouse and keyboard").
+
+**Acceptance**: at 1280×720, 1920×1080 and a phone-sized viewport the canvas fills the page with no scrollbars;
+the title reads "Agent Clicker"; the touch notice appears only on touch devices; the game still saves and
+continues across a reload. **Verify**: Playwright and headless Chrome against a local server (port chosen
+free, output in `Logs/`), screenshots at each size.
+
+### 4. Polish: model drop placement and number drift (#11)
+
+* Model drop cards spawn in a band that can't overlap the chapter banner or the toast stack.
+* GDD §9 and the career table quote today's numbers (2h 09m, day 27) and say which lap length they use.
+
+**Acceptance**: drop positions are always inside the band (an EditMode test over many spawns via a pure helper);
+the docs agree with `Tools/unity.sh tests` output.
+
+### 5. Hunt the Linux segfault (time-boxed)
+
+Round 1 saw one native crash in five tour runs under heavy load. Run the tour repeatedly on a quiet machine
+(release build), then on the development build if it reproduces, and record the outcome honestly. If it doesn't
+reproduce, the README keeps the note with the new run count.
+
+**Acceptance**: a recorded run count and outcome; a fix only if the cause is found.
+
+Whole round: `Tools/unity.sh tests` (including the balance simulation) passes, the tour passes, and screenshots
+go to `docs/media/improvements/round2/`.
