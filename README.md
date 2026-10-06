@@ -172,9 +172,11 @@ autosaves every 15 seconds, and your agents keep earning at a reduced rate while
 
 Download the latest build from the [**Releases**](https://github.com/nearbycoder/AgentClicker/releases/latest) page.
 
-**Linux (x86_64).** Unzip `AgentClicker-v0.1.0-linux-x86_64.zip` and run `./AgentClicker.x86_64`. On a
-Wayland desktop, start it with `./AgentClicker.x86_64 -force-wayland`: the X11 path can hang at startup under
-XWayland. Command-line options: `-reset` wipes the save and `-daylength 120` shortens the work day (seconds).
+**Linux (x86_64).** Unzip the Linux zip and run `./AgentClicker.sh`. The launcher starts the game with Unity's
+native Wayland backend on a Wayland desktop, because the X11 path can hang at startup under XWayland (set
+`AGENTCLICKER_X11=1` to skip that). The v0.1.0 zip predates the launcher: run
+`./AgentClicker.x86_64 -force-wayland` there. Command-line options: `-reset` wipes the save and `-daylength 120`
+shortens the work day (seconds).
 
 **macOS (experimental).** `AgentClicker-v0.1.0-macos-universal.zip` is a universal (Intel and Apple Silicon)
 build made on Linux. It is unsigned and hasn't been tested on a Mac. If macOS refuses to open it, run
@@ -208,6 +210,7 @@ Tools/unity.sh build       # Linux player → Builds/Linux
 Tools/unity.sh build-mac   # universal macOS player → Builds/Mac
 Tools/unity.sh build-webgl # browser build (Brotli, works on any static host) → Builds/WebGL
 Tools/play.sh              # run the Linux build (adds -force-wayland on Wayland)
+Tools/package.sh v0.2.0    # release zips from the builds above → Builds/Release (Linux zip includes AgentClicker.sh)
 ```
 
 **Art.** Every model is built from primitives by Python scripts and exported as FBX straight into the Unity
@@ -296,7 +299,10 @@ release (v0.1.0).
 * **Tested on Linux only**: CachyOS with KDE Plasma on Wayland and an AMD Radeon 8060S. Other distributions
   and GPUs should work but haven't been tried.
 * **XWayland hang**: the Linux player can hang at startup through XWayland. Launch with `-force-wayland`
-  (`Tools/play.sh` does this for you).
+  (the `AgentClicker.sh` launcher in zips made by `Tools/package.sh`, and `Tools/play.sh`, do this for you).
+* **One unexplained crash**: in October 2026 the Linux player crashed once (SIGSEGV on a native worker thread,
+  no managed code on the stack) during an automated screenshot tour, while the machine was badly overloaded.
+  Four further runs of the same build were clean. It hasn't been reproduced or explained.
 * **macOS is experimental**: the build is made on Linux, isn't signed or notarised, and hasn't been run on a Mac.
 * **The browser build is new and lightly tested**: it was checked in headless Chrome on Linux only (start a game,
   autopilot login, save, reload, continue). Firefox, Safari, phones and tablets (there's no touch support) and
