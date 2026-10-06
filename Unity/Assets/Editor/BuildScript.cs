@@ -28,15 +28,14 @@ namespace AgentClicker.EditorTools
 
         /// <summary>
         /// Browser build → Builds/WebGL. Brotli with the JavaScript decompression fallback, so it runs from any static
-        /// host (no Content-Encoding headers needed).
+        /// host (no Content-Encoding headers needed). The page comes from Assets/WebGLTemplates/AgentClicker.
         /// </summary>
         [MenuItem("Agent Clicker/Build WebGL Player")]
         public static void BuildWebGL()
         {
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
             PlayerSettings.WebGL.decompressionFallback = true;
-            PlayerSettings.defaultWebScreenWidth = 1280;
-            PlayerSettings.defaultWebScreenHeight = 720;
+            PlayerSettings.WebGL.template = "PROJECT:AgentClicker"; // Assets/WebGLTemplates/AgentClicker: full-window page
             Build(BuildTarget.WebGL, "WebGL");
         }
 

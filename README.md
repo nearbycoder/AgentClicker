@@ -187,7 +187,9 @@ build made on Linux. It is unsigned and hasn't been tested on a Mac. If macOS re
 
 **In a browser (local build, not hosted yet).** `Tools/unity.sh build-webgl` makes a browser build in
 `Builds/WebGL`, about 15 MB to download. Serve the folder with any static web server, for example
-`python3 -m http.server -d Builds/WebGL 8000`, and open <http://localhost:8000>. The save goes to the
+`python3 -m http.server -d Builds/WebGL 8000`, and open <http://localhost:8000>. The page (from
+`Unity/Assets/WebGLTemplates/AgentClicker`) fills the browser window, shows a progress bar while loading, has a
+fullscreen button, and tells touch-only devices up front that the game needs a mouse and keyboard. The save goes to the
 browser's storage (IndexedDB) and survives a reload. Browsers pause a tab you aren't looking at, so time in a
 hidden tab counts like time with the game closed. It has only been tried in headless Chrome on Linux; see the
 known issues below.
