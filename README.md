@@ -276,8 +276,10 @@ docs/media/                   trailer, teaser loop, poster and screenshots
   chords, bass, plucked melody, swung drums) are synthesised on a worker thread at startup.
 * **Performance work** for a game that idles in the background: nested canvases so a ticking number only
   rebuilds its own batch, pooled floating numbers faded with CanvasGroups, prewarmed font atlases,
-  on-demand reflection probes, and a 15 fps cap when the window is unfocused. A late-game office runs at about
-  1.7 ms of main-thread CPU at 60 fps while clicking 15 times a second.
+  on-demand reflection probes, and a 15 fps cap when the window is unfocused. A late-game office ran at about
+  1.7 ms of main-thread CPU at 60 fps while clicking 15 times a second on a quiet machine. On the shared, busy
+  development machine the same benchmark now reads 3–4.5 ms for both v0.1.0 and the current build, so treat
+  absolute numbers from `Tools/benchmark.sh` as machine-dependent.
 * **A scripted trailer director.** `-trailer` mode plays a shot list with an on-screen cursor that clicks real
   UI through Input System events. `VideoCapture` locks time to a fixed 30 fps step, pipes frames to ffmpeg and
   records the game's own audio with `AudioRenderer`. `Tools/make_trailer.py` then cuts the shots, adds the
@@ -307,7 +309,8 @@ release (v0.1.0).
   (the `AgentClicker.sh` launcher in zips made by `Tools/package.sh`, and `Tools/play.sh`, do this for you).
 * **One unexplained crash**: in October 2026 the Linux player crashed once (SIGSEGV on a native worker thread,
   no managed code on the stack) during an automated screenshot tour, while the machine was badly overloaded.
-  Four further runs of the same build were clean. It hasn't been reproduced or explained.
+  It hasn't been reproduced or explained: 19 later tour runs (release and development builds, at load averages
+  from 15 to 73) were all clean.
 * **macOS is experimental**: the build is made on Linux, isn't signed or notarised, and hasn't been run on a Mac.
 * **The browser build is new and lightly tested**: it was checked in headless Chrome on Linux only (start a game,
   autopilot login, save, reload, continue). Firefox, Safari, phones and tablets (there's no touch support) and

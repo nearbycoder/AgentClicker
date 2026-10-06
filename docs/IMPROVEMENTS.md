@@ -297,3 +297,31 @@ reproduce, the README keeps the note with the new run count.
 
 Whole round: `Tools/unity.sh tests` (including the balance simulation) passes, the tour passes, and screenshots
 go to `docs/media/improvements/round2/`.
+
+## Round 2 results (2026-10-06)
+
+All five items landed on `improvements-2`, one commit each after the plan (`e4f2936`). Tests: **110/110**
+(106 after round 1), balance bot unchanged at 2h 09m. Screenshots are in
+[`docs/media/improvements/round2/`](media/improvements/round2).
+
+| Item | Commit | Verified by |
+|---|---|---|
+| 1. "While you were away" report | `144f7c2` | 3 EditMode tests (an idle hour driven by the autopilot is reported with the right days, quotas, missed calls and earnings, and only once; an active player and a break without an end of day get nothing); the tour shows the card on return (`away_report.jpg`, with the threshold lowered to 3 s for the tour) |
+| 2. Reduce motion | `79d05ed` | Tour check against a control run: normal motion leaves the camera 2.3 m off two frames into a move and 3 pulsing elements moving; with reduce motion it's 0 m and none move. Setting screenshot. With the option off the rest of the tour is unchanged |
+| 3. Hosting-ready browser page | `7c1b260` | Headless Chrome at 1280×720, 1920×1080 and a 390×844 touch phone: canvas = viewport, no scrollbars, title "Agent Clicker", touch notice only on the phone, no page errors; save → reload → CONTINUE restored the career; 52 fps at load ~20 |
+| 4. Drop placement + GDD numbers | `1320d02` | EditMode test over 2,000 spawns (below the banner, above the toasts, right of SHIP CODE); career table re-run with `BalanceReport.Career`, still matching |
+| 5. Linux segfault hunt | — (no code change) | 7 tours of the round-1 release build, 2 of the round-2 release build and 6 of a round-2 development build (with symbols): **15 runs, 0 crashes**, every check passing, at load averages 15–73. Not reproduced, so no fix; the README note now gives the run count |
+
+Also measured: `Tools/benchmark.sh` A/B against the published v0.1.0 build in the same session. Both read
+3.3–4.6 ms main-thread CPU at 60 fps and swing widely in allocations (276–1,638 B/frame for v0.1.0, 729–1,295 for
+this build) as the machine's load changes. No measurable regression, but the README's 1.7 ms can't be reproduced
+on the busy machine, so it now says so.
+
+Deferred, and why:
+* Gamepad / Steam Deck (#10) and localization (#13): large jobs, not started.
+* Mid-game pacing goals (#9): only the doc part was done; a "next unlock" tracker needs design and play testing
+  against the balance band.
+* Firefox, Safari, real phones, and audible browser audio still unverified (headless Chrome only).
+
+Owner decisions (unchanged): Windows Build Support, browser hosting, the offline-earnings cap (kept at 10% for
+1 hour), license, signing, releases and tags.
