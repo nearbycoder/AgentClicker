@@ -84,7 +84,9 @@ Hire Autocomplete from Hallucin8 Labs ("Move fast and make things up"), a Junior
 Dynamics, a Bug Triage Swarm, a DevOps Agent and an Architect, and eventually a Product Manager Agent that
 replaces your manager. Each agent has fifteen upgrade tiers. Forty research upgrades, enterprise contracts and
 exclusive lab partnerships stack on top. The store marks the agent with the best production per credit as
-★ BEST VALUE.
+★ BEST VALUE, its hover info says roughly how long until you can afford anything, and a **NEXT GOAL** card on the
+desktop names the next thing to save for (a new agent type, the Factory's requirements, a reorg worth taking) with
+an estimate. Click it to jump to the right store tab.
 
 ### Your desk is the upgrade screen
 
@@ -210,7 +212,7 @@ editor at `~/Unity/Hub/Editor/6000.6.2f1/Editor/Unity`, or set `UNITY_EDITOR` to
 ```sh
 Tools/unity.sh setup       # URP, post-processing, player settings, reimport models (idempotent)
 Tools/unity.sh scene       # regenerate Assets/Scenes/Main.unity from the models (the scene is committed)
-Tools/unity.sh tests       # 106 EditMode tests, including the economy balance simulation
+Tools/unity.sh tests       # 117 EditMode tests, including the economy balance simulation
 Tools/unity.sh build       # Linux player → Builds/Linux
 Tools/unity.sh build-mac   # universal macOS player → Builds/Mac
 Tools/unity.sh build-webgl # browser build (Brotli, works on any static host) → Builds/WebGL

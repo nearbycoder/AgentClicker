@@ -260,6 +260,10 @@ namespace AgentClicker.UI
             _store.SelectTab(0);
         }
         public RectTransform ShipButton => _ship.Button;
+        public RectTransform GoalCard => _fleet.GoalCard;
+        public Goal Goal => _fleet.Goal;
+        public int StoreTab => _store.CurrentTab;
+        public StorePanel Store => _store;
 
         public void ShipFromKeyboard()
         {

@@ -128,6 +128,14 @@ namespace AgentClicker.Core
             return $"{t.Seconds}s";
         }
 
+        /// <summary>"about 6m 12s" until something is affordable at the current rate; empty when nothing is earning.</summary>
+        public static string Eta(double seconds)
+        {
+            if (seconds <= 0) return "now";
+            if (double.IsInfinity(seconds) || double.IsNaN(seconds) || seconds > 3.15e9) return "";
+            return "about " + Duration(seconds);
+        }
+
         public static string Percent(double fraction)
         {
             if (fraction * 100 >= 10000) return Short(fraction * 100) + "%";

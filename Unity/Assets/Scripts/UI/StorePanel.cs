@@ -112,6 +112,9 @@ namespace AgentClicker.UI
             _infoBody.rectTransform.TopLeft(16, 36, 492, 48);
             _infoFoot = UIKit.Text(info.transform, "Foot", "", 14, Theme.Accent, TextAlignmentOptions.TopLeft, UIFonts.Medium);
             _infoFoot.rectTransform.TopLeft(16, 88, 492, 20);
+            _infoFoot.enableAutoSizing = true; // long agent stats plus an estimate shrink a little rather than wrap
+            _infoFoot.fontSizeMin = 11;
+            _infoFoot.fontSizeMax = 14;
 
             SetTab(Tab.Agents);
         }
@@ -126,6 +129,10 @@ namespace AgentClicker.UI
             SetTab(Tab.Factory);
         }
         public static int TrophiesTabIndex => (int)Tab.Trophies;
+        public static int OfficeTabIndex => (int)Tab.Office;
+        public int CurrentTab => (int)_tab;
+        public RectTransform AgentRowRect(int i) => (RectTransform)_agentRows[i].Button.transform;
+        public string InfoFoot => _infoFoot.text;
         public static int StatsTabIndex => (int)Tab.Stats;
 
         void SetTab(Tab t)
@@ -221,6 +228,8 @@ namespace AgentClicker.UI
             string foot = $"Each produces {NumberFormat.Rate(m.UnitCps(i))}";
             if (m.AgentCount(i) > 0)
                 foot += $"  ·  {m.AgentCount(i)} producing {NumberFormat.Rate(m.AgentTypeCps(i))} ({NumberFormat.Percent(m.RawCps > 0 ? m.AgentTypeCps(i) / m.RawCps : 0)})";
+            int n = _buyAmount == BuyMax ? Mathf.Max(1, m.MaxAffordable(i)) : _buyAmount;
+            foot += AffordIn(m.AgentCost(i, n));
             return ($"{a.Name}  <size=70%><color=#8A97AD>by {lab.Name}</color></size>",
                     $"{a.Description}\n<i><color=#56627A>\"{lab.Tagline}\"</color></i>", foot);
         }
@@ -270,7 +279,8 @@ namespace AgentClicker.UI
             tile.Badge.fontSizeMax = 15;
             tile.Cost = UIKit.Text(b.transform, "Cost", "", 15, Theme.Good, TextAlignmentOptions.Top, UIFonts.Medium);
             tile.Cost.rectTransform.TopLeft(0, 78, 96, 22);
-            Hover(b, () => tile.Def == null ? ("", "", "") : (tile.Def.Name, tile.Def.Description, $"Cost: {NumberFormat.Credits(_gm.Model.UpgradeCost(tile.Def))}"));
+            Hover(b, () => tile.Def == null ? ("", "", "") : (tile.Def.Name, tile.Def.Description,
+                                                             $"Cost: {NumberFormat.Credits(_gm.Model.UpgradeCost(tile.Def))}" + AffordIn(_gm.Model.UpgradeCost(tile.Def))));
             _upgradeTiles.Add(tile);
             return tile;
         }
@@ -390,8 +400,18 @@ namespace AgentClicker.UI
             string foot;
             if (m.HasOffice(o.Id)) foot = "Installed at your desk.";
             else if (o.Requires != null && !m.HasOffice(o.Requires)) foot = $"Requires: {GameDatabase.Office(o.Requires).Name}";
-            else foot = $"Cost: {NumberFormat.Credits(m.OfficeCost(o))}";
+            else foot = $"Cost: {NumberFormat.Credits(m.OfficeCost(o))}" + AffordIn(m.OfficeCost(o));
             return (o.Name, o.Description, foot);
+        }
+
+        /// <summary>"  ·  about 6m 12s" for something you can't afford yet (at the current rate), else nothing.</summary>
+        string AffordIn(double cost)
+        {
+            var m = _gm.Model;
+            double cps = m.Cps;
+            if (m.State.credits >= cost || cps <= 0) return "";
+            string eta = NumberFormat.Eta((cost - m.State.credits) / cps);
+            return eta.Length == 0 ? "" : $"  <color=#8A97AD>·  {eta}</color>";
         }
 
         // ------------------------------------------------------------------ refresh

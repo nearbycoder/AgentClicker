@@ -312,9 +312,13 @@ namespace AgentClicker.UI
         }
 
         bool _compact;
+        const int MaxLogLines = 9; // what fits under the next goal card
 
         readonly GameManager _gm;
         readonly Row[] _rows;
+        TextMeshProUGUI _goalTitle, _goalStatus, _goalEta;
+        Image _goalFill;
+        Goal _goal;
         readonly TextMeshProUGUI _header, _empty, _activity;
         readonly List<string> _log = new List<string>();
         readonly StringBuilder _logSb = new StringBuilder();
@@ -323,9 +327,9 @@ namespace AgentClicker.UI
 
         static string[] BuildAlphaTags()
         {
-            var tags = new string[11];
+            var tags = new string[MaxLogLines];
             for (int age = 0; age < tags.Length; age++)
-                tags[age] = $"<alpha=#{(int)Mathf.Lerp(255, 90, age / 11f):X2}>";
+                tags[age] = $"<alpha=#{(int)Mathf.Lerp(255, 90, age / (float)MaxLogLines):X2}>";
             return tags;
         }
         readonly System.Random _rng = new System.Random();
@@ -371,20 +375,72 @@ namespace AgentClicker.UI
 
             var act = UIKit.Panel(col, "Activity", Theme.Panel, 14);
             act.rectTransform.TopLeft(0, 504, 560, 318);
+            BuildGoal(act.transform);
+            UIKit.Image(act.transform, "Divider", Theme.Border).rectTransform.TopLeft(20, 104, 520, 1);
             UIKit.Text(act.transform, "Title", "ACTIVITY", 14, Theme.TextDim, TextAlignmentOptions.TopLeft, UIFonts.Medium)
-                 .rectTransform.TopLeft(20, 14, 300, 20);
+                 .rectTransform.TopLeft(20, 114, 300, 20);
             _activity = UIKit.Text(act.transform, "Feed", "", 14, Theme.TextDim, TextAlignmentOptions.BottomLeft, UIFonts.Mono);
-            _activity.rectTransform.TopLeft(20, 40, 520, 264);
+            _activity.rectTransform.TopLeft(20, 138, 520, 168);
             _activity.overflowMode = TextOverflowModes.Masking;
             _activity.textWrappingMode = TextWrappingModes.NoWrap;
             _activity.lineSpacing = 6;
             Log("<color=#56627A>CorpOS agent bus connected.</color>");
         }
 
+        /// <summary>The next goal (see <see cref="NextGoal"/>): what to save up for, how far along, and roughly when. Click to shop.</summary>
+        void BuildGoal(Transform parent)
+        {
+            var card = UIKit.Button(parent, "NextGoal", Theme.Panel, OpenGoal, 10);
+            GoalCard = card.GetComponent<RectTransform>();
+            GoalCard.TopLeft(8, 6, 544, 92);
+            UIKit.SubCanvas(GoalCard); // the estimate ticks; don't rebuild the activity feed with it
+            UIKit.Text(card.transform, "Label", "NEXT GOAL", 14, Theme.TextDim, TextAlignmentOptions.TopLeft, UIFonts.Medium)
+                 .rectTransform.TopLeft(12, 8, 200, 20);
+            _goalEta = UIKit.Text(card.transform, "Eta", "", 14, Theme.Accent, TextAlignmentOptions.TopRight, UIFonts.Medium);
+            _goalEta.rectTransform.TopLeft(212, 8, 320, 20);
+            _goalTitle = UIKit.Text(card.transform, "Title", "", 18, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Bold);
+            _goalTitle.rectTransform.TopLeft(12, 30, 520, 24);
+            _goalTitle.textWrappingMode = TextWrappingModes.NoWrap;
+            _goalTitle.overflowMode = TextOverflowModes.Ellipsis;
+            UIKit.Bar(card.transform, "Bar", Theme.PanelLight, Theme.Accent2, out _goalFill, 3).rectTransform.TopLeft(12, 60, 520, 6);
+            _goalStatus = UIKit.Text(card.transform, "Status", "", 13, Theme.TextDim, TextAlignmentOptions.TopLeft, UIFonts.Medium);
+            _goalStatus.rectTransform.TopLeft(12, 70, 520, 18);
+            _goalStatus.textWrappingMode = TextWrappingModes.NoWrap;
+        }
+
+        void OpenGoal()
+        {
+            if (_goal == null) return;
+            _gm.Sfx.Play(Util.Sound.UiClick);
+            switch (_goal.Kind)
+            {
+                case GoalKind.Office: _gm.Computer.SelectStoreTab(StorePanel.OfficeTabIndex); break;
+                case GoalKind.Factory:
+                case GoalKind.Option: _gm.Computer.ShowCareer(false); break;
+                default: _gm.Computer.SelectStoreTab(0); break;
+            }
+        }
+
+        /// <summary>The goal currently on the card, and the card itself (the tour checks both).</summary>
+        public Goal Goal => _goal;
+        public RectTransform GoalCard { get; private set; }
+
+        void RefreshGoal(GameModel m)
+        {
+            _goal = NextGoal.Pick(m);
+            UIKit.Set(_goalTitle, _goal.Title);
+            UIKit.SetFill(_goalFill, (float)_goal.Progress);
+            UIKit.Set(_goalStatus, _goal.Kind == GoalKind.Option
+                ? $"{NumberFormat.Short(m.State.allTimeEarned)} / {NumberFormat.Short(_goal.Need)} all-time credits ({NumberFormat.Percent(_goal.Progress)})"
+                : $"{NumberFormat.Short(_goal.Have)} / {NumberFormat.Short(_goal.Need)} credits ({NumberFormat.Percent(_goal.Progress)})");
+            UIKit.Set(_goalEta, !_goal.Reached ? NumberFormat.Eta(_goal.SecondsAt(m.Cps))
+                : _goal.Kind == GoalKind.Option ? "<color=#3DDC97>ready, click to reorg</color>" : "<color=#3DDC97>ready, click to buy</color>");
+        }
+
         public void Log(string line)
         {
             _log.Add(line);
-            while (_log.Count > 11) _log.RemoveAt(0);
+            while (_log.Count > MaxLogLines) _log.RemoveAt(0);
             _logSb.Clear();
             for (int i = 0; i < _log.Count; i++)
             {
@@ -451,6 +507,7 @@ namespace AgentClicker.UI
             }
             UIKit.SetActive(_empty, types == 0);
             UIKit.Set(_header, m.TotalAgents > 0 ? $"{m.TotalAgents:N0} agents · {types} types" : "");
+            RefreshGoal(m);
         }
     }
 }

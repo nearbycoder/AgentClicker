@@ -29,11 +29,16 @@ namespace AgentClicker.Core
         }
 
         public static Result Run(double earlyClicksPerSecond = 4, double lateClicksPerSecond = 1,
-                                 double maxSeconds = 8 * 3600, bool catchDrops = true, int seed = 1)
-            => Run(new GameModel(new GameState(), seed), earlyClicksPerSecond, lateClicksPerSecond, maxSeconds, catchDrops);
+                                 double maxSeconds = 8 * 3600, bool catchDrops = true, int seed = 1,
+                                 Action<GameModel, double> observe = null)
+            => Run(new GameModel(new GameState(), seed), earlyClicksPerSecond, lateClicksPerSecond, maxSeconds, catchDrops, observe);
 
-        /// <summary>Plays one division from its first morning until the Factory is built (or time runs out).</summary>
-        public static Result Run(GameModel model, double earlyClicksPerSecond, double lateClicksPerSecond, double maxSeconds, bool catchDrops)
+        /// <summary>
+        /// Plays one division from its first morning until the Factory is built (or time runs out).
+        /// <paramref name="observe"/> sees the model after every simulated second (tests use it; it must not change anything).
+        /// </summary>
+        public static Result Run(GameModel model, double earlyClicksPerSecond, double lateClicksPerSecond, double maxSeconds, bool catchDrops,
+                                 Action<GameModel, double> observe = null)
         {
             var result = new Result();
             var seenAgents = new HashSet<int>();
@@ -69,6 +74,7 @@ namespace AgentClicker.Core
                     model.ClockIn();
                 }
 
+                observe?.Invoke(model, t);
                 if (model.CanBuildFactory)
                 {
                     model.BuildFactory();

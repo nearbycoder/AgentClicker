@@ -29,7 +29,7 @@ for tc in r.iter('test-case'):
         msg = tc.find('failure/message')
         print("FAIL", tc.get('fullname'), (msg.text or '').strip()[:800] if msg is not None else '')
 for out in r.iter('output'):
-    if out.text and ('[Balance]' in out.text or '[Endless' in out.text): print(out.text.strip())
+    if out.text and any(k in out.text for k in ('[Balance]', '[Endless', '[Goals]')): print(out.text.strip())
 PY
           ;;
   exec)   shift; m="$1"; shift; run exec.log -quit -executeMethod "$m" "$@" ;;

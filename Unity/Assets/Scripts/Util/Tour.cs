@@ -26,7 +26,10 @@ namespace AgentClicker
             Directory.CreateDirectory(OutputDir);
             _gm.Settings.autoOpenStoryMail = false;
             _gm.Settings.tutorialTips = false;
+            // the tour's mouse events are synthetic: deliver them even if another window has the desktop's focus
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             yield return new WaitForSeconds(1.0f);
+            Debug.Log($"[Tour] window focused: {Application.isFocused}");
 
             // ---- menus & intro ------------------------------------------------
             _gm.ShowTitle();
@@ -70,6 +73,7 @@ namespace AgentClicker
             for (int i = 0; i < 20; i++) { _gm.Ship(); yield return null; }
             yield return new WaitForSeconds(0.3f);
             yield return Shot("02_desktop_day1");
+            LogGoal("day 1");
             M.DeliverNextMail();
             M.DeliverNextMail();
             _gm.Computer.ShowInbox(null);
@@ -115,10 +119,19 @@ namespace AgentClicker
             M.SpawnDrop();
             yield return new WaitForSeconds(0.5f);
             yield return Shot("03_desktop_midgame");
+            LogGoal("mid game");
             // the chapter banner waits for the drop; claiming it lets the banner through
             M.ClaimDrop();
             yield return new WaitForSeconds(1.2f);
             yield return Shot("03b_chapter_banner");
+            // hovering an agent you can't afford yet says roughly when you can
+            var row = _gm.Computer.Store.AgentRowRect(6);
+            yield return RealMove(_gm.Refs.MainCamera.WorldToScreenPoint(row.TransformPoint(row.rect.center)));
+            yield return new WaitForSeconds(0.5f);
+            string foot = _gm.Computer.Store.InfoFoot;
+            Debug.Log(foot.Contains("about ") ? $"[Tour] PASS store hover estimates when the DevOps Agent is affordable: {foot}"
+                                              : $"[Tour] FAIL store hover has no estimate: {foot}");
+            yield return Shot("03c_store_hover_eta");
             yield return new WaitForSeconds(3.5f);
             _gm.Computer.SelectStoreTab(2);
             yield return new WaitForSeconds(0.4f);
@@ -170,6 +183,7 @@ namespace AgentClicker
             M.StartOutage();
             yield return new WaitForSeconds(1.0f);
             yield return Shot("07_desktop_lategame_outage");
+            LogGoal("late game");
 
             // ---- review & night ----------------------------------------------
             M.ClockOut();
@@ -193,7 +207,7 @@ namespace AgentClicker
             M.MarkDirty();
             M.BuyOffice("recliner");
             _gm.Office.Refresh(false);
-            _gm.Computer.SelectStoreTab(3);
+            yield return GoalCardSegment();
             yield return new WaitForSeconds(1.5f);
             yield return Shot("11_factory_tab");
             _gm.BuildFactory();
@@ -221,6 +235,7 @@ namespace AgentClicker
             _gm.Computer.SelectStoreTab(0);
             yield return new WaitForSeconds(1.2f);
             yield return Shot("15_frontier_agents");
+            LogGoal("after the Factory");
             _gm.Computer.SelectStoreTab(1);
             yield return new WaitForSeconds(0.6f);
             yield return Shot("15b_upgrades_endless");
@@ -268,6 +283,7 @@ namespace AgentClicker
             _gm.Computer.SelectStoreTab(0);
             yield return new WaitForSeconds(1.5f);
             yield return Shot("23_endgame_numbers");
+            LogGoal("every agent owned");
             _gm.Computer.SelectStoreTab(StorePanel.TrophiesTabIndex);
             yield return new WaitForSeconds(0.6f);
             yield return Shot("24_endgame_trophies");
@@ -364,9 +380,42 @@ namespace AgentClicker
             ap.ClockInAfter = defaults.ClockInAfter; ap.LogInAfter = defaults.LogInAfter;
         }
 
+        void LogGoal(string when)
+        {
+            var g = NextGoal.Pick(M);
+            Debug.Log($"[Tour] next goal, {when}: {g.Title} ({NumberFormat.Percent(g.Progress)})");
+        }
+
+        /// <summary>Everything the Factory needs is in place: the card says so, and a real click on it opens the Factory tab.</summary>
+        IEnumerator GoalCardSegment()
+        {
+            _gm.Computer.SelectStoreTab(0);
+            yield return new WaitForSeconds(1.5f); // the camera settles on the monitor and a fleet refresh picks the goal
+            var g = _gm.Computer.Goal;
+            Debug.Log(g != null && g.Kind == GoalKind.Factory && g.Reached
+                ? "[Tour] PASS next goal is the Factory, ready to build"
+                : $"[Tour] FAIL next goal should be the ready Factory, was {g?.Title} ({g?.Kind}, reached {g?.Reached})");
+            yield return Shot("10f_goal_factory_ready");
+            var rt = _gm.Computer.GoalCard;
+            yield return RealClick(_gm.Refs.MainCamera.WorldToScreenPoint(rt.TransformPoint(rt.rect.center)));
+            yield return new WaitForSeconds(0.3f);
+            Debug.Log(_gm.Computer.StoreTab == StorePanel.FactoryTabIndex
+                ? "[Tour] PASS clicking the next goal card opens the Factory tab"
+                : $"[Tour] FAIL clicking the next goal card left the store on tab {_gm.Computer.StoreTab}");
+            if (_gm.Computer.StoreTab != StorePanel.FactoryTabIndex) _gm.Computer.SelectStoreTab(StorePanel.FactoryTabIndex);
+        }
+
         static IEnumerator WaitFor(System.Func<bool> done, float timeout)
         {
             for (float t = 0; t < timeout && !done(); t += Time.unscaledDeltaTime) yield return null;
+        }
+
+        static IEnumerator RealMove(Vector2 pos)
+        {
+            var mouse = Mouse.current ?? InputSystem.AddDevice<Mouse>();
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = pos });
+            yield return null;
+            yield return null;
         }
 
         static IEnumerator RealClick(Vector2 pos)

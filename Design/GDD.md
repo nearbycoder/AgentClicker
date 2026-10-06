@@ -159,6 +159,14 @@ for the first 30 minutes, then 1/s. It finishes in 2h 09m (day 27 with five-minu
 prints the run), and an EditMode test fails if that drifts outside 1.5 to 5 hours. Real players should take
 roughly 3 hours.
 
+**Next goal.** A card at the top of the ACTIVITY panel always names one thing to save for, with a progress bar and an
+estimate at the current rate (`NextGoal`): the cheapest story agent type you don't own yet, then the Orchestrator
+Clusters the Factory needs, then the recliner, then the Factory's price. After the Factory it's the next frontier agent
+type, and once you own every type, a reorg that at least doubles your Stock Options. Clicking the card opens the store
+tab where the goal is bought. It is display only. Along the bot's run the longest goals are the Product Manager Agent
+(about 30 minutes) and the Factory's price (about 40 minutes); the store's hover info also says roughly how long until
+you can afford any agent, upgrade or gadget.
+
 When you buy it, the monitor shows the factory pipeline booting up. The camera
 pulls back, and your character reclines with their feet on the desk and hands behind their head.
 *"100% automated. You never have to work again."* After the epilogue the game keeps going: see §17.
