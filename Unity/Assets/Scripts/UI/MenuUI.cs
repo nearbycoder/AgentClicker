@@ -285,7 +285,8 @@ namespace AgentClicker.UI
                     Toggle("Open important emails automatically", () => s.autoOpenStoryMail, v => s.autoOpenStoryMail = v, y); Next();
                     Slider("Mouse look sensitivity", 0.25f, 3f, () => s.mouseSensitivity, v => s.mouseSensitivity = v, y, v => $"{v:0.00}x"); Next();
                     Stepper("Number format", GameSettings.NumberStyleNames, () => s.numberStyle, v => s.numberStyle = v, y,
-                            "How very large numbers are written");
+                            "How very large numbers are written"); Next();
+                    SaveFileRow(y);
                     break;
                 default:
                     var t = UIKit.Text(_settingsBody, "Controls",
@@ -316,6 +317,31 @@ namespace AgentClicker.UI
             if (hint != null)
                 UIKit.Text(row, "Hint", hint, 13, Theme.TextFaint, TextAlignmentOptions.TopLeft).rectTransform.TopLeft(0, 30, 520, 20);
             return row;
+        }
+
+        /// <summary>Keep a copy of the career or bring one in: download / load in the browser, the save folder on the desktop.</summary>
+        void SaveFileRow(float y)
+        {
+            Button RowButton(RectTransform row, string label, float x, float w, Action onClick)
+            {
+                var b = UIKit.Button(row, label, Theme.PanelLight, () => { _gm.Sfx.Play(Sound.UiClick, 0.6f); onClick(); }, 8);
+                b.GetComponent<RectTransform>().TopLeft(x, 8, w, 34);
+                b.Label(label, 14, Theme.Text, UIFonts.Bold);
+                return b;
+            }
+            if (Platform.IsWeb)
+            {
+                var row = SettingRow("Save file", y, "Keep a copy, or move your career to another browser or the desktop game");
+                RowButton(row, "DOWNLOAD", 600, 140, _gm.DownloadSave);
+                RowButton(row, "LOAD FILE…", 750, 150, _gm.LoadSaveFile);
+            }
+            else
+            {
+                string folder = SaveSystem.Folder, home = Environment.GetEnvironmentVariable("HOME");
+                if (!string.IsNullOrEmpty(home) && folder.StartsWith(home)) folder = "~" + folder.Substring(home.Length);
+                var row = SettingRow("Save file (the browser game reads it too)", y, $"{folder}/agentclicker_save.json");
+                RowButton(row, "OPEN FOLDER", 740, 160, _gm.OpenSaveFolder);
+            }
         }
 
         void Stepper(string label, string[] options, Func<int> get, Action<int> set, float y, string hint = null)
@@ -422,7 +448,7 @@ namespace AgentClicker.UI
             back.Label("BACK", 20, Theme.Bg);
         }
 
-        void ShowInfo(string title, string body)
+        public void ShowInfo(string title, string body)
         {
             _infoTitle.text = title;
             _infoBody.text = body;

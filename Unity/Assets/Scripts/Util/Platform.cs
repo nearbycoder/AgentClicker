@@ -10,6 +10,14 @@ namespace AgentClicker.Util
 
         [DllImport("__Internal")] static extern void AgentClicker_SyncFileSystem();
         [DllImport("__Internal")] static extern void AgentClicker_SaveWhenHidden(string objectName, string methodName);
+        [DllImport("__Internal")] static extern void AgentClicker_DownloadText(string fileName, string text);
+        [DllImport("__Internal")] static extern void AgentClicker_PickTextFile(string objectName, string methodName);
+
+        /// <summary>The browser downloads <paramref name="text"/> as a file.</summary>
+        public static void DownloadText(string fileName, string text) => AgentClicker_DownloadText(fileName, text);
+
+        /// <summary>Opens the browser's file picker; the chosen file's text goes to <paramref name="methodName"/> on the named object.</summary>
+        public static void PickTextFile(string objectName, string methodName) => AgentClicker_PickTextFile(objectName, methodName);
 
         /// <summary>Flushes persistentDataPath to IndexedDB so saves survive a reload.</summary>
         public static void SyncFileSystem() => AgentClicker_SyncFileSystem();
@@ -22,6 +30,10 @@ namespace AgentClicker.Util
         public static void SyncFileSystem() { }
 
         public static void SaveWhenHidden(string objectName, string methodName) { }
+
+        public static void DownloadText(string fileName, string text) { }
+
+        public static void PickTextFile(string objectName, string methodName) { }
 #endif
     }
 }

@@ -76,5 +76,51 @@ namespace AgentClicker.Tests
             Assert.IsNull(SaveSystem.Load());
             Assert.IsFalse(File.Exists(SaveSystem.BackupPath) || File.Exists(SaveSystem.TempPath));
         }
+
+        // ------------------------------------------------------------------ save files brought in by the player
+        [Test]
+        public void ASaveFileRoundTrips()
+        {
+            var state = State(1234.5);
+            state.day = 12;
+            state.reorgs = 2;
+            state.agentCounts[3] = 7;
+            var loaded = SaveSystem.Validate(SaveSystem.ToJson(state), out string error);
+            Assert.IsNotNull(loaded, error);
+            Assert.IsNull(error);
+            Assert.AreEqual(1234.5, loaded.credits);
+            Assert.AreEqual(12, loaded.day);
+            Assert.AreEqual(2, loaded.reorgs);
+            Assert.AreEqual(7, loaded.agentCounts[3]);
+        }
+
+        [TestCase("")]
+        [TestCase("   \n")]
+        [TestCase("not json at all")]
+        [TestCase("{")]
+        [TestCase("[1, 2, 3]")]
+        [TestCase("{}")]
+        [TestCase("{\"name\": \"some other game\", \"level\": 4}")]
+        public void JunkIsRejectedWithAReason(string text)
+        {
+            Assert.IsNull(SaveSystem.Validate(text, out string error));
+            Assert.IsNotEmpty(error);
+        }
+
+        [Test]
+        public void ACareerThatNeverStartedIsRejected()
+        {
+            var fresh = new GameState(); // still on the intro cards
+            Assert.IsNull(SaveSystem.Validate(SaveSystem.ToJson(fresh), out string error));
+            StringAssert.Contains("career", error);
+        }
+
+        [Test]
+        public void AHugeFileIsRejected()
+        {
+            string huge = "{\"agentCounts\":[" + new string('1', SaveSystem.MaxFileChars) + "]}";
+            Assert.IsNull(SaveSystem.Validate(huge, out string error));
+            StringAssert.Contains("big", error);
+        }
     }
 }

@@ -198,7 +198,10 @@ headless Chrome on Linux; see the known issues below. `Tools/webtest.mjs` repeat
 autopilot login, SHIP CODE, audio level, hire, save on hide, settings and CONTINUE after a reload).
 
 Saves live in `~/.config/unity3d/Nearby Games/Agent Clicker/` on Linux (Unity's `persistentDataPath`), and
-settings are stored separately in PlayerPrefs. Each save replaces `agentclicker_save.json` in one step and keeps
+settings are stored separately in PlayerPrefs. **Settings → Gameplay → Save file** moves a career around: the browser
+build can DOWNLOAD the save and LOAD FILE… one (it checks the file and asks before replacing your career), and the
+desktop build opens its save folder. It's the same `agentclicker_save.json` everywhere, so a career can go from one
+browser to another, or between the browser and the desktop game. Each save replaces `agentclicker_save.json` in one step and keeps
 the previous one as `agentclicker_save.json.bak`; if the main file is ever missing or damaged, the game loads
 the newest readable copy instead.
 
@@ -213,7 +216,7 @@ editor at `~/Unity/Hub/Editor/6000.6.2f1/Editor/Unity`, or set `UNITY_EDITOR` to
 ```sh
 Tools/unity.sh setup       # URP, post-processing, player settings, reimport models (idempotent)
 Tools/unity.sh scene       # regenerate Assets/Scenes/Main.unity from the models (the scene is committed)
-Tools/unity.sh tests       # 117 EditMode tests, including the economy balance simulation
+Tools/unity.sh tests       # 127 EditMode tests, including the economy balance simulation
 Tools/unity.sh build       # Linux player → Builds/Linux
 Tools/unity.sh build-mac   # universal macOS player → Builds/Mac
 Tools/unity.sh build-webgl # browser build (Brotli, works on any static host) → Builds/WebGL

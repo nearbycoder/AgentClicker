@@ -97,6 +97,31 @@ namespace AgentClicker.Core
             }
         }
 
+        /// <summary>Largest save file the game will read in (real saves are tens of kilobytes).</summary>
+        public const int MaxFileChars = 5_000_000;
+
+        /// <summary>
+        /// Checks a save file the player brings in (moving a career between browsers and computers). Returns the career,
+        /// or null with a reason the player can read.
+        /// </summary>
+        public static GameState Validate(string json, out string error)
+        {
+            error = null;
+            if (string.IsNullOrWhiteSpace(json)) { error = "The file is empty."; return null; }
+            if (json.Length > MaxFileChars) { error = "The file is far too big to be a save."; return null; }
+            GameState state = null;
+            try { state = FromJson(json); }
+            catch (Exception) { /* not JSON at all */ }
+            if (state == null) { error = "That isn't an Agent Clicker save file."; return null; }
+            // any JSON object parses (missing fields keep their defaults), so look for a career that has started
+            if (!json.Contains("\"agentCounts\"") || !state.introSeen || state.day < 1)
+            {
+                error = "That file doesn't hold an Agent Clicker career.";
+                return null;
+            }
+            return state;
+        }
+
         public static void Delete()
         {
             foreach (var p in new[] { FilePath, BackupPath, TempPath })

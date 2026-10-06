@@ -551,6 +551,59 @@ namespace AgentClicker
             Application.Quit();
         }
 
+        // ------------------------------------------------------------------ save files
+        // One format everywhere (the save JSON), so a career moves between browsers and the desktop game.
+
+        static string Describe(GameState s) =>
+            $"{GameDatabase.DivisionName(s.reorgs)}, day {s.day}, {NumberFormat.Short(s.credits)} credits";
+
+        /// <summary>Browser: download the current career as agentclicker_save.json.</summary>
+        public void DownloadSave()
+        {
+            if (!Model.State.introSeen) { Menu.ShowInfo("Nothing to download yet", "Start a career first. Then you can keep a copy of it here."); return; }
+            Save();
+            Model.State.lastSaveUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            Platform.DownloadText("agentclicker_save.json", SaveSystem.ToJson(Model.State));
+        }
+
+        /// <summary>Browser: pick a save file; <see cref="OnSaveFileLoaded"/> gets its text.</summary>
+        public void LoadSaveFile() => Platform.PickTextFile(gameObject.name, nameof(OnSaveFileLoaded));
+
+        /// <summary>Desktop: the folder with agentclicker_save.json, to copy it in or out.</summary>
+        public void OpenSaveFolder()
+        {
+            System.IO.Directory.CreateDirectory(SaveSystem.Folder);
+            Application.OpenURL("file://" + SaveSystem.Folder);
+        }
+
+        public void OnSaveFileLoaded(string text)
+        {
+            var state = SaveSystem.Validate(text, out string error);
+            if (state == null)
+            {
+                Debug.Log("[SaveFile] rejected: " + error);
+                Menu.ShowInfo("Couldn't load that file", error + "\n\nYour current career hasn't changed.");
+                return;
+            }
+            Debug.Log("[SaveFile] loaded file: " + Describe(state));
+            string current = Model.State.introSeen ? $"\nIt replaces your current career ({Describe(Model.State)})." : "";
+            Menu.Confirm($"Load this career?\n<size=70%><color=#8A97AD>{Describe(state)}.{current}</color></size>", "LOAD", () => ImportCareer(state), Theme.Accent);
+        }
+
+        void ImportCareer(GameState state)
+        {
+            if (state.Phase == GamePhase.Working || state.Phase == GamePhase.Review) state.Phase = GamePhase.Login;
+            Model.Load(state);
+            Model.DayLengthSeconds = Settings.DayLengthSeconds;
+            _offlineGain = 0;
+            Save();
+            Computer.ResetSession();
+            Office.Refresh(false);
+            Menu.HideAll();
+            ShowTitle();
+            Debug.Log("[SaveFile] career replaced: " + Describe(Model.State));
+        }
+
         // ------------------------------------------------------------------ tutorial
         void UpdateTutorial(float dt)
         {

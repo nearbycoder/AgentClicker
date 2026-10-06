@@ -224,6 +224,61 @@ async function main() {
     check(!!prefs && prefs.includes('"numberStyle":1'), "a settings change survives the reload (PlayerPrefs in IndexedDB)");
     const overlaps = log.filter((l) => l.includes("syncfs operations in flight")).length;
     check(overlaps === 0, `IndexedDB syncs never overlap (${overlaps} warnings)`);
+    // ---- save files: download here, load into a fresh browser profile ---------------------------------------
+    const openGameplaySettings = async (p) => {
+      await p.mouse.click(250, 579); // SETTINGS
+      await sleep(1000);
+      await p.mouse.click(735, 182); // GAMEPLAY
+      await sleep(800);
+    };
+    await page.reload();
+    await loaded();
+    await openGameplaySettings(page);
+    await shot("08_settings_save_file");
+    const [download] = await Promise.all([page.waitForEvent("download", { timeout: 15000 }), page.mouse.click(1010, 661)]);
+    const file = path.join(out, "agentclicker_save.json");
+    await download.saveAs(file);
+    const downloaded = JSON.parse((await import("node:fs")).readFileSync(file, "utf8"));
+    const stored = await readSave(page);
+    check(download.suggestedFilename() === "agentclicker_save.json" && downloaded.clicks === stored.clicks && downloaded.day === stored.day,
+          `DOWNLOAD gives the career as ${download.suggestedFilename()} (clicks ${downloaded.clicks}, day ${downloaded.day})`);
+
+    const fresh = await browser.newContext({ viewport: { width: 1600, height: 900 } });
+    const page2 = await fresh.newPage();
+    const log2 = [];
+    page2.on("console", (m) => log2.push(m.text()));
+    page2.on("pageerror", (e) => pageErrors.push(String(e)));
+    await page2.goto(url);
+    await page2.waitForFunction(() => document.querySelector("#loading")?.style.display === "none", null, { timeout: 240000 });
+    await sleep(4000);
+    check(await readSave(page2) === null, "a fresh browser profile starts without a career");
+    await openGameplaySettings(page2);
+    const pick = async (f) => {
+      const [chooser] = await Promise.all([page2.waitForEvent("filechooser", { timeout: 15000 }), page2.mouse.click(1165, 661)]);
+      await chooser.setFiles(f);
+      await sleep(2000);
+    };
+    const junk = path.join(out, "not_a_save.json");
+    writeFileSync(junk, JSON.stringify({ name: "some other game", level: 4 }));
+    await pick(junk);
+    await page2.screenshot({ path: path.join(out, "09_load_rejected.png") });
+    check(log2.some((l) => l.includes("[SaveFile] rejected")) && await readSave(page2) === null, "a file that isn't a save is rejected and changes nothing");
+    await page2.mouse.click(1110, 749); // BACK
+    await sleep(800);
+    await pick(file);
+    await page2.screenshot({ path: path.join(out, "10_load_confirm.png") });
+    await page2.mouse.click(925, 518); // LOAD
+    await sleep(2500);
+    await page2.screenshot({ path: path.join(out, "11_loaded_title.png") });
+    await page2.mouse.click(250, 439); // CONTINUE
+    await sleep(3000);
+    await page2.screenshot({ path: path.join(out, "12_loaded_continued.png") });
+    const imported = await readSave(page2);
+    check(!!imported && imported.clicks === downloaded.clicks && imported.day === downloaded.day &&
+          Math.abs(imported.credits - downloaded.credits) <= Math.max(1, downloaded.credits * 0.5) && imported.agentCounts[0] === downloaded.agentCounts[0],
+          `LOAD FILE moves the career into the fresh profile (clicks ${imported?.clicks}, day ${imported?.day}, Autocomplete x${imported?.agentCounts?.[0]})`);
+    await fresh.close();
+
     check(pageErrors.length === 0, `no page errors (${pageErrors.length})`);
   } finally {
     writeFileSync(path.join(out, "console.log"), log.join("\n").slice(-400000));

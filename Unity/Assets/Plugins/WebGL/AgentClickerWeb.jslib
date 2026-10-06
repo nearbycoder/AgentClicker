@@ -20,4 +20,30 @@ mergeInto(LibraryManager.library, {
     document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') save(); });
     window.addEventListener('pagehide', save);
   },
+
+  // Hands the player a file (the save, to keep or move to another browser or the desktop game).
+  AgentClicker_DownloadText: function (fileName, text) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([UTF8ToString(text)], { type: 'application/json' }));
+    a.download = UTF8ToString(fileName);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
+  },
+
+  // Lets the player pick a text file and sends its contents (or '' if it's too big) to the named object's method.
+  AgentClicker_PickTextFile: function (objectName, methodName) {
+    var target = UTF8ToString(objectName), method = UTF8ToString(methodName);
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json,text/plain';
+    input.onchange = function () {
+      var file = input.files && input.files[0];
+      if (!file) return;
+      if (file.size > 5000000) { SendMessage(target, method, ''); return; }
+      file.text().then(function (text) { SendMessage(target, method, text); });
+    };
+    input.click();
+  },
 });
