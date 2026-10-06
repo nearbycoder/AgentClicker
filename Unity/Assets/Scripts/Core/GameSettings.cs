@@ -67,10 +67,14 @@ namespace AgentClicker.Core
             return new GameSettings();
         }
 
+        /// <summary>Called after every save (the browser build flushes it to IndexedDB).</summary>
+        public static Action Saved;
+
         public void Save()
         {
             PlayerPrefs.SetString(PrefsKey, JsonUtility.ToJson(Clamp()));
             PlayerPrefs.Save();
+            Saved?.Invoke();
         }
 
         public GameSettings Clamp()

@@ -192,9 +192,10 @@ build made on Linux. It is unsigned and hasn't been tested on a Mac. If macOS re
 `python3 -m http.server -d Builds/WebGL 8000`, and open <http://localhost:8000>. The page (from
 `Unity/Assets/WebGLTemplates/AgentClicker`) fills the browser window, shows a progress bar while loading, has a
 fullscreen button, and tells touch-only devices up front that the game needs a mouse and keyboard. The save goes to the
-browser's storage (IndexedDB) and survives a reload. Browsers pause a tab you aren't looking at, so time in a
-hidden tab counts like time with the game closed. It has only been tried in headless Chrome on Linux; see the
-known issues below.
+browser's storage (IndexedDB), is written the moment you hide or close the tab, and survives a reload. Browsers pause
+a tab you aren't looking at, so time in a hidden tab counts like time with the game closed. It has only been tried in
+headless Chrome on Linux; see the known issues below. `Tools/webtest.mjs` repeats that check (load, new game,
+autopilot login, SHIP CODE, audio level, hire, save on hide, settings and CONTINUE after a reload).
 
 Saves live in `~/.config/unity3d/Nearby Games/Agent Clicker/` on Linux (Unity's `persistentDataPath`), and
 settings are stored separately in PlayerPrefs. Each save replaces `agentclicker_save.json` in one step and keeps
@@ -315,9 +316,10 @@ release (v0.1.0).
   development builds, at load averages from 15 to 73) were all clean.
 * **macOS is experimental**: the build is made on Linux, isn't signed or notarised, and hasn't been run on a Mac.
 * **The browser build is new and lightly tested**: it was checked in headless Chrome on Linux only (start a game,
-  autopilot login, save, reload, continue). Firefox, Safari, phones and tablets (there's no touch support) and
-  long sessions haven't been tried, and it isn't hosted anywhere yet. Music starts a few seconds after loading
-  because it's synthesised on the page's only thread.
+  autopilot login, audio playing, save, reload, continue). Firefox, Safari, phones and tablets (there's no touch
+  support) and long sessions haven't been tried, and it isn't hosted anywhere yet. Playwright's WebKit (Safari's
+  engine) doesn't start on this CachyOS machine: it is built against Ubuntu 24.04 libraries (ICU 74, flite, libjxl
+  0.8). Music starts a few seconds after loading because it's synthesised on the page's only thread.
 * **No Windows build yet.** The build script has a Windows target, but it hasn't been built or tested.
 * **Mouse and keyboard only**, English only.
 * **Pacing is tuned by a bot.** The balance tests keep the first Factory between 1.5 and 5 hours for a greedy

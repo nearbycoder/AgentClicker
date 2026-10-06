@@ -61,7 +61,12 @@ namespace AgentClicker
         {
             Instance = this;
             Settings = GameSettings.Load();
-            if (Platform.IsWeb) SaveSystem.Written = Platform.SyncFileSystem;
+            if (Platform.IsWeb)
+            {
+                SaveSystem.Written = Platform.SyncFileSystem;
+                GameSettings.Saved = Platform.SyncFileSystem; // the browser keeps PlayerPrefs in the same IndexedDB file system
+                Platform.SaveWhenHidden(gameObject.name, nameof(Save));
+            }
 
             string[] args = Environment.GetCommandLineArgs();
             float? dayLengthOverride = null;

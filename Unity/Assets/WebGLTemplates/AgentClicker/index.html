@@ -74,8 +74,9 @@
         productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
         productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
         showBanner: showBanner,
-        // the game saves often; keep IndexedDB in step with every write
-        autoSyncPersistentDataPath: true,
+        // the game flushes IndexedDB itself once each save is complete (Platform.SyncFileSystem); syncing after every
+        // single file write as well ran up to six syncs at once
+        autoSyncPersistentDataPath: false,
         // a full-window canvas on a high-DPI screen would otherwise render at up to 4K
         devicePixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
       };
