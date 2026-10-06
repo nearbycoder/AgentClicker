@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Screenshot tour: the built game plays through every phase (throwaway save) and writes PNGs.
-#   Tools/tour.sh [/tmp/agentclicker-tour]
+#   Tools/tour.sh [output dir, default Logs/tour]
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUT="${1:-/tmp/agentclicker-tour}"
+# absolute: the player resolves relative paths against its own folder
+OUT="$(realpath -m "${1:-$ROOT/Logs/tour}")"
 rm -rf "$OUT"; mkdir -p "$OUT"
 timeout -s KILL 300 "$ROOT/Tools/play.sh" -logFile "$OUT/player.log" -tour "$OUT" > /dev/null 2>&1 || true
 grep -E "\[Tour\]|Exception|NullReference" "$OUT/player.log" || true
