@@ -317,6 +317,11 @@ Also measured: `Tools/benchmark.sh` A/B against the published v0.1.0 build in th
 this build) as the machine's load changes. No measurable regression, but the README's 1.7 ms can't be reproduced
 on the busy machine, so it now says so.
 
+Also: `222e25d` moves the tour, benchmark and record scripts' default output from the shared `/tmp` to the
+gitignored `Logs/`, and makes their paths absolute (the player resolves relative paths against its own folder).
+Older `/tmp/agentclicker-*` files from October 4 are still on the machine; they predate this work and were left
+alone.
+
 Deferred, and why:
 * Gamepad / Steam Deck (#10) and localization (#13): large jobs, not started.
 * Mid-game pacing goals (#9): only the doc part was done; a "next unlock" tracker needs design and play testing
