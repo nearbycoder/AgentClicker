@@ -291,6 +291,8 @@ namespace AgentClicker.UI
                         Row("Look around / sit down", "Tab · on-screen button") +
                         Row("Orbit the office", "Right mouse drag") +
                         Row("Zoom", "Mouse wheel (office view)") +
+                        Row("Answer / decline the phone", "E · Q") +
+                        Row("Pick a reply on a call", "1 · 2 · 3") +
                         Row("Pause menu", "Esc · ⚙ button") +
                         Row("Inbox", "✉ button in CorpOS") +
                         (Platform.IsWeb ? "" : Row("Screenshot", "F12")), 20, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Medium);

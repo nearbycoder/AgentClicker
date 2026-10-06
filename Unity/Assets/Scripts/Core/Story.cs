@@ -33,6 +33,11 @@ namespace AgentClicker.Core
     /// </summary>
     public static class StoryDatabase
     {
+        /// <summary>Important mail pops the inbox open, but not before the player has shipped a few lines of code.</summary>
+        public const int AutoOpenAfterClicks = 10;
+
+        public static bool ShouldAutoOpen(GameModel m, MailDef mail) => mail.Important && m.State.clicks >= AutoOpenAfterClicks;
+
         public static readonly Character[] Cast =
         {
             new Character("rex", "Rex Halvorsen", "Chief Executive Officer", "#E5484D", "RH"),

@@ -224,6 +224,7 @@ namespace AgentClicker.UI
                 if (_refresh <= 0) RefreshAll(dt);
                 UpdateDrop();
                 UpdateOutage();
+                UpdateAutoOpenMail();
             }
             UpdateToasts();
         }
@@ -319,15 +320,19 @@ namespace AgentClicker.UI
             var rt = card.rectTransform;
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0);
             rt.pivot = new Vector2(0.5f, 0);
-            rt.sizeDelta = new Vector2(760, 48);
+            // keep to the middle (fleet) column so the ship and store columns stay visible; long lines wrap
+            const float width = ToastWidth;
+            rt.sizeDelta = new Vector2(width, 48);
             var bar = UIKit.Panel(card.transform, "Accent", accent, 4);
             bar.rectTransform.Anchor(0, 0, 0, 1).Insets(10, 12, 0, 12);
             bar.rectTransform.sizeDelta = new Vector2(6, bar.rectTransform.sizeDelta.y);
-            var t = UIKit.Text(card.transform, "Text", message, 18, Theme.Text, TextAlignmentOptions.MidlineLeft, UIFonts.Medium);
+            var t = UIKit.Text(card.transform, "Text", message, 17, Theme.Text, TextAlignmentOptions.MidlineLeft, UIFonts.Medium);
+            t.textWrappingMode = TextWrappingModes.Normal;
             t.rectTransform.Fill().Insets(28, 4, 16, 4);
+            rt.sizeDelta = new Vector2(width, Mathf.Max(48, t.GetPreferredValues(message, width - 44, 0).y + 16));
             var cg = card.gameObject.AddComponent<CanvasGroup>();
             cg.blocksRaycasts = false;
-            rt.anchoredPosition = new Vector2(0, -40);
+            rt.anchoredPosition = new Vector2(ToastX, -40);
             _activeToasts.Add((rt, Time.unscaledTime + seconds, cg));
             while (_activeToasts.Count > 3)
             {
@@ -350,16 +355,19 @@ namespace AgentClicker.UI
                     continue;
                 }
                 // ease into place, then stop touching it (every change rebuilds the toast canvas)
-                var target = new Vector2(0, y);
+                var target = new Vector2(ToastX, y);
                 var p = rt.anchoredPosition;
                 if ((p - target).sqrMagnitude > 0.25f)
                     rt.anchoredPosition = Vector2.Lerp(p, target, 1 - Mathf.Exp(-Time.unscaledDeltaTime * 12));
                 else if (p != target) rt.anchoredPosition = target;
                 float a = Mathf.Clamp01(left / 0.4f);
                 if (!Mathf.Approximately(cg.alpha, a)) cg.alpha = a;
-                y += 56;
+                y += rt.sizeDelta.y + 8;
             }
         }
+
+        // the fleet column spans x 452..1012 of the 1600-wide desktop
+        const float ToastWidth = 548, ToastX = (452 + 1012) / 2f - Width / 2f;
 
         // ------------------------------------------------------------------ model drops & outages
         void BuildDropCard()
@@ -451,9 +459,22 @@ namespace AgentClicker.UI
             var who = StoryDatabase.Person(mail.From);
             _gm.Sfx.Play(Util.Sound.Mail, 0.7f);
             Toast($"✉ New email from {who.Name}: <b>{mail.Subject}</b>", Theme.Hex(who.ColorHex), 6f);
-            if (mail.Important && _gm.Settings.autoOpenStoryMail && _desktop.gameObject.activeSelf && _modal == null &&
-                _gm.Cam.Mode == Office.CamMode.Monitor)
-                StartCoroutine(OpenInboxSoon(mail.Id));
+            if (mail.Important && _gm.Settings.autoOpenStoryMail) _autoOpenMail = mail.Id;
+        }
+
+        string _autoOpenMail;
+
+        /// <summary>Opens the inbox on an important email once the moment is right (see StoryDatabase.ShouldAutoOpen).</summary>
+        void UpdateAutoOpenMail()
+        {
+            if (_autoOpenMail == null) return;
+            var m = _gm.Model;
+            var mail = StoryDatabase.MailById(_autoOpenMail);
+            if (mail == null || m.State.mailRead.Contains(_autoOpenMail) || !_gm.Settings.autoOpenStoryMail) { _autoOpenMail = null; return; }
+            if (!StoryDatabase.ShouldAutoOpen(m, mail) || !_desktop.gameObject.activeSelf || _modal != null ||
+                _gm.Cam.Mode != Office.CamMode.Monitor || _gm.Calls.Busy) return;
+            StartCoroutine(OpenInboxSoon(_autoOpenMail));
+            _autoOpenMail = null;
         }
 
         System.Collections.IEnumerator OpenInboxSoon(string id)

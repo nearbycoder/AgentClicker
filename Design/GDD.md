@@ -198,7 +198,9 @@ Omni Conductor.
 | 6. Epilogue | Factory built | Record quarter, lunch with Priya, and the CEO admits he has been an Orchestrator since Q2. |
 
 Emails are delivered while you're working, at most one every 8 seconds. Chapter-opening emails open the
-inbox automatically (this can be turned off in settings). The morning day card shows the current chapter.
+inbox automatically once you've shipped your first 10 lines of code, so day 1 starts at SHIP CODE (this can be
+turned off in settings). Chapter banners wait until no modal, model drop or call is on screen, and sit in the
+upper part of the screen, clear of SHIP CODE. The morning day card shows the current chapter.
 New games start with three intro cards, and the ending has five epilogue cards followed by a credits roll.
 
 ## 13. Menus & settings

@@ -150,6 +150,9 @@ namespace AgentClicker.UI
         TextMeshProUGUI _chapterKicker, _chapterTitle, _chapterBlurb;
         float _chapterUntil;
 
+        // the banner sits in the upper part of the screen, clear of SHIP CODE and the store
+        const float BannerY = 0.74f;
+
         /// <summary>Mid-day story beat: "CHAPTER 3 · Scale Out".</summary>
         public void ShowChapterBanner(int chapter)
         {
@@ -157,13 +160,13 @@ namespace AgentClicker.UI
             {
                 _chapter = Group("Chapter");
                 var band = UIKit.Image(_chapter.transform, "Band", new Color(0.02f, 0.03f, 0.06f, 0.8f));
-                band.rectTransform.Anchor(0, 0.5f, 1, 0.5f).Insets(0, -90, 0, -110);
+                band.rectTransform.Anchor(0, BannerY, 1, BannerY).Insets(0, -90, 0, -110);
                 _chapterKicker = UIKit.Text(_chapter.transform, "Kicker", "", 22, Theme.Gold, TextAlignmentOptions.Center, UIFonts.Bold);
-                _chapterKicker.rectTransform.Anchor(0, 0.5f, 1, 0.5f).Insets(0, 60, 0, -96);
+                _chapterKicker.rectTransform.Anchor(0, BannerY, 1, BannerY).Insets(0, 60, 0, -96);
                 _chapterTitle = UIKit.Text(_chapter.transform, "Title", "", 64, Color.white, TextAlignmentOptions.Center, UIFonts.Bold);
-                _chapterTitle.rectTransform.Anchor(0, 0.5f, 1, 0.5f).Insets(0, -20, 0, -60);
+                _chapterTitle.rectTransform.Anchor(0, BannerY, 1, BannerY).Insets(0, -20, 0, -60);
                 _chapterBlurb = UIKit.Text(_chapter.transform, "Blurb", "", 22, Theme.TextDim, TextAlignmentOptions.Center, UIFonts.Medium);
-                _chapterBlurb.rectTransform.Anchor(0, 0.5f, 1, 0.5f).Insets(0, -80, 0, 20);
+                _chapterBlurb.rectTransform.Anchor(0, BannerY, 1, BannerY).Insets(0, -80, 0, 20);
             }
             _chapterKicker.text = $"CHAPTER {chapter}";
             _chapterTitle.text = StoryDatabase.Chapters[chapter];

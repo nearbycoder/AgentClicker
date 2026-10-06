@@ -115,6 +115,11 @@ namespace AgentClicker
             M.SpawnDrop();
             yield return new WaitForSeconds(0.5f);
             yield return Shot("03_desktop_midgame");
+            // the chapter banner waits for the drop; claiming it lets the banner through
+            M.ClaimDrop();
+            yield return new WaitForSeconds(1.2f);
+            yield return Shot("03b_chapter_banner");
+            yield return new WaitForSeconds(3.5f);
             _gm.Computer.SelectStoreTab(2);
             yield return new WaitForSeconds(0.4f);
             yield return Shot("04_store_office");

@@ -50,6 +50,7 @@ namespace AgentClicker
         bool _automated;   // tour / benchmark: skip the title screen
         int _lastHour = -1;
         bool _workLate, _autoCycled, _autoLogin;
+        int _pendingChapter;
         ProbeRefresher _probe;
         readonly System.Random _rng = new System.Random();
 
@@ -280,8 +281,7 @@ namespace AgentClicker
             Model.ChapterChanged += ch =>
             {
                 if (InEnding) return; // the ending has its own fanfare
-                Sfx.Play(Sound.Chapter);
-                Overlay.ShowChapterBanner(ch);
+                _pendingChapter = ch;  // shown by UpdateChapterBanner when nothing else is on screen
             };
         }
 
@@ -345,6 +345,18 @@ namespace AgentClicker
             UpdateTutorial(dt);
             HandleKeys();
             UpdateAutopilot();
+            UpdateChapterBanner();
+        }
+
+        /// <summary>Chapter banners wait until no modal, model drop, call or menu is on screen.</summary>
+        void UpdateChapterBanner()
+        {
+            if (_pendingChapter == 0) return;
+            if (InEnding) { _pendingChapter = 0; return; }
+            if (OnTitle || !Model.IsWorking || Computer.ModalOpen || Model.ActiveDrop != null || Calls.Busy || Menu.Blocking) return;
+            Sfx.Play(Sound.Chapter);
+            Overlay.ShowChapterBanner(_pendingChapter);
+            _pendingChapter = 0;
         }
 
         // ------------------------------------------------------------------ autopilot

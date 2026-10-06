@@ -23,6 +23,20 @@ namespace AgentClicker.Tests
         }
 
         [Test]
+        public void ImportantMailWaitsForTheFirstLinesOfCode()
+        {
+            var m = Working();
+            var mandate = m.DeliverNextMail();
+            Assert.IsTrue(mandate.Important);
+            Assert.IsFalse(StoryDatabase.ShouldAutoOpen(m, mandate), "day 1 starts with SHIP CODE, not the inbox");
+            for (int i = 0; i < StoryDatabase.AutoOpenAfterClicks - 1; i++) m.Click();
+            Assert.IsFalse(StoryDatabase.ShouldAutoOpen(m, mandate));
+            m.Click();
+            Assert.IsTrue(StoryDatabase.ShouldAutoOpen(m, mandate));
+            Assert.IsFalse(StoryDatabase.ShouldAutoOpen(m, StoryDatabase.MailById("dana_welcome")), "only important mail opens itself");
+        }
+
+        [Test]
         public void MailIsDeliveredOnceAndOnlyWhenTriggered()
         {
             var m = Working();
