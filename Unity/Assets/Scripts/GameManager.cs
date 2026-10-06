@@ -57,6 +57,7 @@ namespace AgentClicker
         {
             Instance = this;
             Settings = GameSettings.Load();
+            if (Platform.IsWeb) SaveSystem.Written = Platform.SyncFileSystem;
 
             string[] args = Environment.GetCommandLineArgs();
             float? dayLengthOverride = null;
@@ -321,6 +322,7 @@ namespace AgentClicker
         // ------------------------------------------------------------------ frame
         void Update()
         {
+            CatchUpAfterGap();
             float dt = Mathf.Min(Time.deltaTime, 0.25f);
             Model.Tick(dt);
 
@@ -392,6 +394,23 @@ namespace AgentClicker
                    mouse.scroll.ReadValue().sqrMagnitude > 0.01f || mouse.delta.ReadValue().sqrMagnitude > 4f;
         }
 
+        double _lastFrameTime = -1;
+
+        /// <summary>
+        /// A browser stops running a hidden tab, and a laptop can sleep with the game open. Time the game didn't run
+        /// for counts like time away with the game closed.
+        /// </summary>
+        void CatchUpAfterGap()
+        {
+            double now = Time.realtimeSinceStartupAsDouble, gap = _lastFrameTime < 0 ? 0 : now - _lastFrameTime;
+            _lastFrameTime = now;
+            if (gap < 60 || OnTitle || !SavingEnabled) return;
+            double gain = Model.ApplyOffline(gap);
+            if (gain > 0)
+                Computer.Toast($"While the game was paused for {NumberFormat.Duration(gap)}, your agents earned {NumberFormat.Credits(gain)} " +
+                               $"<color=#8A97AD>({NumberFormat.Percent(Model.OfflineEfficiency)} rate)</color>", Theme.Good, 6f);
+        }
+
         void HandleKeys()
         {
             var kb = Keyboard.current;
@@ -399,7 +418,7 @@ namespace AgentClicker
             if (kb.tabKey.wasPressedThisFrame) Cam.Toggle();
             if (Model.IsWorking && (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame))
                 Computer.ShipFromKeyboard();
-            if (kb.f12Key.wasPressedThisFrame)
+            if (kb.f12Key.wasPressedThisFrame && !Platform.IsWeb)
             {
                 string path = System.IO.Path.Combine(Application.persistentDataPath, $"screenshot_{DateTime.Now:yyyyMMdd_HHmmss}.png");
                 ScreenCapture.CaptureScreenshot(path);

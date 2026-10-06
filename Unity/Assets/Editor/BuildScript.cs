@@ -26,6 +26,20 @@ namespace AgentClicker.EditorTools
             Build(BuildTarget.StandaloneOSX, "Mac/Agent Clicker.app");
         }
 
+        /// <summary>
+        /// Browser build → Builds/WebGL. Brotli with the JavaScript decompression fallback, so it runs from any static
+        /// host (no Content-Encoding headers needed).
+        /// </summary>
+        [MenuItem("Agent Clicker/Build WebGL Player")]
+        public static void BuildWebGL()
+        {
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
+            PlayerSettings.WebGL.decompressionFallback = true;
+            PlayerSettings.defaultWebScreenWidth = 1280;
+            PlayerSettings.defaultWebScreenHeight = 720;
+            Build(BuildTarget.WebGL, "WebGL");
+        }
+
         static void Build(BuildTarget target, string relative, BuildOptions options = BuildOptions.None)
         {
             string path = Path.GetFullPath(Path.Combine(Application.dataPath, "../../Builds", relative));

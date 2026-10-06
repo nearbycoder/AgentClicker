@@ -133,7 +133,7 @@ namespace AgentClicker.UI
             y += 70;
             MenuButton(_title.transform, "CREDITS", () => ShowCredits(() => { }), 70, y);
             y += 70;
-            MenuButton(_title.transform, "QUIT", () => Confirm("Quit to desktop?", "QUIT", _gm.QuitGame), 70, y);
+            if (!Platform.IsWeb) MenuButton(_title.transform, "QUIT", () => Confirm("Quit to desktop?", "QUIT", _gm.QuitGame), 70, y);
 
             UIKit.Text(_title.transform, "Version", $"v{Application.version} · {Application.companyName} · all labs, models and companies are fictional",
                        13, Theme.TextFaint, TextAlignmentOptions.BottomLeft).rectTransform.Anchor(0, 0, 0, 0).Insets(74, 22, -900, -40);
@@ -174,7 +174,7 @@ namespace AgentClicker.UI
             y += 70;
             MenuButton(card.transform, "SAVE & EXIT TO TITLE", () => { ClosePause(); _gm.QuitToTitle(); }, 40, y);
             y += 70;
-            MenuButton(card.transform, "QUIT TO DESKTOP", () => Confirm("Save and quit to desktop?", "QUIT", _gm.QuitGame), 40, y);
+            if (!Platform.IsWeb) MenuButton(card.transform, "QUIT TO DESKTOP", () => Confirm("Save and quit to desktop?", "QUIT", _gm.QuitGame), 40, y);
         }
 
         public void OpenPause()
@@ -251,17 +251,20 @@ namespace AgentClicker.UI
                 case SettingsTab.Graphics:
                     Stepper("Quality preset", GameSettings.QualityNames, () => s.quality, v => s.quality = v, y,
                             "Low: no SSAO, hard shadows, 85% scale · Ultra: 4K shadows"); Next();
-                    Stepper("Display mode", GameSettings.DisplayModeNames, () => s.displayMode, v => s.displayMode = v, y); Next();
-                    var resNames = new List<string> { "Current window" };
-                    for (int i = 0; i < SettingsApplier.Resolutions.Count; i++) resNames.Add(SettingsApplier.ResolutionName(i));
-                    Stepper("Resolution", resNames.ToArray(), () => s.resolutionIndex + 1, v => s.resolutionIndex = v - 1, y); Next();
-                    Toggle("V-Sync", () => s.vsync, v => s.vsync = v, y); Next();
-                    Stepper("Frame rate limit", GameSettings.FpsCapNames, () => s.fpsCap, v => s.fpsCap = v, y); Next();
+                    if (!Platform.IsWeb) // the browser owns the window and the frame rate
+                    {
+                        Stepper("Display mode", GameSettings.DisplayModeNames, () => s.displayMode, v => s.displayMode = v, y); Next();
+                        var resNames = new List<string> { "Current window" };
+                        for (int i = 0; i < SettingsApplier.Resolutions.Count; i++) resNames.Add(SettingsApplier.ResolutionName(i));
+                        Stepper("Resolution", resNames.ToArray(), () => s.resolutionIndex + 1, v => s.resolutionIndex = v - 1, y); Next();
+                        Toggle("V-Sync", () => s.vsync, v => s.vsync = v, y); Next();
+                        Stepper("Frame rate limit", GameSettings.FpsCapNames, () => s.fpsCap, v => s.fpsCap = v, y); Next();
+                    }
                     Slider("Render scale", 0.5f, 1f, () => s.renderScale, v => s.renderScale = v, y, v => $"{v * 100:0}%"); Next();
                     Slider("Field of view", 40f, 70f, () => s.fieldOfView, v => s.fieldOfView = v, y, v => $"{v:0}°"); Next();
                     Toggle("Post-processing (bloom, AO, grading)", () => s.postProcessing, v => s.postProcessing = v, y); Next();
                     Toggle("Show FPS counter", () => s.showFps, v => s.showFps = v, y); Next();
-                    Toggle("Save power when in background", () => s.throttleInBackground, v => s.throttleInBackground = v, y);
+                    if (!Platform.IsWeb) Toggle("Save power when in background", () => s.throttleInBackground, v => s.throttleInBackground = v, y);
                     break;
                 case SettingsTab.Audio:
                     Slider("Master volume", 0, 1, () => s.masterVolume, v => s.masterVolume = v, y, Pct); Next();
@@ -290,7 +293,7 @@ namespace AgentClicker.UI
                         Row("Zoom", "Mouse wheel (office view)") +
                         Row("Pause menu", "Esc · ⚙ button") +
                         Row("Inbox", "✉ button in CorpOS") +
-                        Row("Screenshot", "F12"), 20, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Medium);
+                        (Platform.IsWeb ? "" : Row("Screenshot", "F12")), 20, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Medium);
                     t.rectTransform.TopLeft(0, 0, 920, 500);
                     t.lineSpacing = 18;
                     break;

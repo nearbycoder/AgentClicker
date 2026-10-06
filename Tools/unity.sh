@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Helper for running the Unity editor headless against this project.
-#   Tools/unity.sh setup | tests | build | scene | exec <Method> | models
+#   Tools/unity.sh setup | tests | build | build-mac | build-webgl | scene | exec <Method>
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PROJECT="$ROOT/Unity"
@@ -17,6 +17,7 @@ case "${1:-}" in
   scene)  run scene.log -quit -executeMethod AgentClicker.EditorTools.SceneBuilder.BuildFromCommandLine ;;
   build)  run build.log -quit -executeMethod AgentClicker.EditorTools.BuildScript.BuildLinux ;;
   build-mac) run build-mac.log -quit -buildTarget OSXUniversal -executeMethod AgentClicker.EditorTools.BuildScript.BuildMac ;;
+  build-webgl) run build-webgl.log -quit -buildTarget WebGL -executeMethod AgentClicker.EditorTools.BuildScript.BuildWebGL ;;
   build-dev) run build.log -quit -executeMethod AgentClicker.EditorTools.BuildScript.BuildLinuxDev ;;
   tests)  run tests.log -runTests -testPlatform EditMode -testResults "$LOG_DIR/test-results.xml" || true
           python3 - "$LOG_DIR/test-results.xml" <<'PY'
@@ -32,5 +33,5 @@ for out in r.iter('output'):
 PY
           ;;
   exec)   shift; m="$1"; shift; run exec.log -quit -executeMethod "$m" "$@" ;;
-  *) echo "usage: $0 setup|scene|build|build-mac|tests|exec <Method>"; exit 2 ;;
+  *) echo "usage: $0 setup|scene|build|build-mac|build-webgl|tests|exec <Method>"; exit 2 ;;
 esac

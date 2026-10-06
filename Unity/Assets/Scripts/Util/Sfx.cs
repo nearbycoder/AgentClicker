@@ -9,7 +9,8 @@ namespace AgentClicker.Util
 
     /// <summary>
     /// Procedurally synthesised audio: sound effects, an office ambience loop and a lo-fi music loop.
-    /// The game ships with zero audio files. Music is rendered on a worker thread at startup.
+    /// The game ships with zero audio files. Music is rendered on a worker thread at startup (in slices on the
+    /// main thread in the browser build, which has no threads).
     /// </summary>
     public class Sfx : MonoBehaviour
     {
@@ -53,23 +54,29 @@ namespace AgentClicker.Util
             _music = gameObject.AddComponent<AudioSource>();
             _music.loop = true;
             _music.priority = 0;
+#if UNITY_WEBGL && !UNITY_EDITOR
+            StartCoroutine(LofiMusic.RenderInSteps(MusicRate, 7, 6.0, SetMusic));
+#else
             _musicJob = Task.Run(() => LofiMusic.Render(MusicRate, seed: 7));
+#endif
             ApplyVolumes();
+        }
+
+        void SetMusic(float[] data)
+        {
+            var clip = AudioClip.Create("lofi", data.Length, 1, MusicRate, false);
+            clip.SetData(data, 0);
+            _music.clip = clip;
+            _music.Play();
+            _musicFade = 0f;
+            Debug.Log($"[Sfx] music ready ({data.Length / (float)MusicRate:0.0} s loop) after {Time.realtimeSinceStartup:0.0} s");
         }
 
         void Update()
         {
             if (_musicJob != null && _musicJob.IsCompleted)
             {
-                if (_musicJob.Status == TaskStatus.RanToCompletion)
-                {
-                    var data = _musicJob.Result;
-                    var clip = AudioClip.Create("lofi", data.Length, 1, MusicRate, false);
-                    clip.SetData(data, 0);
-                    _music.clip = clip;
-                    _music.Play();
-                    _musicFade = 0f;
-                }
+                if (_musicJob.Status == TaskStatus.RanToCompletion) SetMusic(_musicJob.Result);
                 else Debug.LogWarning("[Sfx] music render failed: " + _musicJob.Exception?.GetBaseException().Message);
                 _musicJob = null;
             }
@@ -252,6 +259,20 @@ namespace AgentClicker.Util
 
         public static float[] Render(int rate, int seed)
         {
+            float[] result = null;
+            var steps = RenderInSteps(rate, seed, double.PositiveInfinity, b => result = b);
+            while (steps.MoveNext()) { }
+            return result;
+        }
+
+        /// <summary>
+        /// The same loop, rendered a few notes at a time: yields whenever a slice has taken `budgetMs`, so a
+        /// coroutine can spread the work over frames.
+        /// </summary>
+        public static System.Collections.IEnumerator RenderInSteps(int rate, int seed, double budgetMs, Action<float[]> done)
+        {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            bool Spent() { if (clock.Elapsed.TotalMilliseconds < budgetMs) return false; clock.Restart(); return true; }
             var rng = new System.Random(seed);
             double beat = 60.0 / Bpm;
             int bars = 8;
@@ -269,7 +290,10 @@ namespace AgentClicker.Util
                 // chords: beat 1 and the "and" of 3
                 foreach (double at in new[] { 0.0, 2.5 })
                     foreach (int note in chord)
+                    {
                         AddNote(buf, rate, barStart + at * beat + rng.NextDouble() * 0.012, Midi(note), 2.4, 0.075, Rhodes);
+                        if (Spent()) yield return null;
+                    }
                 // bass: root on 1 and 3 (plus a pickup on the "and" of 4 every other bar)
                 double root = Midi(chord[0] - 12);
                 AddNote(buf, rate, barStart, root, 1.4, 0.2, Bass);
@@ -291,6 +315,7 @@ namespace AgentClicker.Util
                     if (e == 2 || e == 6) AddNote(buf, rate, at, 0, 0.3, 0.16, Snare);
                     AddNote(buf, rate, at, 0, 0.08, e % 2 == 0 ? 0.035 : 0.022, Hat);
                 }
+                if (Spent()) yield return null;
             }
 
             // vinyl crackle + warm low-pass + gentle limiter
@@ -302,8 +327,9 @@ namespace AgentClicker.Util
                 x += (rng.NextDouble() - 0.5) * 0.004;
                 lp += (x - lp) * k;
                 buf[i] = (float)Math.Tanh(lp * 1.4) * 0.8f;
+                if ((i & 0x3FFF) == 0 && Spent()) yield return null;
             }
-            return buf;
+            done(buf);
         }
 
         static double Midi(int n) => 440.0 * Math.Pow(2, (n - 69) / 12.0);

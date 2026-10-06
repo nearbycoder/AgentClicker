@@ -79,6 +79,7 @@ namespace AgentClicker.Util
 
         public static void ApplyDisplay(GameSettings s)
         {
+            if (Platform.IsWeb) return; // the page decides the canvas size
             var mode = s.displayMode switch
             {
                 1 => FullScreenMode.FullScreenWindow,
@@ -101,6 +102,11 @@ namespace AgentClicker.Util
         /// <summary>Idle games run all day in the background, so drop to a trickle when unfocused.</summary>
         public static void ApplyFramePacing(GameSettings s, bool focused)
         {
+            if (Platform.IsWeb)
+            {
+                Application.targetFrameRate = -1; // the browser's display refresh; hidden tabs pause on their own
+                return;
+            }
             if (!focused && s.throttleInBackground)
             {
                 QualitySettings.vSyncCount = 0;

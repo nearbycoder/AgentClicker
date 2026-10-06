@@ -180,6 +180,13 @@ XWayland. Command-line options: `-reset` wipes the save and `-daylength 120` sho
 build made on Linux. It is unsigned and hasn't been tested on a Mac. If macOS refuses to open it, run
 `xattr -cr "Agent Clicker.app"` and then `codesign --force --deep -s - "Agent Clicker.app"`.
 
+**In a browser (local build, not hosted yet).** `Tools/unity.sh build-webgl` makes a browser build in
+`Builds/WebGL`, about 15 MB to download. Serve the folder with any static web server, for example
+`python3 -m http.server -d Builds/WebGL 8000`, and open <http://localhost:8000>. The save goes to the
+browser's storage (IndexedDB) and survives a reload. Browsers pause a tab you aren't looking at, so time in a
+hidden tab counts like time with the game closed. It has only been tried in headless Chrome on Linux; see the
+known issues below.
+
 Saves live in `~/.config/unity3d/Nearby Games/Agent Clicker/` on Linux (Unity's `persistentDataPath`), and
 settings are stored separately in PlayerPrefs. Each save replaces `agentclicker_save.json` in one step and keeps
 the previous one as `agentclicker_save.json.bak`; if the main file is ever missing or damaged, the game loads
@@ -187,7 +194,8 @@ the newest readable copy instead.
 
 ## Build from source
 
-You need **Unity 6000.6.2f1** with Linux Build Support (Mono), plus Mac Build Support (Mono) for macOS builds. To
+You need **Unity 6000.6.2f1** with Linux Build Support (Mono), plus Mac Build Support (Mono) for macOS builds and
+WebGL Build Support for the browser build. To
 regenerate the art you also need **Blender 4.5 LTS**. The Unity project lives in [`Unity/`](Unity): open that
 folder in Unity Hub, or drive everything headless with the helper scripts below. `Tools/unity.sh` expects the
 editor at `~/Unity/Hub/Editor/6000.6.2f1/Editor/Unity`, or set `UNITY_EDITOR` to its path.
@@ -198,6 +206,7 @@ Tools/unity.sh scene       # regenerate Assets/Scenes/Main.unity from the models
 Tools/unity.sh tests       # 105 EditMode tests, including the economy balance simulation
 Tools/unity.sh build       # Linux player → Builds/Linux
 Tools/unity.sh build-mac   # universal macOS player → Builds/Mac
+Tools/unity.sh build-webgl # browser build (Brotli, works on any static host) → Builds/WebGL
 Tools/play.sh              # run the Linux build (adds -force-wayland on Wayland)
 ```
 
@@ -289,6 +298,10 @@ release (v0.1.0).
 * **XWayland hang**: the Linux player can hang at startup through XWayland. Launch with `-force-wayland`
   (`Tools/play.sh` does this for you).
 * **macOS is experimental**: the build is made on Linux, isn't signed or notarised, and hasn't been run on a Mac.
+* **The browser build is new and lightly tested**: it was checked in headless Chrome on Linux only (start a game,
+  autopilot login, save, reload, continue). Firefox, Safari, phones and tablets (there's no touch support) and
+  long sessions haven't been tried, and it isn't hosted anywhere yet. Music starts a few seconds after loading
+  because it's synthesised on the page's only thread.
 * **No Windows build yet.** The build script has a Windows target, but it hasn't been built or tested.
 * **Mouse and keyboard only**, English only.
 * **Pacing is tuned by a bot.** The balance tests keep the first Factory between 1.5 and 5 hours for a greedy
