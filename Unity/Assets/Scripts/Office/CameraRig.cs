@@ -16,6 +16,8 @@ namespace AgentClicker.Office
 
         public CamMode Mode { get; private set; } = CamMode.Office;
         public float MouseSensitivity { get; set; } = 1f;
+        /// <summary>Settings → Reduce motion: every camera move is a cut, and the title camera holds still.</summary>
+        public bool ReduceMotion { get; set; }
         public bool InTransition => _transition < 1f;
 
         SceneRefs _refs;
@@ -46,7 +48,7 @@ namespace AgentClicker.Office
             _fromRot = _cam.transform.rotation;
             Mode = mode;
             _transition = 0f;
-            _transitionTime = Mathf.Max(0.01f, seconds);
+            _transitionTime = ReduceMotion ? 0.0001f : Mathf.Max(0.01f, seconds);
         }
 
         Vector3 _fixedPos, _fixedLook;
@@ -135,6 +137,13 @@ namespace AgentClicker.Office
             }
         }
 
+        /// <summary>How far the camera is from where its mode wants it (metres), for checks.</summary>
+        public float DistanceToTarget()
+        {
+            GetTarget(out var pos, out _);
+            return Vector3.Distance(_cam.transform.position, pos);
+        }
+
         void GetTarget(out Vector3 pos, out Quaternion rot)
         {
             switch (Mode)
@@ -176,7 +185,7 @@ namespace AgentClicker.Office
         /// <summary>Slow cinematic drift around the office behind the title screen.</summary>
         void MenuPose(out Vector3 pos, out Quaternion rot)
         {
-            float t = Time.unscaledTime;
+            float t = ReduceMotion ? 0f : Time.unscaledTime;
             float yaw = 8f + Mathf.Sin(t * 0.07f) * 34f;
             float pitch = 14f + Mathf.Sin(t * 0.05f + 1f) * 4f;
             float dist = 2.9f + Mathf.Sin(t * 0.045f) * 0.25f;

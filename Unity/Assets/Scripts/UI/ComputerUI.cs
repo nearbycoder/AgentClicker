@@ -357,7 +357,7 @@ namespace AgentClicker.UI
                 // ease into place, then stop touching it (every change rebuilds the toast canvas)
                 var target = new Vector2(ToastX, y);
                 var p = rt.anchoredPosition;
-                if ((p - target).sqrMagnitude > 0.25f)
+                if ((p - target).sqrMagnitude > 0.25f && !UIKit.ReduceMotion)
                     rt.anchoredPosition = Vector2.Lerp(p, target, 1 - Mathf.Exp(-Time.unscaledDeltaTime * 12));
                 else if (p != target) rt.anchoredPosition = target;
                 float a = Mathf.Clamp01(left / 0.4f);

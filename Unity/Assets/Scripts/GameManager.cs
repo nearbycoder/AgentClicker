@@ -176,6 +176,7 @@ namespace AgentClicker
             Settings.Clamp();
             SettingsApplier.ApplyAll(Settings, Refs, Sfx, Model);
             Cam.MouseSensitivity = Settings.mouseSensitivity;
+            Cam.ReduceMotion = Settings.reduceMotion;
             if (save) Settings.Save();
         }
 
@@ -320,7 +321,7 @@ namespace AgentClicker
                     Office.Refresh(true);
                     if (_probe) _probe.RequestRender(1.2f);
                     Computer.Toast(FlavorText.OfficeInstalled(GameDatabase.Office(p.Id)), Theme.Gold);
-                    if (!SuppressShowcase && Settings.purchaseShowcase) Cam.Showcase(Office.ShowcaseTarget(p.Id));
+                    if (!SuppressShowcase && Settings.purchaseShowcase && !Settings.reduceMotion) Cam.Showcase(Office.ShowcaseTarget(p.Id));
                     Employee.PlayOneShot(EmployeeController.Celebrate, 1.4f);
                     break;
             }

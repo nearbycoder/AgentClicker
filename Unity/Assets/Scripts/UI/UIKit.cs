@@ -72,6 +72,9 @@ namespace AgentClicker.UI
     /// <summary>Small helpers for building uGUI hierarchies from code.</summary>
     public static class UIKit
     {
+        /// <summary>Settings → Gameplay → Reduce motion: UI animations hold still.</summary>
+        public static bool ReduceMotion;
+
         static readonly Dictionary<int, Sprite> RoundedCache = new Dictionary<int, Sprite>();
         const int SpriteRadius = 32;
         static Sprite _circle;
@@ -382,6 +385,7 @@ namespace AgentClicker.UI
 
         public void Play(float amount = 0.08f)
         {
+            if (UIKit.ReduceMotion) return;
             _amount = amount;
             _t = 0f;
             UIKit.IsolateAnimated(transform);
@@ -412,6 +416,11 @@ namespace AgentClicker.UI
 
         void Update()
         {
+            if (UIKit.ReduceMotion)
+            {
+                if (transform.localScale != _base) transform.localScale = _base;
+                return;
+            }
             float s = Mathf.Sin(Time.unscaledTime * Speed);
             transform.localScale = _base * (1f + s * ScaleAmount);
             if (Glow) Glow.color = Glow.color.WithAlpha(0.35f + 0.35f * (s * 0.5f + 0.5f));
@@ -456,7 +465,9 @@ namespace AgentClicker.UI
         {
             _t += Time.unscaledDeltaTime;
             float k = _t / Life;
-            ((RectTransform)transform).anchoredPosition = _start + new Vector2(_drift * k, Rise * (1 - (1 - k) * (1 - k)));
+            // with reduced motion the number fades where it appeared
+            if (!UIKit.ReduceMotion)
+                ((RectTransform)transform).anchoredPosition = _start + new Vector2(_drift * k, Rise * (1 - (1 - k) * (1 - k)));
             _group.alpha = 1f - k * k;
             if (_t < Life) return;
             if (Finished != null) Finished(this);

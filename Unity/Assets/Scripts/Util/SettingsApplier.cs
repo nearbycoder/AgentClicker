@@ -46,6 +46,7 @@ namespace AgentClicker.Util
             ApplyAudio(s, sfx, Application.isFocused);
             if (model != null) model.DayLengthSeconds = s.DayLengthSeconds;
             NumberFormat.Style = (NumberStyle)s.numberStyle;
+            UI.UIKit.ReduceMotion = s.reduceMotion;
         }
 
         public static void ApplyGraphics(GameSettings s, SceneRefs refs)

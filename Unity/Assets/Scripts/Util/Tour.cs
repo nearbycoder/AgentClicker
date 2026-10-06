@@ -135,6 +135,7 @@ namespace AgentClicker
             yield return Shot("05b_office_medium");
             _gm.Settings.quality = 2;
             _gm.ApplySettings(false);
+            yield return ReduceMotionSegment();
 
             // ---- late game, evening ---------------------------------------
             s.day = 22;
@@ -273,6 +274,52 @@ namespace AgentClicker
 
             Debug.Log("[Tour] done");
             Application.Quit();
+        }
+
+        /// <summary>Reduce motion: camera moves are cuts and pulsing UI holds still.</summary>
+        IEnumerator ReduceMotionSegment()
+        {
+            // control run with normal motion: the camera is still flying two frames in, and the drop card pulses
+            M.SpawnDrop();
+            _gm.Cam.SetMode(CamMode.Monitor, 1.1f);
+            yield return null;
+            yield return null;
+            float flying = _gm.Cam.DistanceToTarget();
+            int movingNormally = 0;
+            yield return CountMovingPulses(n => movingNormally = n);
+            Debug.Log($"[Tour] control: normal motion leaves the camera {flying:0.000} m off after two frames, {movingNormally} pulsing elements moving");
+            _gm.Cam.SetMode(CamMode.Office, 0.01f);
+            yield return new WaitForSeconds(0.3f);
+
+            _gm.Settings.reduceMotion = true;
+            _gm.ApplySettings(false);
+            _gm.Cam.SetMode(CamMode.Monitor, 1.1f);
+            yield return null;
+            yield return null;
+            float off = _gm.Cam.DistanceToTarget();
+            Debug.Log(off < 0.01f && flying > 0.05f ? $"[Tour] PASS reduce motion: camera cut to the monitor ({off:0.0000} m off)"
+                                                    : $"[Tour] FAIL reduce motion: camera {off:0.000} m from the monitor (control {flying:0.000})");
+            int moving = -1;
+            yield return CountMovingPulses(n => moving = n);
+            Debug.Log(moving == 0 && movingNormally > 0 ? $"[Tour] PASS reduce motion: pulsing elements hold still ({movingNormally} moved without it)"
+                                                        : $"[Tour] FAIL reduce motion: {moving} pulsing elements moved (control {movingNormally})");
+            yield return Shot("05c_reduce_motion_drop");
+            M.ClaimDrop();
+            _gm.Settings.reduceMotion = false;
+            _gm.ApplySettings(false);
+            _gm.Cam.SetMode(CamMode.Office, 0.2f);
+            yield return new WaitForSeconds(0.6f);
+        }
+
+        static IEnumerator CountMovingPulses(System.Action<int> result)
+        {
+            var pulses = FindObjectsByType<Pulse>(FindObjectsSortMode.None);
+            var before = new Vector3[pulses.Length];
+            for (int i = 0; i < pulses.Length; i++) before[i] = pulses[i].transform.localScale;
+            yield return new WaitForSeconds(0.4f);
+            int moved = 0;
+            for (int i = 0; i < pulses.Length; i++) if (pulses[i] && pulses[i].transform.localScale != before[i]) moved++;
+            result(moved);
         }
 
         IEnumerator AutopilotSegment()

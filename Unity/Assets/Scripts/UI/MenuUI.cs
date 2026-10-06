@@ -279,6 +279,8 @@ namespace AgentClicker.UI
                     Toggle("Show off new gadgets (camera)", () => s.purchaseShowcase, v => s.purchaseShowcase = v, y); Next();
                     Toggle("Run the work day when I'm away", () => s.autopilotDay, v => s.autopilotDay = v, y,
                            "Idle for a while after 5 PM: your agents clock you out, go home and log you back in"); Next();
+                    Toggle("Reduce motion", () => s.reduceMotion, v => s.reduceMotion = v, y,
+                           "Camera cuts instead of flying; buttons and numbers hold still"); Next();
                     Toggle("Tutorial tips", () => s.tutorialTips, v => s.tutorialTips = v, y); Next();
                     Toggle("Open important emails automatically", () => s.autoOpenStoryMail, v => s.autoOpenStoryMail = v, y); Next();
                     Slider("Mouse look sensitivity", 0.25f, 3f, () => s.mouseSensitivity, v => s.mouseSensitivity = v, y, v => $"{v:0.00}x"); Next();

@@ -42,6 +42,7 @@ namespace AgentClicker.Core
         public bool tutorialTips = true;
         public bool autoOpenStoryMail = true;
         public bool autopilotDay = true;   // run the day (clock out, go home, clock in, log in) when nobody is at the keyboard
+        public bool reduceMotion;          // camera cuts instead of flying, no showcases, no bouncing UI
         public float mouseSensitivity = 1f;
         public int numberStyle;            // NumberStyle
 

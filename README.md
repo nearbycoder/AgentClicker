@@ -140,8 +140,9 @@ the pipeline booting, the camera pulls back, and Sam puts their feet up. Then th
 
 Graphics presets from Low to Ultra (MSAA, shadows, SSAO, render scale), display mode, resolution, V-Sync, a
 frame cap, field of view and post-processing. Separate volume sliders for effects, music and ambience. Work
-days of 3, 5, 8 or 12 minutes, running the day while you're away, tutorial tips, a purchase camera toggle and
-mouse sensitivity. The game
+days of 3, 5, 8 or 12 minutes, running the day while you're away, **reduce motion** (camera cuts instead of
+flying, no gadget showcases, and buttons, pulses and floating numbers hold still), tutorial tips, a purchase
+camera toggle and mouse sensitivity. The game
 autosaves every 15 seconds, and your agents keep earning at a reduced rate while the game is closed.
 
 ## Content at a glance
