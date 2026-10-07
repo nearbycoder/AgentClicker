@@ -70,6 +70,13 @@ mergeInto(LibraryManager.library, {
     return document.fullscreenEnabled || document.webkitFullscreenEnabled ? 1 : 0;
   },
 
+  // Fullscreen on or off right away. Browsers allow it for a few seconds after a tap, click or key press (transient user
+  // activation), so a button that acts a frame after the press still qualifies. This is the same call as the page's own
+  // Fullscreen button (unityInstance.SetFullscreen); Unity's Screen.fullScreen would wait for the next input event.
+  AgentClicker_RequestFullscreen: function (on) {
+    if (Module.SetFullscreen) Module.SetFullscreen(on ? 1 : 0);
+  },
+
   // Hands the player a file (the save, to keep or move to another browser or the desktop game).
   AgentClicker_DownloadText: function (fileName, text) {
     var a = document.createElement('a');

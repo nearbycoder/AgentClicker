@@ -75,6 +75,14 @@ const audioProbe = () => {
 };
 
 // A file as the game last flushed it to IndexedDB (Unity's IDBFS), as text, or null.
+// Test-only: a page loaded after sessionStorage.acTimeShift is set sees the clock that many ms ahead, as if the tab had
+// been closed that long (the game times offline earnings with Date.now). The page already open keeps the real clock.
+const timeShift = () => {
+  let shift = 0;
+  try { shift = Number(sessionStorage.getItem("acTimeShift") || 0); } catch (e) { } // about:blank has no storage in Firefox
+  if (shift) { const now = Date.now.bind(Date); Date.now = () => now() + shift; }
+};
+
 const readIdb = (suffix) => new Promise((resolve) => {
   const open = indexedDB.open("/idbfs");
   open.onerror = () => resolve(null);
@@ -118,6 +126,7 @@ async function main() {
     await sleep(500);
     const context = await browser.newContext({ viewport: { width: 1600, height: 900 } });
     await context.addInitScript(audioProbe);
+    await context.addInitScript(timeShift);
     const page = await context.newPage();
     page.on("console", (m) => log.push(`[${m.type()}] ${m.text()}`));
     const pageErrors = [];
@@ -291,6 +300,8 @@ async function main() {
       delete document.visibilityState; delete document.hidden;
     });
     const saved = await readSave(page);
+    // the reloaded page's clock runs two hours ahead: the game was "closed" for two hours
+    await page.evaluate(() => sessionStorage.setItem("acTimeShift", String(2 * 3600 * 1000)));
     await page.reload();
     await loaded();
     await shot("06_title_after_reload");
@@ -313,6 +324,43 @@ async function main() {
     check(!!prefs && prefs.includes('"numberStyle":1'), "a settings change survives the reload (PlayerPrefs in IndexedDB)");
     const overlaps = log.filter((l) => l.includes("syncfs operations in flight")).length;
     check(overlaps === 0, `IndexedDB syncs never overlap (${overlaps} warnings)`);
+
+    // ---- two hours closed: after logging in, the away card says what the agents earned ------------------------
+    const closedLine = log.find((l) => l.includes("[Away] game closed for")) ?? "";
+    const loginFrom = log.length;
+    for (let i = 0; i < 100 && !log.slice(loginFrom).some((l) => l.includes("[Autopilot] log in")); i++) await sleep(250); // ~10 s idle
+    await sleep(2500);
+    const awayCard = await modalOpen();
+    await shot("07b_offline_card");
+    check(/game closed for 2h 0[01]m/.test(closedLine) && awayCard,
+          `reopened two hours later: ${closedLine.replace(/^.*\[Away\] /, "") || "no offline credit"}, and the away card shows after logging in (${awayCard})`);
+    if (awayCard) { await page.keyboard.press("Escape"); await sleep(600); }
+    await page.evaluate(() => sessionStorage.removeItem("acTimeShift"));
+
+    // ---- the pause menu's FULLSCREEN works with one click ----------------------------------------------------
+    const find = async (name) => {
+      const from = log.length;
+      await page.evaluate((n) => window.unityInstance.SendMessage("Game", "LogScreenPoint", n), name);
+      for (let i = 0; i < 25; i++) {
+        await sleep(100);
+        const line = log.slice(from).find((l) => l.includes(`[Probe] ${name} `));
+        if (!line) continue;
+        const v = line.slice(line.indexOf(`[Probe] ${name} `) + `[Probe] ${name} `.length).split(" ").map(Number);
+        return v.length < 4 || v.some(isNaN) ? null : { x: v[0] * 1600 / v[2], y: (v[3] - v[1]) * 900 / v[3] };
+      }
+      return null;
+    };
+    const canFull = await page.evaluate(() => document.fullscreenEnabled || document.webkitFullscreenEnabled);
+    await page.keyboard.press("Escape"); // pause
+    await sleep(800);
+    const fsButton = await find("FULLSCREEN");
+    if (fsButton) { await page.mouse.click(fsButton.x, fsButton.y); await sleep(800); }
+    const isFull = await page.evaluate(() => !!(document.fullscreenElement || document.webkitFullscreenElement));
+    await shot("07c_pause_fullscreen");
+    check(!canFull || (!!fsButton && isFull), `one click on the pause menu's FULLSCREEN makes the page fullscreen (${fsButton ? "button shown" : "no button"}, fullscreen ${isFull})`);
+    if (isFull) { await page.evaluate(() => document.exitFullscreen()); await sleep(600); }
+    await page.keyboard.press("Escape"); // resume
+    await sleep(600);
     // ---- save files: download here, load into a fresh browser profile ---------------------------------------
     const openGameplaySettings = async (p) => {
       await p.mouse.click(250, 579); // SETTINGS

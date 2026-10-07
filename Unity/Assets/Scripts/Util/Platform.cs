@@ -15,12 +15,19 @@ namespace AgentClicker.Util
         [DllImport("__Internal")] static extern void AgentClicker_ReuseGLIds();
         [DllImport("__Internal")] static extern void AgentClicker_ShowFullscreenButton(bool show);
         [DllImport("__Internal")] static extern int AgentClicker_CanFullscreen();
+        [DllImport("__Internal")] static extern void AgentClicker_RequestFullscreen(bool on);
 
         /// <summary>Shows or hides the page's own Fullscreen button.</summary>
         public static void ShowFullscreenButton(bool show) => AgentClicker_ShowFullscreenButton(show);
 
         /// <summary>The browser can make the page fullscreen (iPhones can't).</summary>
         public static bool CanFullscreen => AgentClicker_CanFullscreen() != 0;
+
+        /// <summary>
+        /// Asks for fullscreen now, while the browser still counts the tap or click that pressed the button as recent (its
+        /// transient user activation). Unity's own Screen.fullScreen waits for the next input event instead.
+        /// </summary>
+        public static void RequestFullscreen(bool on) => AgentClicker_RequestFullscreen(on);
 
         /// <summary>WebGL objects get the lowest free id in their own table, so the engine's id tables stop growing.</summary>
         public static void ReuseGLIds() => AgentClicker_ReuseGLIds();
@@ -46,6 +53,8 @@ namespace AgentClicker.Util
         public static void ShowFullscreenButton(bool show) { }
 
         public static bool CanFullscreen => false;
+
+        public static void RequestFullscreen(bool on) { }
 
         public static void SaveWhenHidden(string objectName, string methodName) { }
 

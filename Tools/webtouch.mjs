@@ -229,15 +229,15 @@ async function play(browser, url, dev) {
     await sleep(800);
     await shot("07_pause");
     const paused = await find("RESUME");
-    // browsers only go fullscreen during an input event: FULLSCREEN asks, and the next tap (RESUME) switches
+    // one tap on FULLSCREEN makes the page fullscreen (the game asks while the browser still counts the tap)
     const fsItem = page0.fullscreen ? await find("FULLSCREEN") : null;
-    if (fsItem) { await page.touchscreen.tap(fsItem.x, fsItem.y); await sleep(500); }
+    if (fsItem) { await tap("FULLSCREEN"); await sleep(800); }
+    const full = await page.evaluate(() => !!(document.fullscreenElement || document.webkitFullscreenElement));
+    check(!page0.fullscreen || (!!fsItem && full),
+          `${dev.name}: one tap on the pause menu's FULLSCREEN made the page fullscreen (${fsItem ? "button shown" : "no button"}, fullscreen ${full})`);
     await tap("RESUME");
     await sleep(800);
     check(!!paused && !(await find("RESUME")), `${dev.name}: ⚙ opened the pause menu and RESUME closed it`);
-    const full = await page.evaluate(() => !!(document.fullscreenElement || document.webkitFullscreenElement));
-    check(!page0.fullscreen || (!!fsItem && full),
-          `${dev.name}: the pause menu's FULLSCREEN, then RESUME, made the page fullscreen (${fsItem ? "button shown" : "no button"}, fullscreen ${full})`);
     check(errors.length === 0, `${dev.name}: no page errors (${errors.length})`);
   } finally {
     writeFileSync(path.join(out, `${dev.name}_console.log`), log.join("\n").slice(-300000));

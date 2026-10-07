@@ -177,17 +177,30 @@ namespace AgentClicker.UI
             if (!Platform.IsWeb) MenuButton(card.transform, "QUIT TO DESKTOP", () => Confirm("Save and quit to desktop?", "QUIT", _gm.QuitGame), 40, y);
             else if (Platform.CanFullscreen)
             {
-                // browsers only go fullscreen during an input event, so the switch happens on the next tap or click
+                // browsers only go fullscreen shortly after a tap or click: ask right away, while the press that pressed the button
+                // still counts; if that didn't work (a gamepad press isn't one the browser sees), Unity asks at the next input
                 _fullscreen = MenuButton(card.transform, "FULLSCREEN", () =>
                 {
-                    Screen.fullScreen = !Screen.fullScreen;
-                    SetFullscreenLabel(!Screen.fullScreen);
-                    Debug.Log("[Menu] fullscreen " + (Screen.fullScreen ? "off" : "on") + " requested");
+                    bool want = !Screen.fullScreen;
+                    Platform.RequestFullscreen(want);
+                    SetFullscreenLabel(want);
+                    Debug.Log("[Menu] fullscreen " + (want ? "on" : "off") + " requested");
+                    StartCoroutine(FullscreenFallback(want));
                 }, 40, y);
             }
         }
 
         Button _fullscreen;
+
+        System.Collections.IEnumerator FullscreenFallback(bool want)
+        {
+            yield return new WaitForSecondsRealtime(0.5f);
+            if (Screen.fullScreen != want)
+            {
+                Debug.Log("[Menu] fullscreen: the browser didn't switch yet, asking again at the next tap or click");
+                Screen.fullScreen = want;
+            }
+        }
 
         void SetFullscreenLabel(bool full)
         {
