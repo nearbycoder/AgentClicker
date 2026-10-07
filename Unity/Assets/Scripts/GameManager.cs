@@ -36,6 +36,7 @@ namespace AgentClicker
         public CallUI Calls { get; private set; }
         public GamepadCursor Pad { get; private set; }
         public TouchControls Touch { get; private set; }
+        public ZoomEdgeChip ZoomChip { get; private set; }
         public Sfx Sfx { get; private set; }
 
         public bool SavingEnabled { get; set; } = true;
@@ -147,6 +148,7 @@ namespace AgentClicker
             Calls = gameObject.AddComponent<CallUI>();
             Pad = gameObject.AddComponent<GamepadCursor>();
             Touch = gameObject.AddComponent<TouchControls>();
+            ZoomChip = gameObject.AddComponent<ZoomEdgeChip>();
 
             if (trailerDir != null)
             {
@@ -188,6 +190,7 @@ namespace AgentClicker
             Calls.Init(this);
             Pad.Init(this);
             Touch.Init(this);
+            ZoomChip.Init(this);
             foreach (var side in FindObjectsByType<SideScreen>(FindObjectsInactive.Include))
                 side.Init(this);
             _probe = FindAnyObjectByType<ProbeRefresher>();

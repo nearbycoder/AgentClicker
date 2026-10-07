@@ -189,7 +189,9 @@ Later divisions get a short victory lap instead of the full ending.
   (pinching in all the way sits back down), and the store keeps the last tapped item's details because touch has no
   hover. In the monitor view two fingers zoom into the screen (up to 3×) and pan, because the whole monitor makes
   6-pixel text on a phone; while they zoom the monitor ignores taps, so lifting them can't buy anything, and two fingers
-  that stay put are still two taps on SHIP CODE. Prompts follow whichever input was used last.
+  that stay put are still two taps on SHIP CODE. While zoomed in, a model drop or outage banner whose centre is out of
+  view gets a chip at that edge of the screen (tapping it pans the view onto it, keeping the zoom), and any dialog on the
+  monitor resets the zoom so it can't open out of sight. Prompts follow whichever input was used last.
 * **Browser**: the page asks for a phone held upright to be turned, shows a Fullscreen button on the title screen (the
   pause menu has one in the game), and carries a web app manifest so a phone's "Add to Home Screen" opens the game
   full-screen and landscape. Behind another window it drops to 15 fps like the desktop build.

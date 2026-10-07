@@ -614,6 +614,12 @@ namespace AgentClicker.UI
         RectTransform OpenModal(float w, float h, out Image card, bool dismissable = true)
         {
             CloseModal();
+            // a phone zoomed into a corner of the monitor would miss a dialog in the middle (and find its taps blocked)
+            if (_gm.Cam.MonitorZoom > 1f)
+            {
+                _gm.Cam.ResetMonitorZoom();
+                Debug.Log("[Touch] a dialog opened: back to the whole monitor");
+            }
             var dim = UIKit.Image(_modals, "Modal", new Color(0.02f, 0.03f, 0.06f, 0.82f), true);
             dim.rectTransform.Fill();
             _modal = dim.gameObject;
@@ -627,6 +633,9 @@ namespace AgentClicker.UI
         }
 
         public bool ModalOpen => _modal != null;
+        /// <summary>The model drop card and the outage banner (the zoom chip points at them when they're out of view).</summary>
+        public RectTransform DropCard => _dropCard;
+        public RectTransform OutageBanner => _outage;
         /// <summary>Toasts on screen (the soak test checks they don't pile up).</summary>
         public int ToastCount => _activeToasts.Count;
         public bool DesktopShown => _desktop && _desktop.gameObject.activeSelf;

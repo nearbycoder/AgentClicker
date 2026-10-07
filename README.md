@@ -75,7 +75,9 @@ A gamepad drives an on-screen cursor, so everything a mouse can do works with a 
 you touch the gamepad and steps aside when you move the mouse. On a touch screen (the browser build on a tablet, or a
 phone held sideways) taps work as clicks, the store keeps the details of the last thing you tapped, and the prompts drop
 the key names. On a phone the whole monitor makes small text, so spread two fingers on it to zoom in (up to 3×), move them
-to look around and pinch to zoom back out; the game shows a tip the first time.
+to look around and pinch to zoom back out; the game shows a tip the first time. While you're zoomed in, a model drop or an
+outage that appears out of view gets a chip at that edge of the screen (tap it to go there), and a dialog such as the 5 PM
+prompt shows the whole monitor again.
 
 ## Features
 

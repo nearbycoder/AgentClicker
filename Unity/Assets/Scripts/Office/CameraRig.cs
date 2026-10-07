@@ -201,6 +201,18 @@ namespace AgentClicker.Office
             ClampPan();
         }
 
+        /// <summary>Monitor view, zoomed in: centres the view on a point on the screen (as far as the screen's edges allow).</summary>
+        public void PanMonitorTo(Vector3 worldPoint)
+        {
+            if (_refs == null || _refs.MainScreen == null) return;
+            SceneRefs.ScreenFrame(_refs.MainScreen, out var center, out var frame, out _);
+            Vector3 normal = frame * Vector3.back;
+            var rot = Quaternion.LookRotation(-normal, frame * Vector3.up);
+            Vector3 local = Quaternion.Inverse(rot) * (worldPoint - center);
+            _monPan = new Vector2(local.x, local.y);
+            ClampPan();
+        }
+
         /// <summary>Back to the whole monitor.</summary>
         public void ResetMonitorZoom()
         {

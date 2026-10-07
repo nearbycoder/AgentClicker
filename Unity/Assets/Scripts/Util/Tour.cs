@@ -819,6 +819,63 @@ namespace AgentClicker
                 ? "[Tour] PASS touch: pinching in went back to the whole monitor"
                 : $"[Tour] FAIL touch: after pinching in zoom x{_gm.Cam.MonitorZoom:0.00}, SHIP CODE {h2:0} px (was {h0:0})");
 
+            // zoomed into the SHIP CODE column, a model drop appears outside the view: a chip at the screen's edge points at
+            // it, a tap on the chip moves the view onto the card (still zoomed), and a tap on the card catches it
+            System.Func<RectTransform, bool> inView = r =>
+            {
+                var w = new Vector3[4];
+                r.GetWorldCorners(w);
+                foreach (var c in w)
+                {
+                    Vector2 sp = cam.WorldToScreenPoint(c);
+                    if (sp.x < 0 || sp.y < 0 || sp.x > Screen.width || sp.y > Screen.height) return false;
+                }
+                return true;
+            };
+            var shipAt = screenOf(_gm.Computer.ShipButton);
+            yield return Gesture(new[] { shipAt - v * 0.5f, shipAt + v * 0.5f }, new[] { shipAt - v * 3, shipAt + v * 3 }, 20);
+            yield return new WaitForSecondsRealtime(1.0f);
+            M.SpawnDrop();
+            yield return new WaitForSecondsRealtime(0.3f);
+            var dropCard = _gm.Computer.DropCard;
+            bool chipShown = _gm.ZoomChip.Visible && _gm.ZoomChip.Text.Contains("MODEL DROP"), dropHidden = !inView(dropCard);
+            string chipText = _gm.ZoomChip.Text;
+            yield return Shot("32c_touch_zoom_chip");
+            Debug.Log(chipShown && dropHidden && _gm.Cam.MonitorZoom > 1.8f
+                ? $"[Tour] PASS touch: zoomed in x{_gm.Cam.MonitorZoom:0.00}, a model drop out of view shows the chip \"{chipText}\""
+                : $"[Tour] FAIL touch: zoom x{_gm.Cam.MonitorZoom:0.00}, drop out of view {dropHidden}, chip {_gm.ZoomChip.Visible} \"{chipText}\"");
+            if (_gm.ZoomChip.Visible) yield return Tap(_gm.ZoomChip.ScreenCenter);
+            yield return new WaitForSecondsRealtime(1.0f); // the camera eases over
+            bool moved = inView(dropCard) && _gm.Cam.MonitorZoom > 1.8f && !_gm.ZoomChip.Visible;
+            yield return Shot("32d_touch_zoom_chip_moved");
+            Debug.Log(moved
+                ? $"[Tour] PASS touch: a tap on the chip moved the view onto the drop card, still zoomed x{_gm.Cam.MonitorZoom:0.00}"
+                : $"[Tour] FAIL touch: after tapping the chip the drop card in view {inView(dropCard)}, zoom x{_gm.Cam.MonitorZoom:0.00}, chip {_gm.ZoomChip.Visible}");
+            yield return Tap(screenOf(dropCard));
+            yield return null;
+            Debug.Log(M.ActiveDrop == null
+                ? "[Tour] PASS touch: a tap on the drop card while zoomed caught it"
+                : "[Tour] FAIL touch: the drop card wasn't caught by a tap while zoomed");
+
+            // a dialog opening while zoomed in goes back to the whole monitor
+            yield return Gesture(new[] { p0 - v * 0.5f, p0 + v * 0.5f }, new[] { p0 - v * 3, p0 + v * 3 }, 20);
+            yield return new WaitForSecondsRealtime(1.0f);
+            float zoomedTo = _gm.Cam.MonitorZoom;
+            _gm.Computer.ShowInbox(null);
+            yield return new WaitForSecondsRealtime(1.0f);
+            Debug.Log(zoomedTo > 1.8f && _gm.Cam.MonitorZoom == 1f && _gm.Computer.ModalOpen && inView(_gm.Computer.ShipButton)
+                ? $"[Tour] PASS touch: a dialog opening while zoomed x{zoomedTo:0.00} went back to the whole monitor"
+                : $"[Tour] FAIL touch: dialog while zoomed x{zoomedTo:0.00}: zoom now x{_gm.Cam.MonitorZoom:0.00}, modal {_gm.Computer.ModalOpen}");
+            _gm.Computer.CloseModal();
+
+            // not zoomed: no chip
+            M.SpawnDrop();
+            yield return new WaitForSecondsRealtime(0.3f);
+            Debug.Log(!_gm.ZoomChip.Visible && M.ActiveDrop != null
+                ? "[Tour] PASS touch: with the whole monitor in view a model drop shows no chip"
+                : $"[Tour] FAIL touch: unzoomed, chip {_gm.ZoomChip.Visible}, drop {M.ActiveDrop != null}");
+            M.ClaimDrop();
+
             // the day autopilot leaves a tapping player alone, then takes over once they stop
             var ap = _gm.Autopilot;
             _gm.Settings.autopilotDay = true;
