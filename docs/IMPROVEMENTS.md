@@ -628,3 +628,72 @@ unchanged, and a 2560×1440 @2× desktop stays at 3840×2160 as before. Chromium
 iPhone (no Safari here); a 3× screen draws about four times the pixels it did, so older phones may run slower, and
 Settings → Graphics → Render scale or a lower Quality preset brings it back down.
 ![The store on an emulated iPhone: before (1.5x cap) and after (native 3x)](media/improvements/round4/web_iphone_resolution_before_after.jpg)
+
+## Round 5 scope
+
+The browser build is now public, and the owner has opened it on an iPhone. A probe of the round 4 build in headless
+Chromium with touch emulation (1600×900, `hasTouch`) showed that taps already work as clicks: NEW GAME, SKIP, logging
+in, SHIP CODE (one click per tap) and hiring all worked. What a touch player can't do is everything that needs a
+right button, a wheel, a key or hover: look around the office, zoom, read an item's details before buying it, or
+follow hints that say "[Tab]", "Right-drag" and "press Space". The page also opens with a card saying the game is for
+a mouse and keyboard. That makes touch the biggest gap for real players this round. The other two items are the
+round 4 leftovers that can be settled here. Localization stays deferred (large), and the owner's decisions are
+unchanged (Windows Build Support, the offline cap of 10% for 1 hour, license, signing, releases and tags, redeploying
+`gh-pages`).
+
+### 1. Play by touch (tablets, and phones held sideways)
+
+* Touch counts as being at the keyboard: the day autopilot never clocks out a player who is tapping.
+* Office view: one finger dragged across the room looks around (same limits as right-drag), two fingers pinch to
+  zoom, and pinching in at the closest distance sits back down at the computer, like the wheel. A drag that starts on
+  a button or a list doesn't turn the camera.
+* Touch has no hover, so the store's info panel keeps showing the last item tapped (agents, upgrades, gadgets, perks,
+  trophies) instead of snapping back when the finger lifts.
+* Prompts follow the last input used, as they already do for the gamepad: with touch, the office hint, the call
+  buttons and reply hint, the story card hint, the view button and the store's default info drop the keys and say
+  "tap", "drag" and "pinch".
+* The page: no "made for a mouse and keyboard" card on tablets. On a touch-only device held upright (portrait), a
+  "turn your device sideways" note covers the game until it's turned. The canvas takes every touch gesture
+  (`touch-action: none`), so fast tapping on SHIP CODE can't double-tap-zoom, scroll or pull-to-refresh the page.
+* README controls table, the Controls tab and How to Play mention touch.
+
+**Acceptance**: in a browser with touch emulation and no mouse or keyboard input, a player can start a new game, log
+in, ship code (one click per tap), hire, read a tapped agent's details, look around and pinch zoom in the office and
+sit back down, and open and close the pause menu; the autopilot doesn't act while they tap; touch prompts appear and
+mouse prompts come back when the mouse moves. Desktop mouse, keyboard and gamepad play is unchanged.
+**Verify**: a tour segment that adds an Input System `Touchscreen` and drives it with state events (drag, pinch,
+taps, prompts, autopilot), logging PASS/FAIL; a touch mode for `Tools/webtest.mjs` in headless Chromium with touch
+emulation at a tablet size (1180×820 at 2×) and a phone held sideways (844×390 at 3×), plus the portrait note;
+screenshots in `docs/media/improvements/round5/`. Real iPhones, iPads and Android devices aren't available here, so
+real Safari and real fingers stay untested and are reported that way.
+
+### 2. Readable text on the CorpOS monitor
+
+Round 4 raised menus and overlays to 15 pt but left the monitor's dense panels at 12 pt (the "★ BEST VALUE" badge,
+store tab labels with counts, Board Room perk descriptions, trophy category labels, gadget descriptions).
+
+* Re-lay-out the store, fleet, Board Room and trophy panels so no monitor text is drawn below 14 pt at the 1600×900
+  reference, without truncating anything that wasn't truncated before.
+* Trace and fix the TMP warning about a missing ellipsis glyph that appears in every tour log.
+
+**Acceptance**: the tour logs every monitor text under 14 pt and finds none in any shot; the ellipsis warning is gone
+from the tour log; screenshots of the store tabs, Board Room and trophies before and after. **Verify**: the tour log,
+before/after screenshots, EditMode tests.
+
+### 3. A long browser run with no test client attached
+
+Round 4's 30-minute Chrome soak saw the page's JS heap low points creep from 62 to 67 MB, possibly because Chrome keeps
+console messages for an attached test client.
+
+* The page gets a test-only `?report=` option: it forwards the game's `[Soak]` samples, with the page's JS heap, to a
+  local endpoint. `Tools/websoak.mjs` gets a detached mode that serves the build, starts Chromium itself with no
+  DevTools connection, and writes what the page reports.
+* Run it for two hours.
+
+**Acceptance**: a two-hour run's samples, charted with round 4's; the README's "Long sessions" note says what it
+showed (flat, or growing at a stated rate). **Verify**: the CSV and chart in `docs/media/improvements/round5/`, with the
+load average noted.
+
+Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes, the Chromium and Firefox web tests
+still pass, the benchmark is re-run, and the real `~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and
+after.
