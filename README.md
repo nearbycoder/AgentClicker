@@ -200,11 +200,13 @@ build made on Linux. It is unsigned and hasn't been tested on a Mac. If macOS re
 
 **In a browser.** Play it at **<https://nearbycoder.github.io/AgentClicker/>** (GitHub Pages, about 15 MB to download; a mouse and keyboard, a gamepad, or a touch screen
 held sideways). The hosted copy is the `gh-pages` branch, a plain copy of a browser build; it was published before touch
-play, monitor zoom, home-screen play and the memory fix below were added, so they arrive on the site with its next update.
+play, monitor zoom, home-screen play, the memory fix below and the later polish (the away card for a closed game, one-tap
+FULLSCREEN, the zoom chip) were added, so they arrive on the site with its next update.
 `Tools/unity.sh build-webgl` makes the same build in `Builds/WebGL`. Serve the folder with any static web server, for example
 `python3 -m http.server -d Builds/WebGL 8000`, and open <http://localhost:8000>. The page (from
 `Unity/Assets/WebGLTemplates/AgentClicker`) fills the browser window, shows a progress bar while loading, has a
-fullscreen button on the title screen (where the browser allows one; iPhones don't; in the game it's in the pause menu), and asks a phone or
+fullscreen button on the title screen (where the browser allows one; iPhones don't; in the game it's in the pause menu and works
+in one tap), and asks a phone or
 tablet held upright to turn sideways. On a phone, **Add to Home Screen** (Safari's share menu, or Chrome's menu) gives the game its own icon
 and opens it full-screen and landscape, without the browser's bars. While another window is in front of the page the game drops to
 15 fps to save power (Settings → Graphics). The save goes to the
@@ -212,7 +214,8 @@ browser's storage (IndexedDB), is written the moment you hide or close the tab, 
 a tab you aren't looking at, so time in a hidden tab counts like time with the game closed. It has been tried in
 headless Chrome and Firefox on Linux; see the known issues below. `Tools/webtest.mjs chromium|firefox` repeats that
 check (load, new game, autopilot login, SHIP CODE, audio level, hire, save on hide, settings, CONTINUE after a reload,
-moving a save file into a fresh browser profile, the 15 fps cap behind another window, and the web app manifest). Firefox
+moving a save file into a fresh browser profile, the 15 fps cap behind another window, the web app manifest, the away
+card after reopening the page "two hours later", and the pause menu's FULLSCREEN). Firefox
 is driven over WebDriver BiDi, so the system Firefox works without a Playwright browser download. `Tools/webtouch.mjs` plays it by touch alone in Chromium's touch emulation,
 at a tablet size and a phone held sideways, including zooming into the monitor.
 
@@ -235,7 +238,7 @@ editor at `~/Unity/Hub/Editor/6000.6.2f1/Editor/Unity`, or set `UNITY_EDITOR` to
 ```sh
 Tools/unity.sh setup       # URP, post-processing, player settings, reimport models (idempotent)
 Tools/unity.sh scene       # regenerate Assets/Scenes/Main.unity from the models (the scene is committed)
-Tools/unity.sh tests       # 129 EditMode tests, including the economy balance simulation
+Tools/unity.sh tests       # 137 EditMode tests, including the economy balance simulation
 Tools/unity.sh build       # Linux player → Builds/Linux
 Tools/unity.sh build-mac   # universal macOS player → Builds/Mac
 Tools/unity.sh build-webgl # browser build (Brotli, works on any static host) → Builds/WebGL
@@ -346,11 +349,15 @@ release (v0.1.0).
   objects. In the browser, the engine's WebGL glue never reused GL object ids, so the page's JavaScript heap grew about
   15 MB an hour while the tab was visible. The game now hands out freed ids again (a small JavaScript plugin that replaces
   the glue's allocator), and 100 minutes in Chrome with nothing attached stayed flat (lowest point 60.3–60.8 MB in every
-  15 minutes). That was measured in headless Chrome and checked in Firefox; it hasn't run for days on a real phone.
+  15 minutes). That was measured in headless Chrome and checked in Firefox; it hasn't run for days on a real phone. The
+  page's live WebGL objects rose from about 1,030 to 1,450 over the first hour of that run and then levelled off; a later
+  30-minute run that logged every object table found only the engine's vertex and index buffers moving (670–830 live, no
+  trend), so the rise is most likely those buffers, but a run long enough to show it with every table logged hasn't been done.
 * **macOS is experimental**: the build is made on Linux, isn't signed or notarised, and hasn't been run on a Mac.
 * **The browser build is new and lightly tested**: it was checked in headless Chrome and Firefox 157 on Linux (start
   a game, autopilot login, audio playing, save, reload, continue, save files), played by touch in Chrome's touch
-  emulation, and soaked for two hours in Chrome and 20 minutes in Firefox.
+  emulation, and soaked for two hours in Chrome and 20 minutes in Firefox. A browser tab in the background is paused by the
+  browser, so it earns at the offline rate (10% for up to an hour) rather than running the day like a visible tab does.
   Safari and real phones and tablets haven't been tried: touch play was tested in headless Chromium's touch emulation
   (a 1180×820 tablet and an 844×390 phone held sideways) and with simulated touches in the desktop tour, not with real
   fingers, iOS Safari or Android Chrome. Zooming into the monitor and the home-screen web app were checked the same way

@@ -983,3 +983,74 @@ attached soak now logs every object table.
 Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes, the Chromium and Firefox web tests and the
 touch test pass, the benchmark is re-run, screenshots go to `docs/media/improvements/round7/`, and the real
 `~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and after (before: `prefs` unchanged since round 6).
+
+## Round 7 results (2026-10-07)
+
+All five player items landed on `improvements-7`, one commit each after the plan (`e332162`), and item 6 ran and named the
+moving object type (no fix needed). Tests: **137/137** (129 at baseline; 8 new), balance bot unchanged at 2h 09m (day 27).
+The tour now runs 47 checks (38), all passing at 1600×900 (load average 11–21) and 1024×768 (15). The Chromium web test runs
+18 checks (16), Firefox 17 (15) and the touch test 27, all passing on the final build (load average 14–26). Screenshots are
+in [`docs/media/improvements/round7/`](media/improvements/round7).
+
+| Item | Commit | Verified by |
+|---|---|---|
+| 1. Readable toasts | `50dcf4e` | A tour shot of three toasts (two of them two lines long) on a full activity feed, and a check that every card is opaque and holds its text. Before/after crop below |
+| 2. Coming back after closing the game | `878d640` | 5 EditMode tests (what was credited, the cap note only past the cap, nothing under a minute or with nothing earned, Remote Work's 25% for 4 hours, closed + paused + idle days in one card). Tour: two hours closed shows the card with +6.42B and "Only the first 1 hour counted; the other 1h 00m didn't", ten minutes paused shows no cap note, thirty seconds shows nothing. The real startup path in both browsers: the web test reloads with the page's clock two hours ahead, the game logs "closed for 2h 00m", and the card is up once the autopilot has logged in |
+| 3. Endless next goal | `c948c1d` | 3 new EditMode tests, one walking two divisions of a bot career with hour-long laps. The tour's endless shot now says "Reorg for your first Stock Options (+342)" instead of "Hire your first Simulation Farm, about 447d 13h" |
+| 4. Zoomed phones don't miss things | `2ac2b7b` | 5 new tour checks on a simulated touchscreen: zoomed x3 into SHIP CODE, a model drop out of view shows "MODEL DROP →" at the right edge, a tap on it pans the card fully into view (still x3), a tap catches the drop, the inbox opening while zoomed returns to the whole monitor, and unzoomed there's no chip. The touch web test still passes 27/27 |
+| 5. One-tap FULLSCREEN | `5a03736` | One click on the pause menu's FULLSCREEN makes the page fullscreen in Chromium and Firefox, and one tap does on the emulated tablet and phone (it used to need a second tap) |
+| 6. WebGL objects (time-boxed) | — | `Tools/websoak.mjs chromium 30` (attached, every table logged; 20 in-game days, 60 fps, no page errors, load average 12–14). See below |
+
+`43de664` fixes a tour message: thirty seconds away earns nothing offline (as before this round), which is what the check
+now asserts.
+
+![Toasts on the activity feed and the endless next goal, before and after](media/improvements/round7/toasts_and_endless_goal_before_after.jpg)
+
+![The away card after two hours with the game closed](media/improvements/round7/away_card_game_closed.jpg)
+
+![Zoomed into SHIP CODE: the chip points at a model drop; one tap later the drop is in view](media/improvements/round7/touch_zoom_chip_then_moved.jpg)
+
+**Which WebGL objects move (item 6).** Over 30 minutes every object table in the glue held still except buffers: textures
+121–122 live, framebuffers 166–167, renderbuffers 6–7, fences 8, programs 29, while live buffers swung between 673 and 830
+from one 30-second sample to the next (the UI and text meshes being rebuilt) with no upward trend, and the buffer table's
+length went 1,156 → 1,230. The shared id counter stayed at 371 and the JS heap moved between 60.7 and 64.6 MB. So the objects
+that come and go are vertex and index buffers held by the engine, and in this run they didn't climb; round 6's rise from about
+1,030 to 1,450 live objects came over an hour of a detached run, which this 30-minute run doesn't reach. Nothing the game
+creates itself, so no fix.
+
+Changes from the plan:
+* Item 1: the cause wasn't draw order. A first fix gave the toast layer a sorting order above the desktop, and a probe
+  that logged every canvas's render order and painted the cards red showed the toasts already draw on top: the cards were
+  96% opaque, and because the UI blends in linear colour, 4% of the feed's light text came out as sRGB 36/255 on 11/255,
+  plainly readable. The cards are now fully opaque and the sorting change was dropped. The two-line toasts that seemed to
+  spill out of their cards were the same bleed; their height was right all along (the tour checks it).
+* Item 2: closed-game time under a minute was never credited (`ApplyOffline` ignores it), so no card is right; the
+  scope's "a gap under a minute shows nothing" holds for that reason too.
+* Item 3: "far" is the next frontier agent's list price against an hour of production without buffs, not the time left:
+  with the time left, purchases, a sales call's discount and model drops flipped the card back and forth in the bot run.
+  Along the bot's career it now changes once per agent bought.
+* Item 4: the chip shows when the drop card's or banner's centre is off screen (when half of it shows, it can be tapped
+  already), and sits on the screen's edge on the line towards it.
+* Item 5: if the browser refuses (a gamepad press isn't an input the page sees), the button falls back after half a second
+  to Unity's request, which waits for the next tap or click as before.
+
+Deferred, and why:
+* **Real phones and tablets**: the zoom chip and one-tap fullscreen were checked with simulated touches and Chromium's
+  touch emulation only. iOS Safari has no page fullscreen at all; Android Chrome, real fingers and the home-screen launch are
+  still untested.
+* **A longer detached soak** to see whether buffers climb after the first half hour (round 6's rise): the attached soak
+  answered which type moves; a 2-hour detached run is the way to see the rise itself.
+* **Localization (#13)**: still large, not started. **WebKit**: unchanged (needs Ubuntu 24.04 libraries or a Mac).
+
+Also measured: `Tools/benchmark.sh`'s scenario A/B against the published v0.1.0 (downloaded to `Builds/`, deleted afterwards),
+alternating two runs each at load average 10–13: at the 60 fps cap while clicking, main-thread CPU read 4.07 and 3.56 ms for
+v0.1.0 and 4.24 and 4.47 ms for this build in the monitor view, and 3.72 / 3.76 against 3.76 / 3.29 ms in the endless state;
+uncapped figures swung run to run as before. No sign of a regression. The real `~/.config/unity3d/Nearby Games/Agent Clicker/`
+was hashed before and after: only `TestResults.xml` changed (the editor's test package, as in rounds 3–6); `prefs` is
+unchanged and there is no save.
+
+Owner decisions: redeploying `gh-pages` (it would bring rounds 5–7 to the hosted game), and the offline-earnings cap, which
+matters more in the browser than this round could change: a browser tab in the background is stopped by the browser, so an
+idle player who keeps the game in a background tab earns 10% for at most an hour, not the full rate the autopilot gives a
+visible tab. The away card now says so plainly; raising the cap or treating a hidden tab like a running game is a balance
+call. Plus the standing ones: Windows Build Support, license, signing, releases and tags.
