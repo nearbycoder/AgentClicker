@@ -45,6 +45,7 @@ namespace AgentClicker.Core
         public bool reduceMotion;          // camera cuts instead of flying, no showcases, no bouncing UI
         public float mouseSensitivity = 1f;
         public int numberStyle;            // NumberStyle
+        public bool zoomTipSeen;           // a touch player has been told about zooming into the monitor
 
         public float DayLengthSeconds => DayLengths[Mathf.Clamp(dayLength, 0, DayLengths.Length - 1)];
         public int TargetFps => FpsCaps[Mathf.Clamp(fpsCap, 0, FpsCaps.Length - 1)];

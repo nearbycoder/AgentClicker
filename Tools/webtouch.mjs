@@ -85,8 +85,9 @@ async function play(browser, url, dev) {
       if (!line) continue;
       const v = line.slice(`[Probe] ${name} `.length).split(" ").map(Number);
       if (v.length < 4 || v.some(isNaN)) return null;
-      const [x, y, w, h] = v;
-      return { x: x * dev.viewport.width / w, y: (h - y) * dev.viewport.height / h };
+      const [x, y, w, h, size] = v;
+      // size: how big the game draws it (a text's font size), in CSS pixels
+      return { x: x * dev.viewport.width / w, y: (h - y) * dev.viewport.height / h, size: (size ?? 0) * dev.viewport.height / h };
     }
     return null;
   };
@@ -128,11 +129,14 @@ async function play(browser, url, dev) {
     await page.goto(url);
     await page.waitForFunction(() => document.querySelector("#loading")?.style.display === "none", null, { timeout: 240000 });
     await sleep(4000);
+    const fullscreenButton = () => page.evaluate(() => getComputedStyle(document.querySelector("#fullscreen")).display);
     const page0 = await page.evaluate(() => ({
       rotate: getComputedStyle(document.querySelector("#rotate")).display,
       oldCard: !!document.querySelector("#touch"),
       touchAction: getComputedStyle(document.querySelector("#unity-canvas")).touchAction,
+      fullscreen: document.fullscreenEnabled || document.webkitFullscreenEnabled,
     }));
+    const fsTitle = await fullscreenButton();
     await shot("01_title");
     check(page0.rotate === "none" && !page0.oldCard && page0.touchAction === "none",
           `${dev.name}: the game opens straight to the title, no mouse-and-keyboard card (canvas touch-action ${page0.touchAction})`);
@@ -149,6 +153,10 @@ async function play(browser, url, dev) {
     const ship = await find("ship");
     check(!!loggedIn && loggedIn.phase === WORKING && !log.slice(loginFrom).some((l) => l.includes("[Autopilot] log in")) && !!ship,
           `${dev.name}: tapping the monitor logged in (phase ${loggedIn?.phase}, touch noticed: ${log.some((l) => l.includes("[Touch] on"))})`);
+    const fsGame = await fullscreenButton();
+    check(fsTitle === (page0.fullscreen ? "block" : "none") && fsGame === "none",
+          `${dev.name}: the page's Fullscreen button shows on the title screen only (title ${fsTitle}, in the game ${fsGame}, ` +
+          `fullscreen API ${page0.fullscreen ? "available" : "missing"})`);
 
     // on day 1 the CEO's email opens after the 10th line of code, but only once the player pauses, so a burst of taps
     // ships code instead of closing the email unread. Playwright's taps take no time at all, so under heavy load one
@@ -192,13 +200,44 @@ async function play(browser, url, dev) {
     check(log.slice(from).some((l) => l.includes("sitting down")), `${dev.name}: pinching in zoomed (${zooms} pinches) and sat back down at the computer`);
     await shot("06_back_at_desk");
 
+    // the monitor: two fingers spread on the store zoom into the screen, where the text is small on a phone, and lifting
+    // them buys nothing; a tip told the player about it
+    await sleep(1500);
+    const sub0 = await find("agent0sub"), row = await find("agent0");
+    const owned = (await forceSave())?.agentCounts?.reduce((a, b) => a + b, 0);
+    from = log.length;
+    await gesture([{ x: row.x, y: row.y - d * 0.5 }, { x: row.x, y: row.y + d * 0.5 }],
+                  [{ x: row.x, y: row.y - d * 3 }, { x: row.x, y: row.y + d * 3 }], 16);
+    await sleep(1500);
+    const sub1 = await find("agent0sub");
+    await shot("06b_monitor_zoomed");
+    const zoomed = log.slice(from).find((l) => l.includes("[Touch] monitor zoom")) ?? "no zoom";
+    const ownedAfter = (await forceSave())?.agentCounts?.reduce((a, b) => a + b, 0);
+    check(!!sub0 && !!sub1 && sub1.size >= Math.max(11, sub0.size * 2) && owned === ownedAfter,
+          `${dev.name}: spreading two fingers on the store zoomed the monitor (${zoomed.replace("[Touch] ", "").trim()}): a 14 pt store ` +
+          `line went from ${sub0?.size.toFixed(1)} to ${sub1?.size.toFixed(1)} CSS px, and nothing was bought (${owned} → ${ownedAfter} agents)`);
+    check(log.filter((l) => l.includes("[Touch] zoom tip shown")).length === 1, `${dev.name}: a tip told the player about zooming, once`);
+    from = log.length;
+    for (let i = 0; i < 3 && !log.slice(from).some((l) => /monitor zoom: x[\d.]+ → x1\.00/.test(l)); i++)
+      await gesture([{ x: c.x, y: c.y - 3 * d }, { x: c.x, y: c.y + 3 * d }], [{ x: c.x, y: c.y - 0.5 * d }, { x: c.x, y: c.y + 0.5 * d }], 12);
+    await sleep(1200);
+    const sub2 = await find("agent0sub");
+    check(!!sub2 && Math.abs(sub2.size - sub0.size) < 0.5,
+          `${dev.name}: pinching in went back to the whole monitor (${sub2?.size.toFixed(1)} CSS px)`);
+
     await tap("Menu");
     await sleep(800);
     await shot("07_pause");
     const paused = await find("RESUME");
+    // browsers only go fullscreen during an input event: FULLSCREEN asks, and the next tap (RESUME) switches
+    const fsItem = page0.fullscreen ? await find("FULLSCREEN") : null;
+    if (fsItem) { await page.touchscreen.tap(fsItem.x, fsItem.y); await sleep(500); }
     await tap("RESUME");
     await sleep(800);
     check(!!paused && !(await find("RESUME")), `${dev.name}: ⚙ opened the pause menu and RESUME closed it`);
+    const full = await page.evaluate(() => !!(document.fullscreenElement || document.webkitFullscreenElement));
+    check(!page0.fullscreen || (!!fsItem && full),
+          `${dev.name}: the pause menu's FULLSCREEN, then RESUME, made the page fullscreen (${fsItem ? "button shown" : "no button"}, fullscreen ${full})`);
     check(errors.length === 0, `${dev.name}: no page errors (${errors.length})`);
   } finally {
     writeFileSync(path.join(out, `${dev.name}_console.log`), log.join("\n").slice(-300000));

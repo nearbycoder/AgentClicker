@@ -43,6 +43,8 @@ namespace AgentClicker.Office
 
         public void SetMode(CamMode mode, float seconds = 1.1f)
         {
+            // standing up, the title screen and the ending leave the monitor at its fitted view
+            if (mode == CamMode.Office || mode == CamMode.Menu || mode == CamMode.Ending) ResetMonitorZoom();
             if (mode == Mode && !InTransition) return;
             _fromPos = _cam.transform.position;
             _fromRot = _cam.transform.rotation;
@@ -173,6 +175,59 @@ namespace AgentClicker.Office
             if (pad.leftShoulder.wasPressedThisFrame) Zoom(-0.3f);
         }
 
+        // Monitor view zoom (touch screens, where the whole monitor makes small text): 1 shows the whole screen; above
+        // that the camera moves closer, panned in the screen's plane (metres along the camera's right and up axes).
+        public const float MaxMonitorZoom = 3f;
+        float _monZoom = 1f;
+        Vector2 _monPan;
+
+        /// <summary>How far the monitor view is zoomed in (1 = the whole screen).</summary>
+        public float MonitorZoom => _monZoom;
+
+        /// <summary>
+        /// Monitor view: zoom by <paramref name="factor"/> keeping the point under <paramref name="screenPoint"/> (pixels)
+        /// where it is, then move the view by <paramref name="screenDelta"/> pixels, like a page under two fingers.
+        /// </summary>
+        public void ZoomMonitor(float factor, Vector2 screenPoint, Vector2 screenDelta)
+        {
+            MonitorExtents(_monZoom, out var before);
+            float zoom = Mathf.Clamp(_monZoom * factor, 1f, MaxMonitorZoom);
+            MonitorExtents(zoom, out var after);
+            // the fingers' point, from -1 to 1 across the view
+            Vector2 n = new Vector2(screenPoint.x / Mathf.Max(1, Screen.width) * 2f - 1f, screenPoint.y / Mathf.Max(1, Screen.height) * 2f - 1f);
+            _monPan += Vector2.Scale(n, before - after);
+            _monPan -= new Vector2(screenDelta.x / Mathf.Max(1, Screen.width), screenDelta.y / Mathf.Max(1, Screen.height)) * 2f * after;
+            _monZoom = zoom;
+            ClampPan();
+        }
+
+        /// <summary>Back to the whole monitor.</summary>
+        public void ResetMonitorZoom()
+        {
+            _monZoom = 1f;
+            _monPan = Vector2.zero;
+        }
+
+        /// <summary>Half the width and height (metres) the monitor view shows at a zoom, in the screen's plane.</summary>
+        void MonitorExtents(float zoom, out Vector2 half)
+        {
+            half = Vector2.zero;
+            if (_refs == null || _refs.MainScreen == null) return;
+            SceneRefs.ScreenFrame(_refs.MainScreen, out _, out _, out var size);
+            float d = MonitorFitDistance(size) / zoom;
+            float tanV = Mathf.Tan(_cam.fieldOfView * Mathf.Deg2Rad / 2f);
+            half = new Vector2(d * tanV * _cam.aspect, d * tanV);
+        }
+
+        void ClampPan()
+        {
+            if (_refs == null || _refs.MainScreen == null) return;
+            SceneRefs.ScreenFrame(_refs.MainScreen, out _, out _, out var size);
+            MonitorExtents(_monZoom, out var half);
+            float mx = Mathf.Max(0f, size.x * 0.5f * MonitorMargin - half.x), my = Mathf.Max(0f, size.y * 0.5f * MonitorMargin - half.y);
+            _monPan = new Vector2(Mathf.Clamp(_monPan.x, -mx, mx), Mathf.Clamp(_monPan.y, -my, my));
+        }
+
         /// <summary>How far the camera is from where its mode wants it (metres), for checks.</summary>
         public float DistanceToTarget()
         {
@@ -236,12 +291,18 @@ namespace AgentClicker.Office
         {
             SceneRefs.ScreenFrame(_refs.MainScreen, out var center, out var frame, out var size);
             Vector3 normal = frame * Vector3.back;
+            rot = Quaternion.LookRotation(-normal, frame * Vector3.up);
+            pos = center + normal * (MonitorFitDistance(size) / _monZoom) + rot * new Vector3(_monPan.x, _monPan.y, 0f);
+        }
+
+        /// <summary>The distance at which the whole monitor (plus a small margin) fills the view.</summary>
+        float MonitorFitDistance(Vector2 size)
+        {
             float vfov = _cam.fieldOfView * Mathf.Deg2Rad;
             float hfov = 2f * Mathf.Atan(Mathf.Tan(vfov / 2f) * _cam.aspect);
             float dh = size.y * 0.5f * MonitorMargin / Mathf.Tan(vfov / 2f);
             float dw = size.x * 0.5f * MonitorMargin / Mathf.Tan(hfov / 2f);
-            pos = center + normal * Mathf.Max(dh, dw);
-            rot = Quaternion.LookRotation(-normal, frame * Vector3.up);
+            return Mathf.Max(dh, dw);
         }
 
         void ShowcasePose(out Vector3 pos, out Quaternion rot)

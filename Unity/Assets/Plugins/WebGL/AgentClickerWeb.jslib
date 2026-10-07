@@ -60,6 +60,16 @@ mergeInto(LibraryManager.library, {
     window.addEventListener('pagehide', save);
   },
 
+  // The page's own Fullscreen button (index.html) shows on the title screen only: in the game it sat on CorpOS's store.
+  AgentClicker_ShowFullscreenButton: function (show) {
+    if (window.agentClickerFullscreenButton) window.agentClickerFullscreenButton(!!show);
+  },
+
+  // Whether this browser can make the page fullscreen (iPhones can't).
+  AgentClicker_CanFullscreen: function () {
+    return document.fullscreenEnabled || document.webkitFullscreenEnabled ? 1 : 0;
+  },
+
   // Hands the player a file (the save, to keep or move to another browser or the desktop game).
   AgentClicker_DownloadText: function (fileName, text) {
     var a = document.createElement('a');

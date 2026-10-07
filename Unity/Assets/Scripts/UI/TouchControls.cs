@@ -12,8 +12,9 @@ namespace AgentClicker.UI
     /// Touch screens. Taps already reach every button through the UI input module; this adds what a mouse does with
     /// its right button and wheel: in the office view one finger dragged across the room looks around, and two fingers
     /// pinch to zoom (pinching in at the closest distance sits back down, like the wheel). A drag that starts on a
-    /// button, a list or the monitor's login screen leaves the camera alone. Touch also counts as being at the
-    /// keyboard, and while it's the last thing used the prompts say "tap" instead of naming keys.
+    /// button, a list or the monitor's login screen leaves the camera alone. In the monitor view two fingers zoom into
+    /// the screen and move around it, like a page, because the whole monitor makes small text on a phone. Touch also
+    /// counts as being at the keyboard, and while it's the last thing used the prompts say "tap" instead of naming keys.
     /// </summary>
     public class TouchControls : MonoBehaviour
     {
@@ -39,6 +40,14 @@ namespace AgentClicker.UI
         readonly List<RaycastResult> _hits = new List<RaycastResult>();
         float _lastTouch = -10f, _spread = -1f, _sitDown, _yawStart, _distStart;
         bool _looked, _pinched;
+        // monitor view: where two fingers started (spread < 0: no two-finger touch), whether they've moved enough to be a
+        // zoom, their spread and midpoint last frame, and the zoom at the start
+        float _monStartSpread = -1f, _monSpread, _monZoomStart;
+        Vector2 _monStartMid, _monMid;
+        bool _monZooming;
+        // the monitor's raycasters, switched off while two fingers zoom so lifting them can't click (or buy) anything
+        readonly List<GraphicRaycaster> _muted = new List<GraphicRaycaster>();
+        int _idleFrames;
 
         public void Init(GameManager gm) => _gm = gm;
 
@@ -53,6 +62,7 @@ namespace AgentClicker.UI
             if (ts == null || !ts.added)
             {
                 _fingers.Clear();
+                if (_muted.Count > 0) Unmute();
                 return;
             }
 
@@ -72,6 +82,10 @@ namespace AgentClicker.UI
             foreach (int id in _lifted) _fingers.Remove(id);
 
             InputThisFrame = pressed > 0;
+            // give the monitor its taps back once the fingers have been off the screen for a frame (the UI module has seen
+            // them lift by then)
+            _idleFrames = pressed > 0 ? 0 : _idleFrames + 1;
+            if (_muted.Count > 0 && _idleFrames >= 2) Unmute();
             if (InputThisFrame)
             {
                 _lastTouch = Time.unscaledTime;
@@ -87,7 +101,11 @@ namespace AgentClicker.UI
                 Debug.Log("[Touch] off");
             }
 
-            bool office = _gm.Cam.Mode == CamMode.Office && !_gm.OnTitle && !_gm.InEnding && !_gm.Menu.Blocking && !_gm.Calls.Busy;
+            bool free = !_gm.OnTitle && !_gm.InEnding && !_gm.Menu.Blocking && !_gm.Calls.Busy;
+            bool office = _gm.Cam.Mode == CamMode.Office && free;
+            bool monitor = _gm.Cam.Mode == CamMode.Monitor && !_gm.Cam.InTransition && free;
+            if (monitor && _fingers.Count == 2) ZoomMonitor(ts);
+            else EndMonitorZoom();
             if (office && _fingers.Count == 2) Pinch(ts);
             else EndPinch();
             if (office && _fingers.Count == 1 && !_pinched) Drag(ts);
@@ -168,6 +186,84 @@ namespace AgentClicker.UI
             if (_spread < 0) return;
             if (_gm.Cam.Mode == CamMode.Office) Debug.Log($"[Touch] pinch zoom: distance {_distStart:0.00} → {_gm.Cam.Distance:0.00} m");
             _spread = -1;
+        }
+
+        /// <summary>
+        /// Monitor view: spreading two fingers zooms into the screen around them, moving them pans. Two fingers that stay
+        /// put are two taps (drumming on SHIP CODE), so nothing happens until they move.
+        /// </summary>
+        void ZoomMonitor(Touchscreen ts)
+        {
+            if (!TwoFingers(ts, out var a, out var b)) return;
+            float spread = Mathf.Max(1f, Vector2.Distance(a, b));
+            Vector2 mid = (a + b) * 0.5f;
+            if (_monStartSpread < 0)
+            {
+                _monStartSpread = spread;
+                _monStartMid = mid;
+                _monZooming = false;
+                return;
+            }
+            if (!_monZooming)
+            {
+                float moved = Mathf.Max(Mathf.Abs(spread - _monStartSpread), (mid - _monStartMid).magnitude);
+                if (moved < Screen.height * 0.03f) return;
+                _monZooming = true;
+                _pinched = true;
+                _monSpread = spread;
+                _monMid = mid;
+                _monZoomStart = _gm.Cam.MonitorZoom;
+                MuteMonitor();
+                return;
+            }
+            _gm.Cam.ZoomMonitor(spread / _monSpread, mid, mid - _monMid);
+            _monSpread = spread;
+            _monMid = mid;
+        }
+
+        void EndMonitorZoom()
+        {
+            if (_monStartSpread < 0) return;
+            _monStartSpread = -1f;
+            if (!_monZooming) return;
+            _monZooming = false;
+            // nearly all the way out is all the way out
+            if (_gm.Cam.MonitorZoom < 1.08f) _gm.Cam.ResetMonitorZoom();
+            Debug.Log($"[Touch] monitor zoom: x{_monZoomStart:0.00} → x{_gm.Cam.MonitorZoom:0.00}");
+        }
+
+        void MuteMonitor()
+        {
+            var root = _gm.Computer.ScreenRoot;
+            if (root == null) return;
+            foreach (var r in root.GetComponentsInChildren<GraphicRaycaster>())
+                if (r.enabled)
+                {
+                    r.enabled = false;
+                    _muted.Add(r);
+                }
+        }
+
+        void Unmute()
+        {
+            foreach (var r in _muted)
+                if (r) r.enabled = true;
+            _muted.Clear();
+        }
+
+        void OnDisable() => Unmute();
+
+        bool TwoFingers(Touchscreen ts, out Vector2 a, out Vector2 b)
+        {
+            a = b = default;
+            int n = 0;
+            foreach (var t in ts.touches)
+            {
+                if (!t.press.isPressed || !_fingers.ContainsKey(t.touchId.ReadValue())) continue;
+                if (n++ == 0) a = t.position.ReadValue();
+                else b = t.position.ReadValue();
+            }
+            return n >= 2;
         }
 
         static bool StillPressed(Touchscreen ts, int id)

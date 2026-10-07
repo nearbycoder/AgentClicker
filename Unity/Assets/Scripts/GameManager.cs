@@ -386,6 +386,12 @@ namespace AgentClicker
             }
 
             UpdateTutorial(dt);
+            UpdateTouchTip();
+            if (Platform.IsWeb && OnTitle != _fullscreenButton)
+            {
+                _fullscreenButton = OnTitle;
+                Platform.ShowFullscreenButton(OnTitle);
+            }
             HandleKeys();
             bool input = PlayerInput();
             UpdateAutopilot(input);
@@ -618,25 +624,33 @@ namespace AgentClicker
 
         /// <summary>
         /// Test hook for the browser tests (<c>unityInstance.SendMessage("Game", "LogScreenPoint", name)</c>): logs the
-        /// screen position of an element, in pixels from the bottom left, so a test can tap it at any window size.
-        /// "ship" and "agent0" are SHIP CODE and the store's first row; anything else is an active object's name.
+        /// screen position of an element, in pixels from the bottom left, so a test can tap it at any window size, then the
+        /// window size and how big the element is drawn (a text's font size, anything else its height, in pixels).
+        /// "ship", "agent0" and "agent0sub" are SHIP CODE, the store's first row and its 14 pt subtitle; anything else is an
+        /// active object's name.
         /// </summary>
         public void LogScreenPoint(string name)
         {
             var found = new List<RectTransform>();
             if (name == "ship") found.Add(Computer.ShipButton);
             else if (name == "agent0") found.Add(Computer.Store.AgentRowRect(0));
+            else if (name == "agent0sub") found.Add(Computer.Store.AgentRowSubRect(0));
             else
                 foreach (var t in FindObjectsByType<RectTransform>())
                     if (t.name == name && t.gameObject.activeInHierarchy) found.Add(t);
             foreach (var t in found)
             {
                 var canvas = t.GetComponentInParent<Canvas>();
-                Vector3 w = t.TransformPoint(t.rect.center);
-                Vector2 p = canvas != null && canvas.rootCanvas.renderMode == RenderMode.ScreenSpaceOverlay
-                    ? RectTransformUtility.WorldToScreenPoint(null, w)
-                    : (Vector2)Refs.MainCamera.WorldToScreenPoint(w);
-                Debug.Log($"[Probe] {name} {p.x:0} {p.y:0} {Screen.width} {Screen.height}");
+                bool overlay = canvas != null && canvas.rootCanvas.renderMode == RenderMode.ScreenSpaceOverlay;
+                Vector2 ToScreen(Vector3 local)
+                {
+                    Vector3 w = t.TransformPoint(local);
+                    return overlay ? RectTransformUtility.WorldToScreenPoint(null, w) : (Vector2)Refs.MainCamera.WorldToScreenPoint(w);
+                }
+                Vector2 p = ToScreen(t.rect.center);
+                float tall = t.TryGetComponent<TMPro.TMP_Text>(out var text) ? text.fontSize : t.rect.height;
+                float size = (ToScreen(t.rect.center + Vector2.up * tall) - p).magnitude;
+                Debug.Log($"[Probe] {name} {p.x:0} {p.y:0} {Screen.width} {Screen.height} {size:0.0}");
             }
             if (found.Count == 0) Debug.Log($"[Probe] {name} none");
         }
@@ -690,6 +704,21 @@ namespace AgentClicker
         }
 
         // ------------------------------------------------------------------ tutorial
+        bool? _fullscreenButton;
+
+        /// <summary>A touch player is told once that two fingers zoom into the monitor (its text is small on a phone).</summary>
+        void UpdateTouchTip()
+        {
+            if (Settings.zoomTipSeen || !Settings.tutorialTips || !Touch.Active || OnTitle || !Model.IsWorking ||
+                Model.State.tutorialStep < 2 || Cam.Mode != CamMode.Monitor || Cam.InTransition || Menu.Blocking)
+                return;
+            Settings.zoomTipSeen = true;
+            Settings.Save();
+            Debug.Log("[Touch] zoom tip shown");
+            Computer.Toast("<color=#4DD0E1>TIP</color>  Small text? Spread two fingers on the screen to zoom in, move them to look " +
+                           "around, and pinch to zoom back out.", Theme.Accent, 10f);
+        }
+
         void UpdateTutorial(float dt)
         {
             if (!Settings.tutorialTips || !Model.IsWorking || OnTitle) return;

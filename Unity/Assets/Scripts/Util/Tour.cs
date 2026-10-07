@@ -703,6 +703,59 @@ namespace AgentClicker
                 ? $"[Tour] PASS touch: pinching out zoomed out ({dist:0.00} → {outDist:0.00} m) and pinching in sat back down"
                 : $"[Tour] FAIL touch: pinch {dist:0.00} → {outDist:0.00} m, mode {_gm.Cam.Mode}");
 
+            // the monitor: two fingers spread apart zoom into the screen (its text is small on a phone), and lifting them
+            // doesn't press what they started on (here a store row, which buys on release; SHIP CODE ships on touch-down,
+            // like drumming); a tap still works while zoomed; two fingers moved together pan; pinching in goes back
+            yield return WaitFor(() => !_gm.Cam.InTransition, 3f);
+            yield return new WaitForSecondsRealtime(1.2f);
+            float ShipHeight()
+            {
+                var r = _gm.Computer.ShipButton;
+                Vector2 lo = cam.WorldToScreenPoint(r.TransformPoint(new Vector3(r.rect.center.x, r.rect.yMin)));
+                Vector2 hi = cam.WorldToScreenPoint(r.TransformPoint(new Vector3(r.rect.center.x, r.rect.yMax)));
+                return (hi - lo).magnitude;
+            }
+            yield return Shot("32a_touch_monitor");
+            float h0 = ShipHeight();
+            var row = _gm.Computer.Store.AgentRowRect(0);
+            var rowNow = screenOf(row);
+            Vector2 v = new Vector2(0, Screen.height * 0.04f);
+            int hired = M.TotalAgents;
+            yield return Gesture(new[] { rowNow - v * 0.5f, rowNow + v * 0.5f }, new[] { rowNow - v * 3, rowNow + v * 3 }, 20);
+            yield return new WaitForSecondsRealtime(1.0f); // the camera eases in
+            float zoom = _gm.Cam.MonitorZoom, h1 = ShipHeight();
+            yield return Shot("32b_touch_monitor_zoomed");
+            Debug.Log(zoom >= 1.8f && Mathf.Abs(h1 / h0 / zoom - 1f) < 0.15f && M.TotalAgents == hired
+                ? $"[Tour] PASS touch: spreading two fingers on a store row zoomed the monitor x{zoom:0.00} (SHIP CODE {h0:0} → {h1:0} px tall) and bought nothing"
+                : $"[Tour] FAIL touch: monitor zoom x{zoom:0.00}, SHIP CODE {h0:0} → {h1:0} px, agents bought by the gesture {M.TotalAgents - hired}");
+
+            yield return null; yield return null; yield return null;
+            hired = M.TotalAgents;
+            yield return Tap(screenOf(row));
+            Debug.Log(M.TotalAgents == hired + 1
+                ? "[Tour] PASS touch: a tap on the store row while zoomed in hired one agent"
+                : $"[Tour] FAIL touch: a tap while zoomed hired {M.TotalAgents - hired}");
+
+            Vector2 rowBefore = screenOf(row);
+            Vector2 p0 = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f), sep = new Vector2(Screen.height * 0.1f, 0);
+            Vector2 right = new Vector2(Screen.height * 0.2f, 0); // the store is on the right: there's room to pan that way
+            hired = M.TotalAgents;
+            int upgrades = M.State.upgrades.Count;
+            yield return Gesture(new[] { p0 - sep, p0 + sep }, new[] { p0 - sep + right, p0 + sep + right }, 20);
+            yield return new WaitForSecondsRealtime(1.0f);
+            float panned = screenOf(row).x - rowBefore.x;
+            Debug.Log(panned > Screen.height * 0.1f && M.TotalAgents == hired && M.State.upgrades.Count == upgrades
+                ? $"[Tour] PASS touch: moving two fingers right panned the zoomed screen with them (the store row moved {panned:0} px)"
+                : $"[Tour] FAIL touch: pan moved the store row {panned:0} px, agents {M.TotalAgents - hired}, upgrades {M.State.upgrades.Count - upgrades}");
+
+            for (int i = 0; i < 3 && _gm.Cam.MonitorZoom > 1f; i++)
+                yield return Gesture(new[] { p0 - v * 4, p0 + v * 4 }, new[] { p0 - v, p0 + v }, 15);
+            yield return new WaitForSecondsRealtime(1.0f);
+            float h2 = ShipHeight();
+            Debug.Log(_gm.Cam.MonitorZoom == 1f && Mathf.Abs(h2 / h0 - 1f) < 0.05f
+                ? "[Tour] PASS touch: pinching in went back to the whole monitor"
+                : $"[Tour] FAIL touch: after pinching in zoom x{_gm.Cam.MonitorZoom:0.00}, SHIP CODE {h2:0} px (was {h0:0})");
+
             // the day autopilot leaves a tapping player alone, then takes over once they stop
             var ap = _gm.Autopilot;
             _gm.Settings.autopilotDay = true;

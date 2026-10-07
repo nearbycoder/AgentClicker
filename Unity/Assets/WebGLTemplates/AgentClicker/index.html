@@ -115,6 +115,13 @@
         };
       }
 
+      // the Fullscreen button shows on the title screen only (the game says when); in the game the pause menu has one
+      var fsButton = document.querySelector("#fullscreen"), fsReady = false, fsWanted = true;
+      window.agentClickerFullscreenButton = function (show) {
+        fsWanted = show;
+        fsButton.style.display = show && fsReady ? "block" : "none";
+      };
+
       var script = document.createElement("script");
       script.src = buildUrl + "/{{{ LOADER_FILENAME }}}";
       script.onload = function () {
@@ -126,10 +133,10 @@
           // the budget depends on the window size: follow resizes and phone rotation
           window.addEventListener("resize", function () { unityInstance.Module.devicePixelRatio = pixelRatio(); });
           document.querySelector("#loading").style.display = "none";
-          var fs = document.querySelector("#fullscreen");
           // iPhones have no fullscreen for pages; there "Add to Home Screen" is the way to lose the browser bars
-          if (document.fullscreenEnabled || document.webkitFullscreenEnabled) fs.style.display = "block";
-          fs.onclick = function () { unityInstance.SetFullscreen(1); };
+          fsReady = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+          fsButton.onclick = function () { unityInstance.SetFullscreen(1); };
+          window.agentClickerFullscreenButton(fsWanted);
           canvas.focus();
         }).catch(function (message) {
           showBanner(String(message), "error");

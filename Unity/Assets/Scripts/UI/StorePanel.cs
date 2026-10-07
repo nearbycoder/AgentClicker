@@ -143,6 +143,8 @@ namespace AgentClicker.UI
         public static int OfficeTabIndex => (int)Tab.Office;
         public int CurrentTab => (int)_tab;
         public RectTransform AgentRowRect(int i) => (RectTransform)_agentRows[i].Button.transform;
+        /// <summary>A store row's 14 pt subtitle (lab and model), for text-size checks.</summary>
+        public RectTransform AgentRowSubRect(int i) => _agentRows[i].Sub.rectTransform;
         public string InfoFoot => _infoFoot.text;
         public string InfoTitle => _infoTitle.text;
         public static int StatsTabIndex => (int)Tab.Stats;

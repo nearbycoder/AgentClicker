@@ -260,6 +260,8 @@ namespace AgentClicker.UI
             _store.SelectTab(0);
         }
         public RectTransform ShipButton => _ship.Button;
+        /// <summary>The CorpOS canvas on the monitor.</summary>
+        public RectTransform ScreenRoot => _root;
         public RectTransform GoalCard => _fleet.GoalCard;
         public Goal Goal => _fleet.Goal;
         public int StoreTab => _store.CurrentTab;

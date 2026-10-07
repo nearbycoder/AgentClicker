@@ -175,12 +175,30 @@ namespace AgentClicker.UI
             MenuButton(card.transform, "SAVE & EXIT TO TITLE", () => { ClosePause(); _gm.QuitToTitle(); }, 40, y);
             y += 70;
             if (!Platform.IsWeb) MenuButton(card.transform, "QUIT TO DESKTOP", () => Confirm("Save and quit to desktop?", "QUIT", _gm.QuitGame), 40, y);
+            else if (Platform.CanFullscreen)
+            {
+                // browsers only go fullscreen during an input event, so the switch happens on the next tap or click
+                _fullscreen = MenuButton(card.transform, "FULLSCREEN", () =>
+                {
+                    Screen.fullScreen = !Screen.fullScreen;
+                    SetFullscreenLabel(!Screen.fullScreen);
+                    Debug.Log("[Menu] fullscreen " + (Screen.fullScreen ? "off" : "on") + " requested");
+                }, 40, y);
+            }
+        }
+
+        Button _fullscreen;
+
+        void SetFullscreenLabel(bool full)
+        {
+            if (_fullscreen) _fullscreen.GetComponentInChildren<TMP_Text>().text = full ? "EXIT FULLSCREEN" : "FULLSCREEN";
         }
 
         public void OpenPause()
         {
             if (Blocking || _gm.InEnding) return;
             Show(_pause, true);
+            SetFullscreenLabel(Screen.fullScreen);
             Time.timeScale = 0f;
             _gm.Sfx.DuckMusic(0.5f);
         }
@@ -297,7 +315,7 @@ namespace AgentClicker.UI
                         Row("Ship code", "SHIP CODE · Space · Enter", "RT · X", "Tap SHIP CODE") +
                         Row("Look around / sit down", "Tab · on-screen button", "View", "On-screen button") +
                         Row("Orbit the office", "Right mouse drag", "Right stick", "Drag the room") +
-                        Row("Zoom", "Mouse wheel (office view)", "LB · RB", "Pinch") +
+                        Row("Zoom", "Mouse wheel (office view)", "LB · RB", "Two fingers (office, monitor)") +
                         Row("Scroll a list", "Mouse wheel", "Right stick", "Drag the list") +
                         Row("Answer / decline the phone", "E · Q", "Y · B", "Tap a button") +
                         Row("Pick a reply on a call", "1 · 2 · 3", "D-pad ← ↑ →", "Tap a reply") +
@@ -448,7 +466,7 @@ namespace AgentClicker.UI
             "<b>Reorg, forever.</b> Roll the Factory out to the next division and start over with <color=#FFD166>Stock Options</color>: " +
             "+1% production each, permanently. Spend them on Board Room perks. <b>Trophies</b> add Clout, which influence upgrades turn into production.\n\n" +
             "<b>Gamepad or touch.</b> The left stick moves a cursor and A clicks; RT ships code. On a touch screen, tap; drag the office to " +
-            "look around and pinch to zoom. Settings → Controls lists the rest.";
+            "look around, and use two fingers to zoom the office or the monitor. Settings → Controls lists the rest.";
 
         void BuildInfo()
         {
