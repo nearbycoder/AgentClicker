@@ -55,7 +55,8 @@
 
       var buildUrl = "Build";
       var config = {
-        arguments: [],
+        // test tools pass player arguments in the URL (?arg=-soak&arg=&arg=30); players never need this
+        arguments: new URLSearchParams(location.search).getAll("arg"),
 #if PROGRESSIVE_ASSET_LOADING
         primaryDataUrls: {{{ JSON.stringify(PRIMARY_DATA_FILES) }}},
         secondaryDataUrls: {{{ JSON.stringify(SECONDARY_DATA_FILES) }}},
@@ -97,6 +98,7 @@
           bar.style.width = Math.round(100 * progress) + "%";
           statusEl.textContent = progress < 0.9 ? "Loading… " + Math.round(100 * progress) + "%" : "Starting CorpOS…";
         }).then(function (unityInstance) {
+          window.unityInstance = unityInstance;
           document.querySelector("#loading").style.display = "none";
           var fs = document.querySelector("#fullscreen");
           fs.style.display = "block";

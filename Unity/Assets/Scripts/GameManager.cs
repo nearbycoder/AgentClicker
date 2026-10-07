@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Globalization;
 using System.Linq;
 using AgentClicker.Core;
 using AgentClicker.Office;
@@ -47,7 +48,11 @@ namespace AgentClicker
         float _saveTimer, _tutorialTimer;
         bool _boardRoomOnLogin;
         double _offlineGain;
-        bool _automated;   // tour / benchmark: skip the title screen
+        bool _automated;   // tour / benchmark / soak: skip the title screen
+        float? _dayLengthOverride;   // -daylength: wins over the setting
+
+        /// <summary>Real seconds per work day: the -daylength argument if given, else Settings → Gameplay.</summary>
+        float DayLength => _dayLengthOverride ?? Settings.DayLengthSeconds;
         int _lastHour = -1;
         bool _workLate, _autoCycled, _autoLogin;
         int _pendingChapter;
@@ -74,6 +79,8 @@ namespace AgentClicker
             bool benchmark = false, demo = false;
             string recordPath = null, trailerDir = null;
             bool trailerStills = false;
+            string soakDir = null;
+            float soakMinutes = 60f;
             for (int i = 0; i < args.Length; i++)
             {
                 if (args[i] == "-reset") SaveSystem.Delete();
@@ -81,6 +88,11 @@ namespace AgentClicker
                 if (args[i] == "-tour" && i + 1 < args.Length) tourDir = args[i + 1];
                 if (args[i] == "-benchmark") benchmark = true;
                 if (args[i] == "-demo") demo = true;
+                if (args[i] == "-soak" && i + 1 < args.Length)
+                {
+                    soakDir = args[i + 1];
+                    if (i + 2 < args.Length && float.TryParse(args[i + 2], NumberStyles.Float, CultureInfo.InvariantCulture, out var m)) soakMinutes = m;
+                }
                 if (args[i] == "-record" && i + 1 < args.Length) { recordPath = args[i + 1]; demo = true; }
                 if ((args[i] == "-trailer" || args[i] == "-trailer-stills") && i + 1 < args.Length)
                 {
@@ -88,8 +100,10 @@ namespace AgentClicker
                     trailerStills = args[i] == "-trailer-stills";
                 }
             }
-            _automated = tourDir != null || benchmark;
-            AutopilotAllowed = !_automated && !demo && trailerDir == null;
+            _dayLengthOverride = dayLengthOverride;
+            _automated = tourDir != null || benchmark || soakDir != null;
+            // the soak test leaves the game alone, so the day autopilot is what it exercises
+            AutopilotAllowed = (!_automated || soakDir != null) && !demo && trailerDir == null;
 
             if (demo)
             {
@@ -140,6 +154,13 @@ namespace AgentClicker
                 SavingEnabled = false;
                 gameObject.AddComponent<Benchmark>();
             }
+            else if (soakDir != null)
+            {
+                SavingEnabled = false;
+                var soak = gameObject.AddComponent<Soak>();
+                soak.OutputDir = soakDir;
+                soak.Minutes = soakMinutes;
+            }
             else if (tourDir != null)
             {
                 SavingEnabled = false;
@@ -180,6 +201,7 @@ namespace AgentClicker
         {
             Settings.Clamp();
             SettingsApplier.ApplyAll(Settings, Refs, Sfx, Model);
+            Model.DayLengthSeconds = DayLength;
             Cam.MouseSensitivity = Settings.mouseSensitivity;
             Cam.ReduceMotion = Settings.reduceMotion;
             if (save) Settings.Save();
@@ -523,7 +545,7 @@ namespace AgentClicker
         {
             if (SavingEnabled) SaveSystem.Delete();
             Model.Load(new GameState());
-            Model.DayLengthSeconds = Settings.DayLengthSeconds;
+            Model.DayLengthSeconds = DayLength;
             _offlineGain = 0;
             Office.Refresh(false);
             Computer.ResetSession();
@@ -594,7 +616,7 @@ namespace AgentClicker
         {
             if (state.Phase == GamePhase.Working || state.Phase == GamePhase.Review) state.Phase = GamePhase.Login;
             Model.Load(state);
-            Model.DayLengthSeconds = Settings.DayLengthSeconds;
+            Model.DayLengthSeconds = DayLength;
             _offlineGain = 0;
             Save();
             Computer.ResetSession();

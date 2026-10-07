@@ -607,6 +607,8 @@ namespace AgentClicker.UI
         }
 
         public bool ModalOpen => _modal != null;
+        /// <summary>Toasts on screen (the soak test checks they don't pile up).</summary>
+        public int ToastCount => _activeToasts.Count;
         public bool DesktopShown => _desktop && _desktop.gameObject.activeSelf;
 
         /// <summary>Closes the current modal unless it must be answered (the performance review).</summary>
