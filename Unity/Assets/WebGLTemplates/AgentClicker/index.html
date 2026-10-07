@@ -8,9 +8,12 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B111B'/%3E%3Cpath d='M16 5 27 16 16 27 5 16Z' fill='%234DD0E1'/%3E%3C/svg%3E">
     <style>
       html, body { margin: 0; height: 100%; overflow: hidden; background: #0B111B; color: #E6ECF5;
-                   font: 16px/1.4 "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
+                   font: 16px/1.4 "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+                   overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+                   -webkit-tap-highlight-color: transparent; }
       #game { position: fixed; inset: 0; }
-      #unity-canvas { width: 100%; height: 100%; display: block; background: #0B111B; outline: none; }
+      /* the game takes every gesture: fast taps on SHIP CODE must not zoom, scroll or pull-to-refresh the page */
+      #unity-canvas { width: 100%; height: 100%; display: block; background: #0B111B; outline: none; touch-action: none; }
       .overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
                  gap: 18px; background: #0B111B; text-align: center; padding: 24px; box-sizing: border-box; }
       .logo { font-weight: 800; font-size: clamp(40px, 8vw, 88px); line-height: 0.9; letter-spacing: -1px; }
@@ -19,8 +22,13 @@
       #progress { width: min(420px, 70vw); height: 8px; border-radius: 4px; background: #1B2433; overflow: hidden; }
       #progress div { width: 0; height: 100%; background: #4DD0E1; transition: width 0.2s; }
       #status { color: #56627A; font-size: 14px; min-height: 1.4em; }
-      #touch { display: none; z-index: 2; }
-      #touch p { max-width: 460px; color: #C9D3E3; margin: 0; }
+      /* a touch screen held upright: the game is laid out for landscape */
+      #rotate { display: none; z-index: 3; }
+      #rotate p { max-width: 360px; color: #C9D3E3; margin: 0; }
+      #rotate .phone { width: 46px; height: 76px; border: 4px solid #4DD0E1; border-radius: 10px; animation: turn 2.4s ease-in-out infinite; }
+      @keyframes turn { 0%, 25% { transform: rotate(0deg); } 55%, 100% { transform: rotate(-90deg); } }
+      @media (orientation: portrait) and (hover: none) and (pointer: coarse) { #rotate { display: flex; } }
+      @media (prefers-reduced-motion: reduce) { #rotate .phone { animation: none; } }
       button { font: inherit; font-weight: 700; color: #0B111B; background: #4DD0E1; border: 0; border-radius: 10px;
                padding: 12px 22px; cursor: pointer; }
       #fullscreen { position: fixed; right: 12px; bottom: 12px; padding: 8px 12px; font-size: 13px; color: #C9D3E3;
@@ -36,11 +44,9 @@
       <div id="progress"><div></div></div>
       <div id="status">Loading…</div>
     </div>
-    <div id="touch" class="overlay">
-      <div class="logo">AGENT<span>CLICKER</span></div>
-      <p>Agent Clicker is played with a mouse and keyboard. It hasn't been made for touch screens yet, so on this device
-         you may not be able to reach everything.</p>
-      <button id="touch-continue">Try it anyway</button>
+    <div id="rotate" class="overlay">
+      <div class="phone"></div>
+      <p>Turn your device sideways. Agent Clicker is laid out for a wide screen.</p>
     </div>
     <button id="fullscreen" title="Fullscreen">⛶ Fullscreen</button>
     <script>
@@ -91,15 +97,6 @@
         devicePixelRatio: pixelRatio(),
       };
 
-      // touch-only devices: say so up front instead of letting the game look broken
-      var touchOnly = matchMedia("(pointer: coarse)").matches && !matchMedia("(any-pointer: fine)").matches;
-      if (touchOnly) {
-        document.querySelector("#touch").style.display = "flex";
-        document.querySelector("#touch-continue").onclick = function () {
-          document.querySelector("#touch").style.display = "none";
-        };
-      }
-
       var script = document.createElement("script");
       script.src = buildUrl + "/{{{ LOADER_FILENAME }}}";
       script.onload = function () {
@@ -112,7 +109,8 @@
           window.addEventListener("resize", function () { unityInstance.Module.devicePixelRatio = pixelRatio(); });
           document.querySelector("#loading").style.display = "none";
           var fs = document.querySelector("#fullscreen");
-          fs.style.display = "block";
+          // iPhones have no fullscreen for pages; there "Add to Home Screen" is the way to lose the browser bars
+          if (document.fullscreenEnabled || document.webkitFullscreenEnabled) fs.style.display = "block";
           fs.onclick = function () { unityInstance.SetFullscreen(1); };
           canvas.focus();
         }).catch(function (message) {

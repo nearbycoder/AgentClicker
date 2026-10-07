@@ -126,17 +126,32 @@ namespace AgentClicker.Office
                 if (mouse.rightButton.isPressed)
                 {
                     Vector2 d = mouse.delta.ReadValue();
-                    _yaw = Mathf.Clamp(_yaw + d.x * 0.15f * MouseSensitivity, YawLimits.x, YawLimits.y);
-                    _pitch = Mathf.Clamp(_pitch - d.y * 0.12f * MouseSensitivity, PitchLimits.x, PitchLimits.y);
+                    Look(d.x * 0.15f, d.y * 0.12f);
                 }
                 if (!overUi && Mathf.Abs(scroll) > 0.01f)
                 {
-                    float step = Mathf.Sign(scroll) * 0.18f;
-                    if (scroll > 0 && _dist <= DistanceLimits.x + 0.01f) SetMode(CamMode.Monitor);
-                    _dist = Mathf.Clamp(_dist - step, DistanceLimits.x, DistanceLimits.y);
+                    if (scroll > 0 && AtClosest) SetMode(CamMode.Monitor);
+                    Zoom(Mathf.Sign(scroll) * 0.18f);
                 }
             }
         }
+
+        /// <summary>Office view: turn the camera (degrees, scaled by the look sensitivity setting).</summary>
+        public void Look(float yaw, float pitch)
+        {
+            _yaw = Mathf.Clamp(_yaw + yaw * MouseSensitivity, YawLimits.x, YawLimits.y);
+            _pitch = Mathf.Clamp(_pitch - pitch * MouseSensitivity, PitchLimits.x, PitchLimits.y);
+        }
+
+        /// <summary>Office view: move the camera in (positive metres) or out.</summary>
+        public void Zoom(float metres) => _dist = Mathf.Clamp(_dist - metres, DistanceLimits.x, DistanceLimits.y);
+
+        /// <summary>The office camera is as close as it goes; zooming in further sits back down at the computer.</summary>
+        public bool AtClosest => _dist <= DistanceLimits.x + 0.01f;
+
+        public float Yaw => _yaw;
+        public float Pitch => _pitch;
+        public float Distance => _dist;
 
         /// <summary>Office view on a gamepad: the right stick looks around, the shoulder buttons zoom (RB sits back down).</summary>
         void HandleGamepad()
@@ -152,10 +167,10 @@ namespace AgentClicker.Office
             }
             if (pad.rightShoulder.wasPressedThisFrame)
             {
-                if (_dist <= DistanceLimits.x + 0.01f) SetMode(CamMode.Monitor);
-                _dist = Mathf.Clamp(_dist - 0.3f, DistanceLimits.x, DistanceLimits.y);
+                if (AtClosest) SetMode(CamMode.Monitor);
+                Zoom(0.3f);
             }
-            if (pad.leftShoulder.wasPressedThisFrame) _dist = Mathf.Clamp(_dist + 0.3f, DistanceLimits.x, DistanceLimits.y);
+            if (pad.leftShoulder.wasPressedThisFrame) Zoom(-0.3f);
         }
 
         /// <summary>How far the camera is from where its mode wants it (metres), for checks.</summary>

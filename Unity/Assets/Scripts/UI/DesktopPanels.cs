@@ -71,7 +71,9 @@ namespace AgentClicker.UI
                 : division.StartsWith("Synergex") ? division : "Synergex · " + division);
             _clock.color = m.PastFiveOClock ? Theme.Warn : Theme.Text;
             UIKit.SetActive(_clockOut, m.IsWorking && m.PastFiveOClock);
-            UIKit.Set(_viewLabel, _gm.Cam.Mode == Office.CamMode.Monitor ? "Look around  [Tab]" : "Sit down  [Tab]");
+            bool monitor = _gm.Cam.Mode == Office.CamMode.Monitor;
+            UIKit.Set(_viewLabel, _gm.Touch.Active ? (monitor ? "Look around" : "Sit down")
+                                                   : (monitor ? "Look around  [Tab]" : "Sit down  [Tab]"));
 
             int unread = _ui.UnreadMail;
             UIKit.Set(_inboxLabel, unread > 0 ? $"✉ Inbox <color=#FFD166>{unread}</color>" : "✉ Inbox");

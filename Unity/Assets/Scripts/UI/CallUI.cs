@@ -29,6 +29,12 @@ namespace AgentClicker.UI
         public bool Busy => _incoming.gameObject.activeSelf || _dialogue.gameObject.activeSelf;
         public bool Ringing => _incoming.gameObject.activeSelf;
         TextMeshProUGUI _answerLabel, _declineLabel;
+        RectTransform _answer;
+        /// <summary>For the tour's touch checks.</summary>
+        public RectTransform AnswerButton => _answer;
+        public RectTransform ChoiceButton(int i) => (RectTransform)_choices[i].transform;
+        public string AnswerText => _answerLabel.text;
+        public string HintText => _hint.text;
 
         public void Init(GameManager gm)
         {
@@ -78,7 +84,8 @@ namespace AgentClicker.UI
             UIKit.Bar(card.transform, "Ring", Theme.PanelLight, Theme.Good, out _ringFill, 3).rectTransform.TopLeft(124, 100, 290, 6);
 
             var answer = UIKit.Button(card.transform, "Answer", Theme.Good, () => _gm.Model.AnswerCall(), 12);
-            answer.GetComponent<RectTransform>().TopLeft(430, 20, 190, 46);
+            _answer = answer.GetComponent<RectTransform>();
+            _answer.TopLeft(430, 20, 190, 46);
             _answerLabel = answer.Label("ANSWER  [E]", 18, Theme.Bg);
             var decline = UIKit.Button(card.transform, "Decline", Theme.Bad, () => _gm.Model.DeclineCall(), 12);
             decline.GetComponent<RectTransform>().TopLeft(430, 72, 190, 36);
@@ -138,9 +145,9 @@ namespace AgentClicker.UI
             _incomingName.text = d.Name;
             _incomingRole.text = d.RoleText + (d.Story ? "  <color=#FFD166>· important</color>" : "");
             // the button prompts follow whatever the player is holding
-            bool pad = _gm.Pad.Active;
-            _answerLabel.text = pad ? "ANSWER  [Y]" : "ANSWER  [E]";
-            _declineLabel.text = pad ? "DECLINE  [B]" : "DECLINE  [Q]";
+            bool pad = _gm.Pad.Active, touch = _gm.Touch.Active;
+            _answerLabel.text = pad ? "ANSWER  [Y]" : touch ? "ANSWER" : "ANSWER  [E]";
+            _declineLabel.text = pad ? "DECLINE  [B]" : touch ? "DECLINE" : "DECLINE  [Q]";
             _incoming.gameObject.SetActive(true);
         }
 
@@ -157,7 +164,7 @@ namespace AgentClicker.UI
             _line.maxVisibleCharacters = 0;
             _reveal = 0;
             _effect.text = "";
-            _hint.text = _gm.Pad.Active ? "Pick a reply  ·  D-pad ← ↑ →" : "Pick a reply  ·  1 / 2 / 3";
+            _hint.text = _gm.Pad.Active ? "Pick a reply  ·  D-pad ← ↑ →" : _gm.Touch.Active ? "Tap a reply" : "Pick a reply  ·  1 / 2 / 3";
             _choosing = true;
             _closeAt = -1;
             for (int i = 0; i < _choices.Length; i++)
@@ -187,7 +194,7 @@ namespace AgentClicker.UI
             _line.maxVisibleCharacters = 0;
             _reveal = 0;
             _effect.text = string.IsNullOrEmpty(summary) ? "" : summary;
-            _hint.text = "click to hang up";
+            _hint.text = _gm.Touch.Active ? "tap to hang up" : "click to hang up";
             _closeAt = Time.unscaledTime + 4.2f;
         }
 

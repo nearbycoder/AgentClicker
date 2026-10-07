@@ -298,6 +298,7 @@ namespace AgentClicker
             yield return Shot("24_endgame_trophies");
 
             yield return GamepadSegment();
+            yield return TouchSegment();
 
             Debug.Log(_screenMinAll >= MinScreenText
                 ? $"[Tour] PASS menus and overlays never draw text below {MinScreenText} pt (smallest {_screenMinAll:0.#}: {_screenMinWhat})"
@@ -560,6 +561,174 @@ namespace AgentClicker
             Debug.Log(!_gm.Pad.Active && Mouse.current == real ? "[Tour] PASS gamepad: moving the mouse hid the cursor and gave the mouse back"
                                                                : $"[Tour] FAIL gamepad: cursor still active {_gm.Pad.Active}, current mouse {Mouse.current?.name}");
             InputSystem.RemoveDevice(pad);
+            M.RandomEventsEnabled = true;
+        }
+
+        /// <summary>
+        /// Touch: taps reach the UI like clicks, one finger drags the office camera, two fingers pinch to zoom and sit
+        /// down, the store keeps a tapped item's details, prompts drop the key names, and the autopilot waits.
+        /// </summary>
+        IEnumerator TouchSegment()
+        {
+            M.RandomEventsEnabled = false;
+            _gm.SuppressShowcase = true;
+            _gm.Computer.CloseModal();
+            M.State.dayMinutes = 120;
+            M.State.Phase = GamePhase.Working;
+            _gm.Computer.ShowDesktop();
+            _gm.Computer.SelectStoreTab(0);
+            _gm.Cam.SetMode(CamMode.Monitor, 0.01f);
+            M.State.credits = 1e300;
+            yield return new WaitForSecondsRealtime(1.0f);
+
+            var ts = InputSystem.AddDevice<Touchscreen>("TourTouchscreen");
+            var cam = _gm.Refs.MainCamera;
+            System.Func<RectTransform, Vector2> screenOf = r => cam.WorldToScreenPoint(r.TransformPoint(r.rect.center));
+            System.Func<RectTransform, Vector2> overlayOf = r => RectTransformUtility.WorldToScreenPoint(null, r.TransformPoint(r.rect.center));
+            int nextId = 1;
+            void Send(int id, Vector2 p, UnityEngine.InputSystem.TouchPhase ph) =>
+                InputSystem.QueueStateEvent(ts, new TouchState { touchId = id, position = p, phase = ph, pressure = 1f });
+            IEnumerator Tap(Vector2 p)
+            {
+                int id = nextId++;
+                Send(id, p, UnityEngine.InputSystem.TouchPhase.Began);
+                yield return null; yield return null;
+                Send(id, p, UnityEngine.InputSystem.TouchPhase.Ended);
+                yield return null; yield return null;
+            }
+            // fingers move together from a to b over the given frames
+            IEnumerator Gesture(Vector2[] from, Vector2[] to, int frames)
+            {
+                int[] ids = new int[from.Length];
+                for (int f = 0; f < from.Length; f++) { ids[f] = nextId++; Send(ids[f], from[f], UnityEngine.InputSystem.TouchPhase.Began); }
+                yield return null;
+                for (int i = 1; i <= frames; i++)
+                {
+                    for (int f = 0; f < from.Length; f++)
+                        Send(ids[f], Vector2.Lerp(from[f], to[f], i / (float)frames), UnityEngine.InputSystem.TouchPhase.Moved);
+                    yield return null;
+                }
+                for (int f = 0; f < from.Length; f++) Send(ids[f], to[f], UnityEngine.InputSystem.TouchPhase.Ended);
+                yield return null; yield return null;
+            }
+
+            // a touch player's morning: tap the monitor to log in, then the first tap on SHIP CODE
+            M.State.Phase = GamePhase.Login;
+            _gm.Computer.ShowLogin();
+            _gm.Cam.SetMode(CamMode.Office, 0.01f);
+            yield return new WaitForSecondsRealtime(1.0f);
+            RectTransform login = null;
+            foreach (var r in FindObjectsByType<RectTransform>())
+                if (r.name == "Login" && r.gameObject.activeInHierarchy) login = r;
+            if (login != null) yield return Tap(screenOf(login));
+            yield return WaitFor(() => M.Phase == GamePhase.Working, 6f);
+            yield return new WaitForSecondsRealtime(3.0f);
+            var ship = screenOf(_gm.Computer.ShipButton);
+            long first = M.State.clicks;
+            yield return Tap(ship);
+            Debug.Log(M.Phase == GamePhase.Working && M.State.clicks == first + 1
+                ? "[Tour] PASS touch: tapped the monitor to log in, and the first tap on SHIP CODE shipped"
+                : $"[Tour] FAIL touch: logged in {M.Phase == GamePhase.Working}, first tap on SHIP CODE shipped {M.State.clicks - first}");
+            M.State.credits = 1e300;
+
+            long clicks = M.State.clicks;
+            for (int i = 0; i < 5; i++) yield return Tap(ship);
+            Debug.Log(M.State.clicks == clicks + 5 && _gm.Touch.Active
+                ? $"[Tour] PASS touch: five taps on SHIP CODE shipped code five times ({M.State.clicks - clicks}), touch prompts on"
+                : $"[Tour] FAIL touch: SHIP CODE {M.State.clicks - clicks}/5, touch active {_gm.Touch.Active}");
+
+            // two fingers at once, like drumming on a phone
+            clicks = M.State.clicks;
+            int a = nextId++, b = nextId++;
+            Send(a, ship + new Vector2(-30, 0), UnityEngine.InputSystem.TouchPhase.Began);
+            Send(b, ship + new Vector2(30, 0), UnityEngine.InputSystem.TouchPhase.Began);
+            yield return null; yield return null;
+            Send(a, ship + new Vector2(-30, 0), UnityEngine.InputSystem.TouchPhase.Ended);
+            Send(b, ship + new Vector2(30, 0), UnityEngine.InputSystem.TouchPhase.Ended);
+            yield return null; yield return null;
+            Debug.Log(M.State.clicks == clicks + 2 ? "[Tour] PASS touch: two fingers on SHIP CODE shipped twice"
+                                                   : $"[Tour] FAIL touch: two fingers shipped {M.State.clicks - clicks}");
+
+            int owned = M.State.agentCounts[0];
+            yield return Tap(screenOf(_gm.Computer.Store.AgentRowRect(0)));
+            yield return new WaitForSecondsRealtime(0.3f);
+            string info = _gm.Computer.Store.InfoTitle;
+            yield return Shot("29_touch_store_info");
+            Debug.Log(M.State.agentCounts[0] > owned && info.StartsWith(GameDatabase.Agents[0].Name)
+                ? $"[Tour] PASS touch: a tap hired ({owned} → {M.State.agentCounts[0]}) and the info panel kept \"{info}\" after the finger lifted"
+                : $"[Tour] FAIL touch: hired {M.State.agentCounts[0] - owned}, info panel \"{info}\"");
+
+            M.RingPhone(CallDatabase.ById("dana_demo"));
+            yield return new WaitForSecondsRealtime(1.2f);
+            string answerText = _gm.Calls.AnswerText;
+            yield return Shot("30_touch_call_incoming");
+            int answered = M.State.callsAnswered;
+            yield return Tap(overlayOf(_gm.Calls.AnswerButton));
+            yield return WaitFor(() => false, 3f);
+            string hint = _gm.Calls.HintText;
+            yield return Tap(overlayOf(_gm.Calls.ChoiceButton(0)));
+            yield return new WaitForSecondsRealtime(0.3f);
+            Debug.Log(M.State.callsAnswered == answered + 1 && M.ActiveCall == null && answerText == "ANSWER" && hint == "Tap a reply"
+                ? "[Tour] PASS touch: tapped ANSWER and a reply; the prompts name no keys"
+                : $"[Tour] FAIL touch: answered {M.State.callsAnswered - answered}, active {M.ActiveCall != null}, \"{answerText}\", \"{hint}\"");
+            yield return WaitFor(() => !_gm.Calls.Busy, 8f);
+            yield return new WaitForSecondsRealtime(1.0f);
+
+            // the office: one finger looks around, unless it starts on a control; two fingers pinch
+            _gm.Cam.Toggle();
+            yield return new WaitForSecondsRealtime(1.5f);
+            yield return Shot("31_touch_office");
+            float yaw = _gm.Cam.Yaw;
+            var ship3d = screenOf(_gm.Computer.ShipButton);
+            yield return Gesture(new[] { ship3d }, new[] { ship3d + new Vector2(Screen.height * 0.3f, 0) }, 20);
+            float onButton = _gm.Cam.Yaw - yaw;
+            yaw = _gm.Cam.Yaw;
+            Vector2 room = new Vector2(Screen.width * 0.12f, Screen.height * 0.55f);
+            yield return Gesture(new[] { room }, new[] { room + new Vector2(Screen.height * 0.3f, 0) }, 20);
+            float turned = _gm.Cam.Yaw - yaw;
+            Debug.Log(Mathf.Abs(turned) > 10f && Mathf.Abs(onButton) < 0.01f && _gm.Cam.Mode == CamMode.Office
+                ? $"[Tour] PASS touch: dragging the room turned the camera {turned:0}°; a drag starting on SHIP CODE didn't ({onButton:0.#}°)"
+                : $"[Tour] FAIL touch: room drag {turned:0.#}°, drag on SHIP CODE {onButton:0.#}°, mode {_gm.Cam.Mode}");
+
+            Vector2 c = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f), h = new Vector2(Screen.height * 0.05f, 0);
+            float dist = _gm.Cam.Distance;
+            yield return Gesture(new[] { c - h * 3, c + h * 3 }, new[] { c - h, c + h }, 15); // fingers together: zoom out
+            float outDist = _gm.Cam.Distance;
+            for (int i = 0; i < 6 && _gm.Cam.Mode == CamMode.Office; i++)
+                yield return Gesture(new[] { c - h, c + h }, new[] { c - h * 4, c + h * 4 }, 15); // apart: zoom in
+            yield return new WaitForSecondsRealtime(1.5f);
+            Debug.Log(outDist > dist + 0.05f && _gm.Cam.Mode == CamMode.Monitor
+                ? $"[Tour] PASS touch: pinching out zoomed out ({dist:0.00} → {outDist:0.00} m) and pinching in sat back down"
+                : $"[Tour] FAIL touch: pinch {dist:0.00} → {outDist:0.00} m, mode {_gm.Cam.Mode}");
+
+            // the day autopilot leaves a tapping player alone, then takes over once they stop
+            var ap = _gm.Autopilot;
+            _gm.Settings.autopilotDay = true;
+            _gm.AutopilotAllowed = true;
+            ap.ClockOutAfter = 1.5f;
+            M.State.dayMinutes = GameDatabase.WorkdayMinutes + 1f;
+            _gm.Computer.CloseModal();
+            for (float t = 0; t < 3f; t += 0.25f)
+            {
+                yield return Tap(new Vector2(Screen.width * 0.5f, Screen.height * 0.03f));
+                yield return new WaitForSecondsRealtime(0.2f);
+            }
+            bool held = M.Phase == GamePhase.Working;
+            yield return WaitFor(() => M.Phase == GamePhase.Review, 6f);
+            Debug.Log(held && M.Phase == GamePhase.Review
+                ? "[Tour] PASS touch: the autopilot waited while the player tapped, then clocked out"
+                : $"[Tour] FAIL touch: held {held}, then {M.Phase}");
+            ap.ClockOutAfter = new DayAutopilot().ClockOutAfter;
+            _gm.AutopilotAllowed = false;
+
+            // the mouse takes over again
+            yield return new WaitForSecondsRealtime(0.8f);
+            var mouse = Mouse.current ?? InputSystem.AddDevice<Mouse>();
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = new Vector2(300, 300), delta = new Vector2(40, 30) });
+            yield return null; yield return null; yield return null;
+            Debug.Log(!_gm.Touch.Active ? "[Tour] PASS touch: moving the mouse brought the mouse prompts back"
+                                        : "[Tour] FAIL touch: still in touch mode after the mouse moved");
+            InputSystem.RemoveDevice(ts);
             M.RandomEventsEnabled = true;
         }
 

@@ -52,24 +52,26 @@ stalls on a dialog. Choosing **WORK LATE** keeps that day's overtime, and Settin
 you come back after at least one end of day, a **While you were away** card sums up the days, the earnings,
 the quotas and the calls and model drops you missed.
 
-| Keyboard and mouse | Gamepad | Action |
-|---|---|---|
-| Mouse | Left stick moves a cursor, **A** clicks | Point and click anything |
-| Click **SHIP CODE**, or `Space` / `Enter` | **RT** or **X** | Ship code by hand |
-| Click the monitor | **A** on the monitor | Log in each morning |
-| Click agents, upgrades, gadgets | **A** on them | Buy them (x1, x10, x100 or MAX at a time; **BUY ALL** for upgrades) |
-| `Tab` or the on-screen button | **View** | Switch between the monitor and the office |
-| Right-drag (office view) | Right stick | Look around the office |
-| Mouse wheel (office view) | **LB** / **RB** | Zoom, and zoom in to sit back down |
-| Mouse wheel | Right stick | Scroll a list |
-| `E` / `Q` | **Y** / **B** | Answer or decline a ringing phone |
-| `1` `2` `3` | D-pad left, up, right | Pick a reply during a call |
-| ✉ **Inbox** (CorpOS top bar) | **A** on it | Read the story emails |
-| `Esc` or ⚙ | **Start** (**B** closes menus) | Pause menu: settings, how to play, save and exit |
-| `F12` | | Save a screenshot |
+| Keyboard and mouse | Gamepad | Touch (browser) | Action |
+|---|---|---|---|
+| Mouse | Left stick moves a cursor, **A** clicks | Tap | Point and click anything |
+| Click **SHIP CODE**, or `Space` / `Enter` | **RT** or **X** | Tap **SHIP CODE** (two fingers work) | Ship code by hand |
+| Click the monitor | **A** on the monitor | Tap the monitor | Log in each morning |
+| Click agents, upgrades, gadgets | **A** on them | Tap them | Buy them (x1, x10, x100 or MAX at a time; **BUY ALL** for upgrades) |
+| `Tab` or the on-screen button | **View** | The on-screen button | Switch between the monitor and the office |
+| Right-drag (office view) | Right stick | Drag the room | Look around the office |
+| Mouse wheel (office view) | **LB** / **RB** | Pinch | Zoom, and zoom in to sit back down |
+| Mouse wheel | Right stick | Drag the list | Scroll a list |
+| `E` / `Q` | **Y** / **B** | Tap ANSWER / DECLINE | Answer or decline a ringing phone |
+| `1` `2` `3` | D-pad left, up, right | Tap a reply | Pick a reply during a call |
+| ✉ **Inbox** (CorpOS top bar) | **A** on it | Tap it | Read the story emails |
+| `Esc` or ⚙ | **Start** (**B** closes menus) | ⚙ | Pause menu: settings, how to play, save and exit |
+| `F12` | | | Save a screenshot |
 
 A gamepad drives an on-screen cursor, so everything a mouse can do works with a controller too; the cursor appears when
-you touch the gamepad and steps aside when you move the mouse. There is no touch support.
+you touch the gamepad and steps aside when you move the mouse. On a touch screen (the browser build on a tablet, or a
+phone held sideways) taps work as clicks, the store keeps the details of the last thing you tapped, and the prompts drop
+the key names. Phones work, but the text is small on a phone-sized screen.
 
 ## Features
 
@@ -190,18 +192,20 @@ shortens the work day (seconds).
 build made on Linux. It is unsigned and hasn't been tested on a Mac. If macOS refuses to open it, run
 `xattr -cr "Agent Clicker.app"` and then `codesign --force --deep -s - "Agent Clicker.app"`.
 
-**In a browser.** Play it at **<https://nearbycoder.github.io/AgentClicker/>** (GitHub Pages, about 15 MB to download; desktop browsers with a
-mouse and keyboard or a gamepad). The hosted copy is the `gh-pages` branch, a plain copy of a browser build.
+**In a browser.** Play it at **<https://nearbycoder.github.io/AgentClicker/>** (GitHub Pages, about 15 MB to download; a mouse and keyboard, a gamepad, or a touch screen
+held sideways). The hosted copy is the `gh-pages` branch, a plain copy of a browser build; it was published before touch
+play was added, so taps, drags and pinches arrive on the site with its next update.
 `Tools/unity.sh build-webgl` makes the same build in `Builds/WebGL`. Serve the folder with any static web server, for example
 `python3 -m http.server -d Builds/WebGL 8000`, and open <http://localhost:8000>. The page (from
 `Unity/Assets/WebGLTemplates/AgentClicker`) fills the browser window, shows a progress bar while loading, has a
-fullscreen button, and tells touch-only devices up front that the game needs a mouse and keyboard. The save goes to the
+fullscreen button (where the browser allows one; iPhones don't), and asks a phone or tablet held upright to turn sideways. The save goes to the
 browser's storage (IndexedDB), is written the moment you hide or close the tab, and survives a reload. Browsers pause
 a tab you aren't looking at, so time in a hidden tab counts like time with the game closed. It has been tried in
 headless Chrome and Firefox on Linux; see the known issues below. `Tools/webtest.mjs chromium|firefox` repeats that
 check (load, new game, autopilot login, SHIP CODE, audio level, hire, save on hide, settings, CONTINUE after a reload,
 and moving a save file into a fresh browser profile). Firefox is driven over WebDriver BiDi, so the system Firefox
-works without a Playwright browser download.
+works without a Playwright browser download. `Tools/webtouch.mjs` plays it by touch alone in Chromium's touch emulation,
+at a tablet size and a phone held sideways.
 
 Saves live in `~/.config/unity3d/Nearby Games/Agent Clicker/` on Linux (Unity's `persistentDataPath`), and
 settings are stored separately in PlayerPrefs. **Settings → Gameplay → Save file** moves a career around: the browser
@@ -335,7 +339,9 @@ release (v0.1.0).
 * **The browser build is new and lightly tested**: it was checked in headless Chrome and Firefox 157 on Linux (start
   a game, autopilot login, audio playing, save, reload, continue, save files) and soaked for 30 minutes in Chrome and
   20 in Firefox.
-  Safari, phones and tablets (there's no touch support) haven't been tried. It's hosted on GitHub Pages; Playwright's WebKit (Safari's
+  Safari and real phones and tablets haven't been tried: touch play was tested in headless Chromium's touch emulation
+  (a 1180×820 tablet and an 844×390 phone held sideways) and with simulated touches in the desktop tour, not with real
+  fingers, iOS Safari or Android Chrome. It's hosted on GitHub Pages; Playwright's WebKit (Safari's
   engine) doesn't start on this CachyOS machine: it is built against Ubuntu 24.04 libraries (ICU 74, flite, libjxl
   0.8). Music starts a few seconds after loading because it's synthesised on the page's only thread.
 * **No Windows build yet.** The build script has a Windows target, but it hasn't been built or tested.

@@ -133,6 +133,7 @@ namespace AgentClicker.UI
         public int CurrentTab => (int)_tab;
         public RectTransform AgentRowRect(int i) => (RectTransform)_agentRows[i].Button.transform;
         public string InfoFoot => _infoFoot.text;
+        public string InfoTitle => _infoTitle.text;
         public static int StatsTabIndex => (int)Tab.Stats;
 
         void SetTab(Tab t)
@@ -150,7 +151,8 @@ namespace AgentClicker.UI
         {
             var relay = PointerRelay.On(c);
             relay.Enter = _ => _hover = info;
-            relay.Exit = _ => { if (_hover == info) _hover = null; };
+            // touch has no hover: the last item tapped stays in the info panel until another one is tapped
+            relay.Exit = e => { if (_hover == info && !TouchControls.IsTouch(e)) _hover = null; };
         }
 
         // ------------------------------------------------------------------ agents
@@ -457,17 +459,20 @@ namespace AgentClicker.UI
             switch (_tab)
             {
                 case Tab.Agents:
-                    return ("Hire agents", "Agents earn credits every second. Each one costs 15% more than the last. Hover for details.",
+                    return ("Hire agents", _gm.Touch.Active ? "Agents earn credits every second. Each one costs 15% more than the last. Tap one to hire it; its details stay here."
+                                             : "Agents earn credits every second. Each one costs 15% more than the last. Hover for details.",
                             m.FrontierUnlocked ? "Frontier agents are unlocked. There is no last agent." : "Tip: MAX buys as many as you can afford.");
                 case Tab.Upgrades: return ("Upgrades", "Unlock by owning agents, shipping code, earning and collecting trophies. Each upgrade multiplies something forever.", "");
-                case Tab.Office: return ("Office", "Better gear for your desk. Every gadget appears in the 3D office. Press Tab to admire it.", "");
+                case Tab.Office: return ("Office", _gm.Touch.Active ? "Better gear for your desk. Every gadget appears in the 3D office. Tap Look around to admire it."
+                                                                    : "Better gear for your desk. Every gadget appears in the 3D office. Press Tab to admire it.", "");
                 case Tab.Factory:
                     return _boardRoom
                         ? ("Board Room", "Spend Stock Options on permanent perks. Perks survive every reorg.", "Every option you earn also adds production, spent or not.")
                         : m.State.factoryBuilt
                             ? ("Reorg", "Roll the Factory out to the next division and start over, faster. Options vest the more you earn.", "")
                             : ("The goal", "Build the Software Factory and your character can finally put their feet up.", "");
-                case Tab.Trophies: return ("Trophies", "Every trophy adds 4% Clout. Hover a square to see what it's for.", "Clout upgrades appear in UPGRADES.");
+                case Tab.Trophies: return ("Trophies", _gm.Touch.Active ? "Every trophy adds 4% Clout. Tap a square to see what it's for."
+                                                                      : "Every trophy adds 4% Clout. Hover a square to see what it's for.", "Clout upgrades appear in UPGRADES.");
                 default: return ("Stats", "Numbers about your numbers.", "");
             }
         }

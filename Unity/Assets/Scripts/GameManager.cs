@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using AgentClicker.Core;
@@ -34,6 +35,7 @@ namespace AgentClicker
         public MenuUI Menu { get; private set; }
         public CallUI Calls { get; private set; }
         public GamepadCursor Pad { get; private set; }
+        public TouchControls Touch { get; private set; }
         public Sfx Sfx { get; private set; }
 
         public bool SavingEnabled { get; set; } = true;
@@ -142,6 +144,7 @@ namespace AgentClicker
             Menu = gameObject.AddComponent<MenuUI>();
             Calls = gameObject.AddComponent<CallUI>();
             Pad = gameObject.AddComponent<GamepadCursor>();
+            Touch = gameObject.AddComponent<TouchControls>();
 
             if (trailerDir != null)
             {
@@ -182,6 +185,7 @@ namespace AgentClicker
             Menu.Init(this);
             Calls.Init(this);
             Pad.Init(this);
+            Touch.Init(this);
             foreach (var side in FindObjectsByType<SideScreen>(FindObjectsInactive.Include))
                 side.Init(this);
             _probe = FindAnyObjectByType<ProbeRefresher>();
@@ -458,10 +462,10 @@ namespace AgentClicker
             }
         }
 
-        /// <summary>Any key, click, wheel, deliberate mouse movement or gamepad input this frame.</summary>
+        /// <summary>Any key, click, wheel, deliberate mouse movement, touch or gamepad input this frame.</summary>
         bool PlayerInput()
         {
-            if (Pad.InputThisFrame) return true;
+            if (Pad.InputThisFrame || Touch.InputThisFrame) return true;
             var kb = Keyboard.current;
             if (kb != null && kb.anyKey.wasPressedThisFrame) return true;
             var mouse = Mouse.current;
@@ -611,6 +615,31 @@ namespace AgentClicker
             Application.OpenURL("file://" + SaveSystem.Folder);
         }
 
+        /// <summary>
+        /// Test hook for the browser tests (<c>unityInstance.SendMessage("Game", "LogScreenPoint", name)</c>): logs the
+        /// screen position of an element, in pixels from the bottom left, so a test can tap it at any window size.
+        /// "ship" and "agent0" are SHIP CODE and the store's first row; anything else is an active object's name.
+        /// </summary>
+        public void LogScreenPoint(string name)
+        {
+            var found = new List<RectTransform>();
+            if (name == "ship") found.Add(Computer.ShipButton);
+            else if (name == "agent0") found.Add(Computer.Store.AgentRowRect(0));
+            else
+                foreach (var t in FindObjectsByType<RectTransform>())
+                    if (t.name == name && t.gameObject.activeInHierarchy) found.Add(t);
+            foreach (var t in found)
+            {
+                var canvas = t.GetComponentInParent<Canvas>();
+                Vector3 w = t.TransformPoint(t.rect.center);
+                Vector2 p = canvas != null && canvas.rootCanvas.renderMode == RenderMode.ScreenSpaceOverlay
+                    ? RectTransformUtility.WorldToScreenPoint(null, w)
+                    : (Vector2)Refs.MainCamera.WorldToScreenPoint(w);
+                Debug.Log($"[Probe] {name} {p.x:0} {p.y:0} {Screen.width} {Screen.height}");
+            }
+            if (found.Count == 0) Debug.Log($"[Probe] {name} none");
+        }
+
         public void OnSaveFileLoaded(string text)
         {
             var state = SaveSystem.Validate(text, out string error);
@@ -651,7 +680,8 @@ namespace AgentClicker
             switch (s.tutorialStep)
             {
                 case 0:
-                    tip = "Click SHIP CODE (or press Space) to ship code and earn compute credits.";
+                    tip = Touch.Active ? "Tap SHIP CODE to ship code and earn compute credits."
+                                       : "Click SHIP CODE (or press Space) to ship code and earn compute credits.";
                     break;
                 case 1 when s.credits >= 15 && Model.TotalAgents == 0:
                     tip = "You can afford an agent! Hire an <b>Autocomplete</b> in the ModelMart on the right.";

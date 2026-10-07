@@ -75,7 +75,7 @@ namespace AgentClicker.UI
             InputThisFrame = stick.sqrMagnitude > 0.04f || right.sqrMagnitude > 0.04f || AnyButton(pad);
             if (InputThisFrame && !Active) Activate();
             if (!Active) return;
-            if (RealMouseUsed())
+            if (RealMouseUsed() || _gm.Touch.InputThisFrame)
             {
                 Deactivate();
                 return;

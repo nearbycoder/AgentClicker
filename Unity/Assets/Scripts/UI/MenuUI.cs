@@ -290,18 +290,19 @@ namespace AgentClicker.UI
                     break;
                 default:
                     var t = UIKit.Text(_settingsBody, "Controls",
-                        Row("", "<color=#A4AFC2><size=15>KEYBOARD & MOUSE</size></color>", "<color=#A4AFC2><size=15>GAMEPAD</size></color>") +
-                        Row("Point and click", "Mouse", "Left stick · A") +
-                        Row("Ship code", "SHIP CODE · Space · Enter", "RT · X") +
-                        Row("Look around / sit down", "Tab · on-screen button", "View") +
-                        Row("Orbit the office", "Right mouse drag", "Right stick") +
-                        Row("Zoom", "Mouse wheel (office view)", "LB · RB") +
-                        Row("Scroll a list", "Mouse wheel", "Right stick") +
-                        Row("Answer / decline the phone", "E · Q", "Y · B") +
-                        Row("Pick a reply on a call", "1 · 2 · 3", "D-pad ← ↑ →") +
-                        Row("Pause menu", "Esc · ⚙ button", "Start") +
-                        Row("Back / close", "Esc", "B") +
-                        (Platform.IsWeb ? "" : Row("Screenshot", "F12", "")), 19, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Medium);
+                        Row("", "<color=#A4AFC2><size=15>KEYBOARD & MOUSE</size></color>", "<color=#A4AFC2><size=15>GAMEPAD</size></color>",
+                            "<color=#A4AFC2><size=15>TOUCH</size></color>") +
+                        Row("Point and click", "Mouse", "Left stick · A", "Tap") +
+                        Row("Ship code", "SHIP CODE · Space · Enter", "RT · X", "Tap SHIP CODE") +
+                        Row("Look around / sit down", "Tab · on-screen button", "View", "On-screen button") +
+                        Row("Orbit the office", "Right mouse drag", "Right stick", "Drag the room") +
+                        Row("Zoom", "Mouse wheel (office view)", "LB · RB", "Pinch") +
+                        Row("Scroll a list", "Mouse wheel", "Right stick", "Drag the list") +
+                        Row("Answer / decline the phone", "E · Q", "Y · B", "Tap a button") +
+                        Row("Pick a reply on a call", "1 · 2 · 3", "D-pad ← ↑ →", "Tap a reply") +
+                        Row("Pause menu", "Esc · ⚙ button", "Start", "⚙ button") +
+                        Row("Back / close", "Esc", "B", "On-screen buttons") +
+                        (Platform.IsWeb ? "" : Row("Screenshot", "F12", "", "")), 19, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Medium);
                     t.rectTransform.TopLeft(0, 0, 920, 520);
                     t.lineSpacing = 18;
                     break;
@@ -309,7 +310,7 @@ namespace AgentClicker.UI
         }
 
         static string Pct(float v) => $"{v * 100:0}%";
-        static string Row(string a, string b, string c) => $"<color=#A4AFC2>{a}</color><pos=35%>{b}<pos=74%>{c}\n";
+        static string Row(string a, string b, string c, string d) => $"<color=#A4AFC2>{a}</color><pos=30%>{b}<pos=59%>{c}<pos=80%>{d}\n";
 
         RectTransform SettingRow(string label, float y, string hint = null)
         {
@@ -445,7 +446,8 @@ namespace AgentClicker.UI
             "It doubles everything and unlocks frontier agents. There is no last agent.\n\n" +
             "<b>Reorg, forever.</b> Roll the Factory out to the next division and start over with <color=#FFD166>Stock Options</color>: " +
             "+1% production each, permanently. Spend them on Board Room perks. <b>Trophies</b> add Clout, which influence upgrades turn into production.\n\n" +
-            "<b>Gamepad.</b> The left stick moves a cursor and A clicks; RT ships code. Settings → Controls lists the rest.";
+            "<b>Gamepad or touch.</b> The left stick moves a cursor and A clicks; RT ships code. On a touch screen, tap; drag the office to " +
+            "look around and pinch to zoom. Settings → Controls lists the rest.";
 
         void BuildInfo()
         {
@@ -567,7 +569,7 @@ namespace AgentClicker.UI
             _cardBody.text = c.Body;
             _cardBody.maxVisibleCharacters = 0;
             _reveal = 0;
-            _cardHint.text = $"{_cardIndex + 1} / {_cardList.Count}   ·   click or press Space to continue";
+            _cardHint.text = $"{_cardIndex + 1} / {_cardList.Count}   ·   " + (_gm.Touch.Active ? "tap to continue" : "click or press Space to continue");
         }
 
         /// <summary>Skips to the end of the story cards (runs their completion callback).</summary>

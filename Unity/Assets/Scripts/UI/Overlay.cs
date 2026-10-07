@@ -137,7 +137,7 @@ namespace AgentClicker.UI
             Show(_night, false);
             _dayChapter.text = StoryDatabase.ChapterLine(_gm.Model);
             _dayTitle.text = $"DAY {day}";
-            _daySub.text = $"{FlavorText.Weekday(day)} · 9:00 AM · Click the monitor to log in";
+            _daySub.text = $"{FlavorText.Weekday(day)} · 9:00 AM · " + (_gm.Touch.Active ? "Tap" : "Click") + " the monitor to log in";
             Show(_dayCard, true);
             _dayCardUntil = Time.unscaledTime + 3.2f;
             _fade.enabled = true;
@@ -247,6 +247,10 @@ namespace AgentClicker.UI
                     ? (_gm.Model.Phase == GamePhase.Login
                         ? "A on the monitor to log in  ·  Right stick to look around"
                         : "View or RB to sit down at the computer  ·  Right stick to look around")
+                    : _gm.Touch.Active
+                    ? (_gm.Model.Phase == GamePhase.Login
+                        ? "Tap the monitor to log in  ·  Drag to look around"
+                        : "Pinch in to sit down at the computer  ·  Drag to look around")
                     : _gm.Model.Phase == GamePhase.Login
                         ? "Click the monitor to log in  ·  Right-drag to look around"
                         : "[Tab] or scroll up to sit down at the computer  ·  Right-drag to look around");
