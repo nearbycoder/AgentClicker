@@ -1,8 +1,8 @@
 # Agent Clicker: improvement plan
 
 Written on 2026-10-06, after v0.1.0 (published 2026-10-04). This document ranks what would most raise the
-game's quality for a real player, then records each round's scope and results. Rounds 1–6 (branches
-`improvements` to `improvements-6`) are merged into `main`; round 7 is on `improvements-7`.
+game's quality for a real player, then records each round's scope and results. Rounds 1–7 (branches
+`improvements` to `improvements-7`) are merged into `main`; round 8 is on `improvements-8`.
 
 ## Baseline (what was run, and what it showed)
 
@@ -1054,3 +1054,66 @@ matters more in the browser than this round could change: a browser tab in the b
 idle player who keeps the game in a background tab earns 10% for at most an hour, not the full rate the autopilot gives a
 visible tab. The away card now says so plainly; raising the cap or treating a hidden tab like a running game is a balance
 call. Plus the standing ones: Windows Build Support, license, signing, releases and tags.
+
+## Round 8 scope
+
+Baseline on `main` (`d788a3a`, identical to `origin/main`): 137/137 EditMode tests and balance bot 2h 09m (day 27) as of
+round 7. This round goes back to the tour's screenshots and to what an idle player does with the game: leave it running
+beside their work for hours. Three things they meet, plus round 7's open soak. Localization stays deferred (large), real
+phones and tablets can't be tried here, and the owner's decisions are unchanged (Windows Build Support, the offline cap of
+10% for 1 hour, license, signing, releases and tags, redeploying `gh-pages`).
+
+### 1. Mute in one click
+
+The game plays a lo-fi loop, office ambience and a phone ring for as long as it's open, and the only way to silence it is
+Settings → Audio → Master volume (or "mute when in background", which doesn't help a visible window). An idle game that
+sits next to your work needs a mute button.
+
+* A sound button in the CorpOS top bar and the `M` key toggle all sound; Settings → Audio gets the same "Mute all sound"
+  toggle. It's a setting, so it survives a restart, and it doesn't touch the volume sliders. A toast says how to undo it.
+* The Controls tab, How to Play and the README list `M`.
+
+**Acceptance**: a real mouse click on the button sets the listener's volume to 0 and saves the setting; `M` brings back the
+master volume; with "mute when in background" on, unmuting while unfocused stays silent; the volume sliders are unchanged
+throughout. **Verify**: new tour checks (real Input System mouse and keyboard events), a screenshot of the top bar, an
+EditMode test for the volume rule.
+
+### 2. Big numbers you can read
+
+From the fifth power of a thousand the suffixes stop being familiar: the tour's late shots show 22.0Qa, 190TDc and
+1.00NNog. The game already has every name (the trophies use them), but the main counter never says what "TDc" is.
+
+* Above a million, the credits card's label names the number: "COMPUTE CREDITS · 22.0 quadrillion". Settings → Number
+  format "Scientific" leaves the label alone. The Stats tab says the same for credits in the bank.
+
+**Acceptance**: an EditMode test for the words at every tier (1.00 million … centillion, and the floating-point edges right
+below a power of a thousand); in the tour's late and end-game shots the label shows the name and fits its card.
+**Verify**: that test, a tour check that the label's text fits its rect, screenshots.
+
+### 3. A tidy activity panel
+
+In nearly every mid- and late-game tour shot the activity feed shows slices of log lines between and above the toast
+cards, and long log lines run past the panel's right edge ("+4,812 line" under the store). The reorg goal reads "Double
+your Stock Options (+1.39T of +150B vested)", which is hard to parse.
+
+* While toasts are up, a backing in the panel's colour sits behind the whole stack, so no feed text shows between or
+  around the cards. Log lines that don't fit the panel's width end in "…" inside it.
+* The reorg goal says what you get and what you have: "Reorg for +1.39T Stock Options (you have 150B)".
+
+**Acceptance**: a tour check over the late-game toast shot finds no feed line visible in the toast area and every feed
+line's right end inside the feed's rect; the goal tests still pass with the new title. **Verify**: that check,
+before/after crops.
+
+### 4. Two hours in the browser with every buffer counted (time-boxed)
+
+Round 6's 100-minute detached soak saw the glue's live WebGL objects rise from about 1,030 to 1,450 over the first hour,
+and round 7's 30-minute attached run named buffers as the only type that moves. Neither showed what happens over hours.
+
+* `Tools/websoak.mjs detached` also writes the live buffer and texture counts (the page already reports every table).
+  Run it for two hours on a WebGL build of `main` and say whether buffers keep climbing.
+
+**Acceptance**: the CSV and a chart, with a plain statement (flat after the first hour, or growing at a stated rate) in the
+README's "Long sessions" note. **Verify**: `docs/media/improvements/round8/`, load average noted.
+
+Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes, the benchmark is re-run, screenshots go to
+`docs/media/improvements/round8/`, and the real `~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and after.
