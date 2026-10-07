@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+    <title>Agent Clicker</title>
+    <meta name="description" content="Automate yourself out of a job. Keep the paycheck. An idle clicker about a developer who hands their whole job to AI agents.">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B111B'/%3E%3Cpath d='M16 5 27 16 16 27 5 16Z' fill='%234DD0E1'/%3E%3C/svg%3E">
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #0B111B; color: #E6ECF5;
+                   font: 16px/1.4 "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
+      #game { position: fixed; inset: 0; }
+      #unity-canvas { width: 100%; height: 100%; display: block; background: #0B111B; outline: none; }
+      .overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+                 gap: 18px; background: #0B111B; text-align: center; padding: 24px; box-sizing: border-box; }
+      .logo { font-weight: 800; font-size: clamp(40px, 8vw, 88px); line-height: 0.9; letter-spacing: -1px; }
+      .logo span { color: #4DD0E1; display: block; }
+      .tagline { color: #8A97AD; font-size: clamp(14px, 2vw, 20px); }
+      #progress { width: min(420px, 70vw); height: 8px; border-radius: 4px; background: #1B2433; overflow: hidden; }
+      #progress div { width: 0; height: 100%; background: #4DD0E1; transition: width 0.2s; }
+      #status { color: #56627A; font-size: 14px; min-height: 1.4em; }
+      #touch { display: none; z-index: 2; }
+      #touch p { max-width: 460px; color: #C9D3E3; margin: 0; }
+      button { font: inherit; font-weight: 700; color: #0B111B; background: #4DD0E1; border: 0; border-radius: 10px;
+               padding: 12px 22px; cursor: pointer; }
+      #fullscreen { position: fixed; right: 12px; bottom: 12px; padding: 8px 12px; font-size: 13px; color: #C9D3E3;
+                    background: rgba(27, 36, 51, 0.85); display: none; z-index: 1; }
+      #fullscreen:hover { background: #2A3547; }
+    </style>
+  </head>
+  <body>
+    <div id="game"><canvas id="unity-canvas" tabindex="-1"></canvas></div>
+    <div id="loading" class="overlay">
+      <div class="logo">AGENT<span>CLICKER</span></div>
+      <div class="tagline">Automate yourself out of a job. Keep the paycheck.</div>
+      <div id="progress"><div></div></div>
+      <div id="status">Loading…</div>
+    </div>
+    <div id="touch" class="overlay">
+      <div class="logo">AGENT<span>CLICKER</span></div>
+      <p>Agent Clicker is played with a mouse and keyboard. It hasn't been made for touch screens yet, so on this device
+         you may not be able to reach everything.</p>
+      <button id="touch-continue">Try it anyway</button>
+    </div>
+    <button id="fullscreen" title="Fullscreen">⛶ Fullscreen</button>
+    <script>
+      var canvas = document.querySelector("#unity-canvas");
+      var statusEl = document.querySelector("#status");
+      var bar = document.querySelector("#progress div");
+
+      function showBanner(msg, type) {
+        if (type === "error") { statusEl.textContent = msg; statusEl.style.color = "#FF5D5D"; }
+        else console.warn(msg);
+      }
+
+      var buildUrl = "Build";
+      var config = {
+        // test tools pass player arguments in the URL (?arg=-soak&arg=&arg=30); players never need this
+        arguments: new URLSearchParams(location.search).getAll("arg"),
+        dataUrl: buildUrl + "/WebGL.data.unityweb",
+        frameworkUrl: buildUrl + "/WebGL.framework.js.unityweb",
+        codeUrl: buildUrl + "/WebGL.wasm.unityweb",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "Nearby Games",
+        productName: "Agent Clicker",
+        productVersion: "0.2.0",
+        showBanner: showBanner,
+        // the game flushes IndexedDB itself once each save is complete (Platform.SyncFileSystem); syncing after every
+        // single file write as well ran up to six syncs at once
+        autoSyncPersistentDataPath: false,
+        // a full-window canvas on a high-DPI screen would otherwise render at up to 4K
+        devicePixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
+      };
+
+      // touch-only devices: say so up front instead of letting the game look broken
+      var touchOnly = matchMedia("(pointer: coarse)").matches && !matchMedia("(any-pointer: fine)").matches;
+      if (touchOnly) {
+        document.querySelector("#touch").style.display = "flex";
+        document.querySelector("#touch-continue").onclick = function () {
+          document.querySelector("#touch").style.display = "none";
+        };
+      }
+
+      var script = document.createElement("script");
+      script.src = buildUrl + "/WebGL.loader.js";
+      script.onload = function () {
+        createUnityInstance(canvas, config, function (progress) {
+          bar.style.width = Math.round(100 * progress) + "%";
+          statusEl.textContent = progress < 0.9 ? "Loading… " + Math.round(100 * progress) + "%" : "Starting CorpOS…";
+        }).then(function (unityInstance) {
+          window.unityInstance = unityInstance;
+          document.querySelector("#loading").style.display = "none";
+          var fs = document.querySelector("#fullscreen");
+          fs.style.display = "block";
+          fs.onclick = function () { unityInstance.SetFullscreen(1); };
+          canvas.focus();
+        }).catch(function (message) {
+          showBanner(String(message), "error");
+        });
+      };
+      script.onerror = function () { showBanner("The game files could not be loaded.", "error"); };
+      document.body.appendChild(script);
+    </script>
+  </body>
+</html>
