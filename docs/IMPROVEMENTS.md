@@ -839,3 +839,61 @@ home-screen launches can't be tried here and are reported as untested.
 Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes, the Chromium and Firefox web tests and the
 touch test pass, the benchmark is re-run, screenshots go to `docs/media/improvements/round6/`, and the real
 `~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and after (before: `prefs` unchanged since round 5).
+
+## Round 6 results (2026-10-07)
+
+All four items landed on `improvements-6`, one commit each after the plan (`c42a40f`). Tests: **129/129**, balance bot
+unchanged at 2h 09m (day 27). The tour now runs 38 checks (34 in round 5), all passing at 1600×900 (load average 17) and
+1024×768 (12). The Chromium web test runs 16 checks (13), Firefox 15 and the touch test 27 (17), all passing on the final
+build. Screenshots, soak data and the chart are in [`docs/media/improvements/round6/`](media/improvements/round6).
+
+| Item | Commit | Verified by |
+|---|---|---|
+| 1. Reuse WebGL object ids | `b3533a1` | A 15-minute A/B in the same session with `?glids=engine`: the engine's shared id counter climbed 7,087 → 125,214 (about 140 a second) and the JS heap's low points 60.8 → 62.1 → 63.7 MB; with the fix the counter stays at 371 and the largest table follows the live objects instead of the counter (1,172 → 1,630 over 100 minutes, not flat as the plan expected; see below). The 100-minute detached soak (68 in-game days, steady 60 fps, load average 12–76, the browser alone with nothing attached) kept the heap's lowest point in each 15 minutes at 60.3–60.8 MB: a fitted slope of 0.05 MB an hour after the first 10 minutes, against 19 MB an hour with the engine's ids. The web tests check the counter stays put in Chromium and Firefox; screenshots show nothing drawn wrong |
+| 2. 15 fps behind another window, in the browser | `5f53c57` | New web test check through a `LogFrameRate` hook (the game's own frames, since the page keeps its own pace): Chromium 60.1 → 15.1 → 60.3 fps and Firefox 59.9 → 15.0 → 60.3 when the window's blur and focus events arrive. The first build set only the frame cap and stayed at 56 fps: in the browser a cap needs vsync off, so the fix turns it off while throttled |
+| 3. Phones: zoom into the monitor; Fullscreen off the game | `eb88e67` | Tour (simulated `Touchscreen`): two fingers spread on a store row zoom x3.00 (SHIP CODE 112 → 336 px) and buy nothing, a tap while zoomed hires one, two fingers moved together pan the screen 155 px, pinching in returns to the whole monitor; the office pinch and two-finger drumming on SHIP CODE are unchanged. `Tools/webtouch.mjs` in Chromium touch emulation: on the phone (844×390 @3×) a 14 pt store line goes from 6.0 to 18.2 CSS px (tablet 10.2 → 30.9), nothing bought, the tip shows once, the page's Fullscreen button shows on the title only, and the pause menu's FULLSCREEN then RESUME makes the page fullscreen |
+| 4. Home-screen play | `a697975` | The Chromium web test reads the parsed manifest through DevTools (`Page.getAppManifest`): 0 errors, fullscreen, landscape, the 192, 512 and 180 px icons load, and the iOS tags are present |
+
+![Page JS heap, the WebGL id counter and object counts, with and without id reuse](media/improvements/round6/soak_browser_gl_ids.jpg)
+
+![A phone held sideways: the whole monitor, then two fingers spread on the store](media/improvements/round6/web_phone_monitor_zoom_before_after.jpg)
+
+Also measured: `Tools/benchmark.sh` A/B against the published v0.1.0 (downloaded to `Builds/`, deleted afterwards),
+alternating two runs each at load average 12–29: at the 60 fps cap while clicking, main-thread CPU read 4.24 and 4.11 ms
+for v0.1.0 and 4.20 and 4.33 ms for this build in the monitor view, and 4.82 / 3.59 against 3.67 / 3.94 ms in the endless
+state; uncapped figures swung run to run as before. No sign of a regression. The real
+`~/.config/unity3d/Nearby Games/Agent Clicker/` was hashed before and after: only `TestResults.xml` changed (the editor's
+test package, as in rounds 3–5); `prefs` is unchanged and there is no save.
+
+Changes from the plan:
+* Item 3: a two-finger touch only becomes a zoom once the fingers move (3% of the screen height), so two fingers
+  drumming on SHIP CODE still ship twice. SHIP CODE, the terminal and the outage banner act on touch-down, so a zoom that
+  starts on them ships a line or clicks the banner once, as a tap would; everything that spends credits acts on release,
+  and the monitor ignores releases while a zoom is under way.
+* Item 3: toasts, model drops and the chapter banner are drawn on the monitor, so while zoomed in some of them can be
+  outside the view. Pinching out shows them again. Not changed.
+* Item 3: the pause menu's FULLSCREEN can only ask: browsers allow fullscreen during an input event, and the game's buttons
+  act a frame later, so the switch happens on the next tap or click (in practice RESUME).
+* `LogScreenPoint` now also reports how big an element is drawn (`agent0sub` is the store row's subtitle), and
+  `Tools/websoak.mjs` takes `WEBGL_DIR` and `WEBSOAK_QUERY`, writes the GL id columns and, attached, every table's size.
+
+Found and not fixed:
+* **Live WebGL objects rise and level off.** In the 100-minute soak the glue's live objects went from about 1,030 to about
+  1,450 in the first hour and then moved between 1,370 and 1,620 (largest table 1,172 → 1,630). The 15 minutes with the
+  engine's ids rose at the same rate, so it isn't from this change, and the JS heap is flat regardless. These are objects
+  the engine holds (probably pooled buffers); GPU memory wasn't measured and the type wasn't traced (the attached soak now
+  logs every table for that).
+* **Flaky under load.** One Chromium web test stopped at the DOWNLOAD step at load average about 50; one touch run at load
+  average 20 lost a tap and found the CEO's email already closed (round 5's stalled-frame case); one Firefox run had the
+  whole browser at 16 fps while the soak's Chrome shared the GPU, so the 15 fps cap couldn't be seen. Each passed on
+  the rerun with nothing changed.
+
+Deferred, and why:
+* **Real phones and tablets**: monitor zoom, the home-screen web app and fullscreen were checked in Chromium's touch and
+  device emulation only. iOS Safari (home-screen launch, the `apple-mobile-web-app-capable` tags), Android Chrome
+  (manifest install) and real fingers are untested.
+* **Localization (#13)**: still large, not started. **WebKit**: unchanged (needs Ubuntu 24.04 libraries or a Mac).
+
+Owner decisions: redeploying `gh-pages` (it would bring touch play, the day 1 email fix, the memory fix, monitor zoom and
+home-screen play to the hosted game), plus the standing ones: Windows Build Support, the offline cap of 10% for 1 hour,
+license, signing, releases and tags.

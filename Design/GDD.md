@@ -181,7 +181,12 @@ Later divisions get a short victory lap instead of the full ending.
 * **Input**: mouse and keyboard; a gamepad drives an on-screen cursor; on a touch screen (the browser build on a
   tablet or a phone held sideways) taps are clicks, one finger dragged across the office looks around, a pinch zooms
   (pinching in all the way sits back down), and the store keeps the last tapped item's details because touch has no
-  hover. Prompts follow whichever input was used last.
+  hover. In the monitor view two fingers zoom into the screen (up to 3×) and pan, because the whole monitor makes
+  6-pixel text on a phone; while they zoom the monitor ignores taps, so lifting them can't buy anything, and two fingers
+  that stay put are still two taps on SHIP CODE. Prompts follow whichever input was used last.
+* **Browser**: the page asks for a phone held upright to be turned, shows a Fullscreen button on the title screen (the
+  pause menu has one in the game), and carries a web app manifest so a phone's "Add to Home Screen" opens the game
+  full-screen and landscape. Behind another window it drops to 15 fps like the desktop build.
 * Extra monitors run live world-space dashboards.
 * Time of day drives the sunlight through the window and the wall clock's hands.
 * Employee animations: Idle, Typing, Sip, Relax (hands behind head), FeetUp.

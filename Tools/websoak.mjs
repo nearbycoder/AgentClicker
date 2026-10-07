@@ -134,6 +134,7 @@ async function main() {
       })).catch(() => ({ wasm: -1, js: -1, gl: null }));
       const row = `${csv[1]},${(extra.wasm / 1048576).toFixed(1)},${(extra.js / 1048576).toFixed(1)},${glColumns(extra.gl)}`;
       rows.push(row);
+      if (extra.gl) log.push("[GL tables] " + JSON.stringify(extra.gl)); // every table, as length/live
       console.log("[WebSoak] " + row);
       writeFileSync(path.join(out, "soak.csv"), header + "\n" + rows.join("\n") + "\n");
     });

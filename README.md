@@ -61,6 +61,7 @@ the quotas and the calls and model drops you missed.
 | `Tab` or the on-screen button | **View** | The on-screen button | Switch between the monitor and the office |
 | Right-drag (office view) | Right stick | Drag the room | Look around the office |
 | Mouse wheel (office view) | **LB** / **RB** | Pinch | Zoom, and zoom in to sit back down |
+| | | Two fingers on the monitor | Zoom into the monitor and move around it (small text on a phone) |
 | Mouse wheel | Right stick | Drag the list | Scroll a list |
 | `E` / `Q` | **Y** / **B** | Tap ANSWER / DECLINE | Answer or decline a ringing phone |
 | `1` `2` `3` | D-pad left, up, right | Tap a reply | Pick a reply during a call |
@@ -71,7 +72,8 @@ the quotas and the calls and model drops you missed.
 A gamepad drives an on-screen cursor, so everything a mouse can do works with a controller too; the cursor appears when
 you touch the gamepad and steps aside when you move the mouse. On a touch screen (the browser build on a tablet, or a
 phone held sideways) taps work as clicks, the store keeps the details of the last thing you tapped, and the prompts drop
-the key names. Phones work, but the text is small on a phone-sized screen.
+the key names. On a phone the whole monitor makes small text, so spread two fingers on it to zoom in (up to 3×), move them
+to look around and pinch to zoom back out; the game shows a tip the first time.
 
 ## Features
 
@@ -194,18 +196,21 @@ build made on Linux. It is unsigned and hasn't been tested on a Mac. If macOS re
 
 **In a browser.** Play it at **<https://nearbycoder.github.io/AgentClicker/>** (GitHub Pages, about 15 MB to download; a mouse and keyboard, a gamepad, or a touch screen
 held sideways). The hosted copy is the `gh-pages` branch, a plain copy of a browser build; it was published before touch
-play was added, so taps, drags and pinches arrive on the site with its next update.
+play, monitor zoom, home-screen play and the memory fix below were added, so they arrive on the site with its next update.
 `Tools/unity.sh build-webgl` makes the same build in `Builds/WebGL`. Serve the folder with any static web server, for example
 `python3 -m http.server -d Builds/WebGL 8000`, and open <http://localhost:8000>. The page (from
 `Unity/Assets/WebGLTemplates/AgentClicker`) fills the browser window, shows a progress bar while loading, has a
-fullscreen button (where the browser allows one; iPhones don't), and asks a phone or tablet held upright to turn sideways. The save goes to the
+fullscreen button on the title screen (where the browser allows one; iPhones don't; in the game it's in the pause menu), and asks a phone or
+tablet held upright to turn sideways. On a phone, **Add to Home Screen** (Safari's share menu, or Chrome's menu) gives the game its own icon
+and opens it full-screen and landscape, without the browser's bars. While another window is in front of the page the game drops to
+15 fps to save power (Settings → Graphics). The save goes to the
 browser's storage (IndexedDB), is written the moment you hide or close the tab, and survives a reload. Browsers pause
 a tab you aren't looking at, so time in a hidden tab counts like time with the game closed. It has been tried in
 headless Chrome and Firefox on Linux; see the known issues below. `Tools/webtest.mjs chromium|firefox` repeats that
 check (load, new game, autopilot login, SHIP CODE, audio level, hire, save on hide, settings, CONTINUE after a reload,
-and moving a save file into a fresh browser profile). Firefox is driven over WebDriver BiDi, so the system Firefox
-works without a Playwright browser download. `Tools/webtouch.mjs` plays it by touch alone in Chromium's touch emulation,
-at a tablet size and a phone held sideways.
+moving a save file into a fresh browser profile, the 15 fps cap behind another window, and the web app manifest). Firefox
+is driven over WebDriver BiDi, so the system Firefox works without a Playwright browser download. `Tools/webtouch.mjs` plays it by touch alone in Chromium's touch emulation,
+at a tablet size and a phone held sideways, including zooming into the monitor.
 
 Saves live in `~/.config/unity3d/Nearby Games/Agent Clicker/` on Linux (Unity's `persistentDataPath`), and
 settings are stored separately in PlayerPrefs. **Settings → Gameplay → Save file** moves a career around: the browser
@@ -334,16 +339,18 @@ release (v0.1.0).
   It hasn't been reproduced or explained: the other four runs that session and 15 runs since (release and
   development builds, at load averages from 15 to 73) were all clean.
 * **Long sessions**: an hour of the desktop build left alone (40 in-game days) showed no growth in the game's memory or
-  objects. In the browser, Unity's memory stays flat too, but the page's JavaScript heap grows about 15 MB an hour
-  while the tab is visible and rendering (two hours in Chrome: 61 → 95 MB), because the engine's WebGL glue never reuses
-  GL object ids. A hidden tab doesn't grow. A fix is proposed in docs/IMPROVEMENTS.md (round 5) but not made yet.
+  objects. In the browser, the engine's WebGL glue never reused GL object ids, so the page's JavaScript heap grew about
+  15 MB an hour while the tab was visible. The game now hands out freed ids again (a small JavaScript plugin that replaces
+  the glue's allocator), and 100 minutes in Chrome with nothing attached stayed flat (lowest point 60.3–60.8 MB in every
+  15 minutes). That was measured in headless Chrome and checked in Firefox; it hasn't run for days on a real phone.
 * **macOS is experimental**: the build is made on Linux, isn't signed or notarised, and hasn't been run on a Mac.
 * **The browser build is new and lightly tested**: it was checked in headless Chrome and Firefox 157 on Linux (start
   a game, autopilot login, audio playing, save, reload, continue, save files), played by touch in Chrome's touch
   emulation, and soaked for two hours in Chrome and 20 minutes in Firefox.
   Safari and real phones and tablets haven't been tried: touch play was tested in headless Chromium's touch emulation
   (a 1180×820 tablet and an 844×390 phone held sideways) and with simulated touches in the desktop tour, not with real
-  fingers, iOS Safari or Android Chrome. It's hosted on GitHub Pages; Playwright's WebKit (Safari's
+  fingers, iOS Safari or Android Chrome. Zooming into the monitor and the home-screen web app were checked the same way
+  (Chromium reads the manifest), not by adding the game to a real phone's home screen. It's hosted on GitHub Pages; Playwright's WebKit (Safari's
   engine) doesn't start on this CachyOS machine: it is built against Ubuntu 24.04 libraries (ICU 74, flite, libjxl
   0.8). Music starts a few seconds after loading because it's synthesised on the page's only thread.
 * **No Windows build yet.** The build script has a Windows target, but it hasn't been built or tested.
