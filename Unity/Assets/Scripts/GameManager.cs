@@ -525,8 +525,24 @@ namespace AgentClicker
             return gain;
         }
 
+        /// <summary>M or the ♪ button on the CorpOS top bar: all sound off or back on. Kept in the settings.</summary>
+        public void ToggleMute()
+        {
+            Settings.muted = !Settings.muted;
+            SettingsApplier.ApplyAudio(Settings, Sfx, Application.isFocused || _automated);
+            Settings.Save();
+            if (!Settings.muted) Sfx.Play(Sound.UiClick, 0.6f);
+            string how = Touch.Active || Pad.Active ? "the ♪ button" : "M or the ♪ button";
+            Computer.Toast(Settings.muted ? $"♪ Sound off. {how} turns it back on." : "♪ Sound on.", Theme.TextDim, 3.5f);
+            Debug.Log($"[Audio] {(Settings.muted ? "muted" : "unmuted")}, listener volume {AudioListener.volume:0.00}");
+        }
+
         void HandleKeys()
         {
+            // mute works over calls and menus too (a ringing phone is when you want it), but not under the settings
+            // screen, whose toggle shows the setting
+            var keys = Keyboard.current;
+            if (keys != null && keys.mKey.wasPressedThisFrame && !Menu.SettingsOpen) ToggleMute();
             if (InEnding || Menu.Blocking || Calls.Busy) return;
             var pad = Gamepad.current;
             if (pad != null)

@@ -69,6 +69,7 @@ of it went past the hour.
 | `1` `2` `3` | D-pad left, up, right | Tap a reply | Pick a reply during a call |
 | ✉ **Inbox** (CorpOS top bar) | **A** on it | Tap it | Read the story emails |
 | `Esc` or ⚙ | **Start** (**B** closes menus) | ⚙ | Pause menu: settings, how to play, save and exit |
+| `M` or ♪ (CorpOS top bar) | **A** on ♪ | Tap ♪ | Mute all sound, or turn it back on (kept in the settings) |
 | `F12` | | | Save a screenshot |
 
 A gamepad drives an on-screen cursor, so everything a mouse can do works with a controller too; the cursor appears when
@@ -152,7 +153,7 @@ the pipeline booting, the camera pulls back, and Sam puts their feet up. Then th
 ### Settings and quality of life
 
 Graphics presets from Low to Ultra (MSAA, shadows, SSAO, render scale), display mode, resolution, V-Sync, a
-frame cap, field of view and post-processing. Separate volume sliders for effects, music and ambience. Work
+frame cap, field of view and post-processing. Separate volume sliders for effects, music and ambience. A ♪ button on the CorpOS top bar (or `M`) mutes everything at once. Work
 days of 3, 5, 8 or 12 minutes, running the day while you're away, **reduce motion** (camera cuts instead of
 flying, no gadget showcases, and buttons, pulses and floating numbers hold still), tutorial tips, a purchase
 camera toggle and mouse sensitivity. The game

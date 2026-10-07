@@ -168,6 +168,25 @@ namespace AgentClicker.Tests
         }
 
         [Test]
+        public void MuteSilencesEverythingAndKeepsTheVolume()
+        {
+            var s = new GameSettings { masterVolume = 0.6f };
+            Assert.AreEqual(0.6f, s.ListenerVolume(true), 1e-6);
+            Assert.AreEqual(0.6f, s.ListenerVolume(false), 1e-6, "a background window keeps playing by default");
+            s.muted = true;
+            Assert.AreEqual(0f, s.ListenerVolume(true));
+            Assert.AreEqual(0f, s.ListenerVolume(false));
+            Assert.AreEqual(0.6f, s.masterVolume, 1e-6, "muting doesn't move the slider");
+            s.muted = false;
+            s.muteInBackground = true;
+            Assert.AreEqual(0.6f, s.ListenerVolume(true), 1e-6);
+            Assert.AreEqual(0f, s.ListenerVolume(false), "unmuted but in the background with mute-in-background on");
+            var copy = JsonUtility.FromJson<GameSettings>(JsonUtility.ToJson(new GameSettings { muted = true }));
+            Assert.IsTrue(copy.muted, "mute survives a restart");
+            Assert.IsFalse(new GameSettings().muted);
+        }
+
+        [Test]
         public void UnlimitedFrameRateIsZero()
         {
             var s = new GameSettings { fpsCap = GameSettings.FpsCaps.Length - 1 };

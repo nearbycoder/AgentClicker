@@ -45,7 +45,7 @@ namespace AgentClicker.UI
         public static TMP_FontAsset Bold => _bold ??= Create("FiraSans-Bold");
         public static TMP_FontAsset Mono => _mono ??= Create("DejaVuSansMono", false);
 
-        const string Warm = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~·•→←◆★✓✗⚠●▶◀✉⚙⏎✕…×°☎♥○";
+        const string Warm = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~·•→←◆★✓✗⚠●▶◀✉⚙⏎✕…×°☎♥○♪";
 
         /// <summary>Adds common glyphs to the dynamic atlases up front, so the first click doesn't hitch.</summary>
         public static void Prewarm()

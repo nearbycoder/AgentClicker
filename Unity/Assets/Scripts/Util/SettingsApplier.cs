@@ -125,7 +125,7 @@ namespace AgentClicker.Util
 
         public static void ApplyAudio(GameSettings s, Sfx sfx, bool focused)
         {
-            AudioListener.volume = !focused && s.muteInBackground ? 0f : s.masterVolume;
+            AudioListener.volume = s.ListenerVolume(focused);
             if (sfx) sfx.SetVolumes(s.sfxVolume, s.musicVolume, s.ambienceVolume);
         }
     }

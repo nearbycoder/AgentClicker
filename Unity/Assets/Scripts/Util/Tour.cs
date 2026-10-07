@@ -83,6 +83,7 @@ namespace AgentClicker
             yield return new WaitForSeconds(0.3f);
             yield return Shot("02_desktop_day1");
             LogGoal("day 1");
+            yield return MuteSegment();
             M.DeliverNextMail();
             M.DeliverNextMail();
             _gm.Computer.ShowInbox(null);
@@ -467,6 +468,32 @@ namespace AgentClicker
         }
 
         /// <summary>Everything the Factory needs is in place: the card says so, and a real click on it opens the Factory tab.</summary>
+        /// <summary>A real click on the top bar's ♪ button mutes everything and keeps it in the settings; M turns it back on.</summary>
+        IEnumerator MuteSegment()
+        {
+            var st = _gm.Settings;
+            if (st.muted) _gm.ToggleMute(); // a throwaway prefs file left muted by an interrupted run
+            float master = st.masterVolume;
+            var b = _gm.Computer.SoundButton;
+            yield return RealClick(_gm.Refs.MainCamera.WorldToScreenPoint(b.TransformPoint(b.rect.center)));
+            bool saved = PlayerPrefs.GetString(GameSettings.PrefsKey, "").Contains("\"muted\":true");
+            Debug.Log(st.muted && AudioListener.volume == 0f && saved && st.masterVolume == master
+                ? $"[Tour] PASS a real click on ♪ mutes (listener 0, saved in the settings, master volume still {master:0.00})"
+                : $"[Tour] FAIL ♪ click: muted {st.muted}, listener {AudioListener.volume:0.00}, saved {saved}, master {st.masterVolume:0.00}");
+            yield return new WaitForSeconds(0.3f);
+            yield return Shot("02a_muted");
+            var kb = Keyboard.current ?? InputSystem.AddDevice<Keyboard>();
+            InputSystem.QueueStateEvent(kb, new KeyboardState(Key.M));
+            yield return null;
+            yield return null;
+            InputSystem.QueueStateEvent(kb, new KeyboardState());
+            yield return null;
+            Debug.Log(!st.muted && Mathf.Approximately(AudioListener.volume, master)
+                ? $"[Tour] PASS M turns the sound back on (listener {AudioListener.volume:0.00})"
+                : $"[Tour] FAIL M: muted {st.muted}, listener {AudioListener.volume:0.00}");
+            if (st.muted) _gm.ToggleMute();
+        }
+
         IEnumerator GoalCardSegment()
         {
             _gm.Computer.SelectStoreTab(0);

@@ -36,6 +36,7 @@ namespace AgentClicker.UI
         public bool TitleOpen => _title.gameObject.activeSelf;
         public bool PauseOpen => _pause.gameObject.activeSelf;
         public bool CardsOpen => _cards.gameObject.activeSelf;
+        public bool SettingsOpen => _settings.gameObject.activeSelf;
         public bool Blocking => TitleOpen || PauseOpen || _settings.gameObject.activeSelf || _info.gameObject.activeSelf ||
                                 _confirm.gameObject.activeSelf || CardsOpen || _credits.gameObject.activeSelf;
 
@@ -303,7 +304,8 @@ namespace AgentClicker.UI
                     Slider("Sound effects", 0, 1, () => s.sfxVolume, v => s.sfxVolume = v, y, Pct); Next();
                     Slider("Music", 0, 1, () => s.musicVolume, v => s.musicVolume = v, y, Pct); Next();
                     Slider("Office ambience", 0, 1, () => s.ambienceVolume, v => s.ambienceVolume = v, y, Pct); Next();
-                    Toggle("Mute when in background", () => s.muteInBackground, v => s.muteInBackground = v, y);
+                    Toggle("Mute when in background", () => s.muteInBackground, v => s.muteInBackground = v, y); Next();
+                    Toggle("Mute all sound", () => s.muted, v => s.muted = v, y, "M, or the ♪ button on the CorpOS top bar");
                     break;
                 case SettingsTab.Gameplay:
                     Stepper("Work day length", GameSettings.DayLengthNames, () => s.dayLength, v => s.dayLength = v, y,
@@ -328,12 +330,13 @@ namespace AgentClicker.UI
                         Row("Ship code", "SHIP CODE · Space · Enter", "RT · X", "Tap SHIP CODE") +
                         Row("Look around / sit down", "Tab · on-screen button", "View", "On-screen button") +
                         Row("Orbit the office", "Right mouse drag", "Right stick", "Drag the room") +
-                        Row("Zoom", "Mouse wheel (office view)", "LB · RB", "Two fingers (office, monitor)") +
+                        Row("Zoom", "Mouse wheel (office view)", "LB · RB", "Pinch") +
                         Row("Scroll a list", "Mouse wheel", "Right stick", "Drag the list") +
                         Row("Answer / decline the phone", "E · Q", "Y · B", "Tap a button") +
                         Row("Pick a reply on a call", "1 · 2 · 3", "D-pad ← ↑ →", "Tap a reply") +
                         Row("Pause menu", "Esc · ⚙ button", "Start", "⚙ button") +
                         Row("Back / close", "Esc", "B", "On-screen buttons") +
+                        Row("Mute all sound", "M · ♪ button", "♪ button", "♪ button") +
                         (Platform.IsWeb ? "" : Row("Screenshot", "F12", "", "")), 19, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Medium);
                     t.rectTransform.TopLeft(0, 0, 920, 520);
                     t.lineSpacing = 18;
@@ -473,7 +476,8 @@ namespace AgentClicker.UI
             "<b>Work the day.</b> 9 to 5. Beat the quota for a ★ and finish your manager's two asks for a bonus. Click gold model " +
             "drops before they vanish, click an outage banner to fail over, and answer the phone with E (Q declines), replying with 1, 2 or 3.\n\n" +
             "<b>Walk away.</b> Leave the game running and your agents clock you out after 5 PM, go home and log back in the next " +
-            "morning (Settings → Gameplay). A <i>While you were away</i> card sums it up. With the game closed they earn at a reduced rate.\n\n" +
+            "morning (Settings → Gameplay). A <i>While you were away</i> card sums it up. With the game closed they earn at a reduced rate. " +
+            "M (or the ♪ button) mutes everything.\n\n" +
             "<b>Build the <color=#FFD166>Software Factory</color>.</b> Every agent type, five Orchestrator Clusters and the recliner. " +
             "It doubles everything and unlocks frontier agents. There is no last agent.\n\n" +
             "<b>Reorg, forever.</b> Roll the Factory out to the next division and start over with <color=#FFD166>Stock Options</color>: " +

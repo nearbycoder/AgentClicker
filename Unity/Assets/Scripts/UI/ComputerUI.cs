@@ -21,6 +21,7 @@ namespace AgentClicker.UI
         Canvas _canvas;
         RectTransform _root, _login, _desktop, _locked, _modals, _toasts, _fx;
         TopBar _top;
+        public RectTransform SoundButton => _top.SoundButton;
         ShipPanel _ship;
         FleetPanel _fleet;
         StorePanel _store;

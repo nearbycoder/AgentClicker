@@ -14,8 +14,9 @@ namespace AgentClicker.UI
     {
         readonly GameManager _gm;
         readonly ComputerUI _ui;
-        readonly TextMeshProUGUI _clock, _ticker, _viewLabel, _inboxLabel, _corp;
+        readonly TextMeshProUGUI _clock, _ticker, _viewLabel, _inboxLabel, _corp, _soundLabel;
         readonly Button _clockOut, _inbox;
+        readonly Image _soundSlash;
         readonly Pulse _inboxPulse;
         float _tickerTimer;
 
@@ -35,21 +36,32 @@ namespace AgentClicker.UI
             _corp.textWrappingMode = TextWrappingModes.NoWrap;
 
             _ticker = UIKit.Text(bar.transform, "Ticker", "", 15, Theme.TextDim, TextAlignmentOptions.Midline);
-            _ticker.rectTransform.TopLeft(350, 0, 520, 46);
+            _ticker.rectTransform.TopLeft(350, 0, 460, 46);
             // italic by tag, not fontStyle: TMP only finds the "…" for a long ticker in a component without a style
 
             _clock = UIKit.Text(bar.transform, "Clock", "", 18, Theme.Text, TextAlignmentOptions.MidlineRight, UIFonts.Medium);
-            _clock.rectTransform.TopLeft(870, 0, 270, 46);
+            _clock.rectTransform.TopLeft(810, 0, 282, 46);
 
             _inbox = UIKit.Button(bar.transform, "Inbox", Theme.PanelLight, () => _ui.ShowInbox(null), 8);
-            _inbox.GetComponent<RectTransform>().TopLeft(1152, 8, 120, 30);
+            _inbox.GetComponent<RectTransform>().TopLeft(1104, 8, 120, 30);
             _inboxLabel = _inbox.Label("✉ Inbox", 14, Theme.Text, UIFonts.Medium);
             _inboxPulse = _inbox.gameObject.AddComponent<Pulse>();
             _inboxPulse.ScaleAmount = 0.04f;
 
             var view = UIKit.Button(bar.transform, "View", Theme.PanelLight, () => _gm.Cam.Toggle(), 8);
-            view.GetComponent<RectTransform>().TopLeft(1280, 8, 140, 30);
+            view.GetComponent<RectTransform>().TopLeft(1232, 8, 140, 30);
             _viewLabel = view.Label("Look around  [Tab]", 14, Theme.TextDim, UIFonts.Medium);
+
+            // all sound on or off (M); struck through while muted
+            var sound = UIKit.Button(bar.transform, "Sound", Theme.PanelLight, () => _gm.ToggleMute(), 8);
+            SoundButton = sound.GetComponent<RectTransform>();
+            SoundButton.TopLeft(1380, 8, 40, 30);
+            _soundLabel = sound.Label("♪", 18, Theme.TextDim, UIFonts.Mono);
+            _soundSlash = UIKit.Image(sound.transform, "Slash", Theme.Bad);
+            var slash = _soundSlash.rectTransform;
+            slash.anchorMin = slash.anchorMax = slash.pivot = new Vector2(0.5f, 0.5f);
+            slash.sizeDelta = new Vector2(26, 3);
+            slash.localRotation = Quaternion.Euler(0, 0, -45);
 
             var menu = UIKit.Button(bar.transform, "Menu", Theme.PanelLight, () => _gm.Menu.OpenPause(), 8);
             menu.GetComponent<RectTransform>().TopLeft(1428, 8, 40, 30);
@@ -61,6 +73,9 @@ namespace AgentClicker.UI
             _clockOut.gameObject.AddComponent<Pulse>().ScaleAmount = 0.03f;
             _tickerTimer = 0;
         }
+
+        /// <summary>The ♪ button (the tour clicks it).</summary>
+        public RectTransform SoundButton { get; }
 
         public void Refresh(float dt)
         {
@@ -74,6 +89,10 @@ namespace AgentClicker.UI
             bool monitor = _gm.Cam.Mode == Office.CamMode.Monitor;
             UIKit.Set(_viewLabel, _gm.Touch.Active ? (monitor ? "Look around" : "Sit down")
                                                    : (monitor ? "Look around  [Tab]" : "Sit down  [Tab]"));
+
+            bool muted = _gm.Settings.muted;
+            UIKit.SetActive(_soundSlash, muted);
+            _soundLabel.color = muted ? Theme.TextFaint : Theme.TextDim;
 
             int unread = _ui.UnreadMail;
             UIKit.Set(_inboxLabel, unread > 0 ? $"✉ Inbox <color=#FFD166>{unread}</color>" : "✉ Inbox");

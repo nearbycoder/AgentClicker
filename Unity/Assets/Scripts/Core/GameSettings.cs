@@ -35,6 +35,7 @@ namespace AgentClicker.Core
         public float musicVolume = 0.45f;
         public float ambienceVolume = 0.5f;
         public bool muteInBackground;
+        public bool muted;                 // M or the ♪ button: all sound off, the sliders untouched
 
         // gameplay
         public int dayLength = 1;          // index into DayLengths
@@ -49,6 +50,9 @@ namespace AgentClicker.Core
 
         public float DayLengthSeconds => DayLengths[Mathf.Clamp(dayLength, 0, DayLengths.Length - 1)];
         public int TargetFps => FpsCaps[Mathf.Clamp(fpsCap, 0, FpsCaps.Length - 1)];
+
+        /// <summary>The audio listener's volume: silent when muted, or unfocused with "mute when in background" on.</summary>
+        public float ListenerVolume(bool focused) => muted || (!focused && muteInBackground) ? 0f : masterVolume;
 
         public static GameSettings Load()
         {
