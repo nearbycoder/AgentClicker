@@ -1,8 +1,8 @@
 # Agent Clicker: improvement plan
 
 Written on 2026-10-06, after v0.1.0 (published 2026-10-04). This document ranks what would most raise the
-game's quality for a real player, then records each round's scope and results. Rounds 1 and 2 (branches
-`improvements` and `improvements-2`) are merged into `main`; round 3 is on `improvements-3`. Round 4 is on `improvements-4`.
+game's quality for a real player, then records each round's scope and results. Rounds 1–3 (branches
+`improvements`, `improvements-2`, `improvements-3`) are merged into `main`; round 4 is on `improvements-4`.
 
 ## Baseline (what was run, and what it showed)
 
@@ -546,3 +546,70 @@ the reason. **Verify**: the script's output and screenshots in `docs/media/impro
 
 Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes at 1600×900, the Chromium web test
 still passes, and the real `~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and after.
+
+## Round 4 results (2026-10-06)
+
+All four items landed on `improvements-4`, one commit each after the plan (`04bc43c`). Tests: **129/129** (127 after
+round 3; the two new ones check text contrast), balance bot unchanged at 2h 09m. The tour now runs 24 checks (12 in
+round 3), all passing at 1600×900 and 1024×768 on the final build; the 1280×800 run, made before item 3 added its
+three checks, passed all 21. Screenshots and soak data are in
+[`docs/media/improvements/round4/`](media/improvements/round4).
+
+| Item | Commit | Verified by |
+|---|---|---|
+| 1. Gamepad through an on-screen cursor | `b574ffd` | A tour segment adds an Input System `Gamepad` and drives it with state events: the left stick puts the cursor on SHIP CODE (1–4 px off), A ships code (5/5), RT ships code (5/5), A on the store hires, Y answers a call and the d-pad picks a reply, Start pauses and B closes, View switches to the office and back while the right stick turns the camera 49°, the autopilot waits while the stick moves and clocks out once it stops, and moving the real mouse hides the cursor and makes the mouse current again. 9/9 at 1600×900 and at 1280×800 (Steam Deck size). Call buttons and hints switch to gamepad prompts |
+| 2. Long sessions | `99f0337` | `Tools/soak.sh 60`: a late-game office left alone for an hour at `-daylength 30` (window unfocused, load average 14–30). See below |
+| 3. Readable small text | `8b090a7` | `ThemeTests`: body, dim and faint text are ≥ 4.5:1 on Bg, Panel and PanelLight (faint was 2.8:1 on Panel, now 5.1:1), and faint stays ≥ 1.3× dimmer than dim. The tour logs the smallest text in every screenshot: menus and overlays now never go below 15 pt (were 13), and settings hints fit on one line. Before/after at 1024×768 |
+| 4. Firefox | `2268993` | `Tools/webtest.mjs firefox` against the system Firefox 157 over WebDriver BiDi: **12/12** with no game changes, audio peak 0.14 (context running), about 59 fps after login at load average 25. Chromium still 12/12 |
+
+**Long sessions (item 2).** Over 60 minutes the desktop player worked 40 days (day 22 → 62), the autopilot logged in
+40 times, 14 purchase bursts bought upgrades and agents, and the log has no exceptions. After the first ten minutes
+nothing grows: process RSS 329 MB (minutes 5–15) → 327 MB (last ten minutes), managed heap 17 → 18 MB with no trend,
+Unity's reserved memory a constant 800 MB, and GameObjects, textures, materials and meshes flat (1,134 / 123 / 258 /
+606, with short bumps during purchases). No leak, so no fix was needed. The unfocused window ran at about 11–12 fps
+against its 15 fps background cap at that load.
+
+The browser build (`Tools/websoak.mjs chromium 30`, headless Chrome on the GPU) worked 20 days in 30 minutes at a
+steady 60 fps with no page errors. Unity's own memory is flat (84 MB allocated, 136 MB reserved throughout, managed heap
+13–17 MB). The page's JS heap saw-tooths between 62 and 72 MB and its low points crept from 62 to 67 MB over the half
+hour. That is inconclusive: Chrome keeps console messages for an attached test client, and the game logs to the console
+throughout (samples, autopilot actions), so the test itself may be the growth. A multi-hour browser run without a test client attached would
+settle it. Firefox 157 (`Tools/websoak.mjs firefox 20`) ran 20 minutes, 13 days,
+60 fps, no page errors, with Unity's memory just as flat (83–84 MB allocated, 104 MB reserved); it doesn't report a JS
+heap size.
+
+![Memory and object counts over the soak runs](media/improvements/round4/soak_memory.jpg)
+
+Also fixed: **`-daylength` never worked.** The README documents `-daylength 120`, but applying the settings at
+startup overwrote it with the Gameplay setting, so it did nothing since v0.1.0. Found when the soak's days ran 300 s.
+It now wins over the setting (same commit as the soak mode).
+
+Changes from the plan:
+* The plan said the soak would include a model drop and calls now and then. It does only by chance: the soak
+  doesn't force random events or count them, so the hour saw whatever the game rolled (purchase bursts are forced).
+* The browser soak reads Unity's reserved and allocated memory and the page's JS heap. Unity 6's loader doesn't
+  expose the WebAssembly memory object on the instance (`Module.HEAP8` and `Module.wasmMemory` both came back empty),
+  so the `wasm_heap_mb` column is empty; Unity's reserved memory is the closest figure.
+* Item 3 doesn't change the CorpOS monitor: its dense panels still go down to 12 pt (the "★ BEST VALUE" badge, the
+  Board Room descriptions, some tab labels). Raising those means re-laying-out the store and fleet panels; the tour
+  reports the smallest monitor text so it can be tracked.
+
+Supporting work: `Tools/tour.sh` passes player arguments through and allows 420 s (the tour is longer now);
+`Tools/soak.sh`, `Tools/websoak.mjs` (the page forwards `?arg=` values to the player, which players never need) and
+`Tools/soak_chart.mjs`. The real `~/.config/unity3d/Nearby Games/Agent Clicker/` was hashed before and after: only
+`TestResults.xml` changed (the editor's test package writes it after every EditMode run, as in round 3); no save or
+settings were written there.
+
+Deferred, and why:
+* **A real controller and a Steam Deck**: none is connected here. The tour sends the same Input System events a
+  gamepad does, but button layouts on real devices (and Steam Input's desktop-mode mappings) are untested.
+* **A multi-hour browser soak without a test client attached**, to settle the Chrome JS-heap drift above. Not
+  started: it needs a different way to read the numbers (for example the page posting them to the local server).
+* **Localization (#13)**: still large (every string is a C# literal), not started.
+* **WebKit / Safari**: unchanged from round 3 (Playwright's WebKit needs Ubuntu 24.04 libraries; Safari needs a Mac).
+* A pre-existing TMP warning (an ellipsis glyph missing in a CorpOS text on day 1) appears in every tour log; it's
+  harmless (TMP falls back to truncating) and wasn't traced this round.
+
+Owner decisions: unchanged (Windows Build Support, browser hosting, the offline cap of 10% for 1 hour, license,
+signing, releases and tags, re-cutting the trailer), plus whether gamepad support should be announced before someone
+tries it on real hardware.

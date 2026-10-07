@@ -221,7 +221,7 @@ editor at `~/Unity/Hub/Editor/6000.6.2f1/Editor/Unity`, or set `UNITY_EDITOR` to
 ```sh
 Tools/unity.sh setup       # URP, post-processing, player settings, reimport models (idempotent)
 Tools/unity.sh scene       # regenerate Assets/Scenes/Main.unity from the models (the scene is committed)
-Tools/unity.sh tests       # 127 EditMode tests, including the economy balance simulation
+Tools/unity.sh tests       # 129 EditMode tests, including the economy balance simulation
 Tools/unity.sh build       # Linux player → Builds/Linux
 Tools/unity.sh build-mac   # universal macOS player → Builds/Mac
 Tools/unity.sh build-webgl # browser build (Brotli, works on any static host) → Builds/WebGL
@@ -252,7 +252,11 @@ Tools/make_trailer.sh          # record every shot with the scripted director, t
 Tools/make_trailer.sh --edit   # re-edit from Recordings/trailer without recording again
 Tools/tour.sh                  # screenshot tour of every phase, for visual checks
 Tools/benchmark.sh             # uncapped frame times, GC and render stats in a late-game office
+Tools/soak.sh 60               # leave a late-game office alone for an hour; memory and objects every 30 s
 ```
+
+The browser build has the same checks: `Tools/webtest.mjs chromium|firefox` plays through it and `Tools/websoak.mjs`
+soaks it (both need a `playwright-core`, see the comments at the top of each).
 
 ## Project structure
 
@@ -267,7 +271,7 @@ Unity/Assets/Scripts/UI/      CorpOS, store, inbox, calls, menus and overlays, a
 Unity/Assets/Scripts/Util/    synthesised audio, settings, benchmark, screenshot tour, demo/trailer directors, video capture
 Unity/Assets/Editor/          import pipeline, project setup, scene builder, build script, balance report
 Unity/Assets/Tests/EditMode/  model, interruption, endless-game and balance tests
-Tools/                        unity.sh, play.sh, tour.sh, benchmark.sh, record.sh, make_trailer.sh/.py
+Tools/                        unity.sh, play.sh, tour.sh, benchmark.sh, soak.sh, record.sh, make_trailer.sh/.py, web tests
 docs/media/                   trailer, teaser loop, poster and screenshots
 ```
 
@@ -323,9 +327,13 @@ release (v0.1.0).
   no managed code on the stack) during an automated screenshot tour, while the machine was badly overloaded.
   It hasn't been reproduced or explained: the other four runs that session and 15 runs since (release and
   development builds, at load averages from 15 to 73) were all clean.
+* **Long sessions**: an hour of the desktop build left alone (40 in-game days), 30 minutes of the browser build in
+  Chrome and 20 in Firefox showed no growth in the game's memory or objects (the page's JS heap in Chrome drifted a
+  few MB, probably the test harness; see docs/IMPROVEMENTS.md). Nothing longer has been run.
 * **macOS is experimental**: the build is made on Linux, isn't signed or notarised, and hasn't been run on a Mac.
 * **The browser build is new and lightly tested**: it was checked in headless Chrome and Firefox 157 on Linux (start
-  a game, autopilot login, audio playing, save, reload, continue, save files) and soaked for 30 minutes in Chrome.
+  a game, autopilot login, audio playing, save, reload, continue, save files) and soaked for 30 minutes in Chrome and
+  20 in Firefox.
   Safari, phones and tablets (there's no touch support) haven't been tried, and it isn't hosted anywhere yet. Playwright's WebKit (Safari's
   engine) doesn't start on this CachyOS machine: it is built against Ubuntu 24.04 libraries (ICU 74, flite, libjxl
   0.8). Music starts a few seconds after loading because it's synthesised on the page's only thread.
