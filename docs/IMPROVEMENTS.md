@@ -1,8 +1,8 @@
 # Agent Clicker: improvement plan
 
 Written on 2026-10-06, after v0.1.0 (published 2026-10-04). This document ranks what would most raise the
-game's quality for a real player, then records each round's scope and results. Rounds 1–5 (branches
-`improvements` to `improvements-5`) are merged into `main`; round 6 is on `improvements-6`.
+game's quality for a real player, then records each round's scope and results. Rounds 1–6 (branches
+`improvements` to `improvements-6`) are merged into `main`; round 7 is on `improvements-7`.
 
 ## Baseline (what was run, and what it showed)
 
@@ -897,3 +897,89 @@ Deferred, and why:
 Owner decisions: redeploying `gh-pages` (it would bring touch play, the day 1 email fix, the memory fix, monitor zoom and
 home-screen play to the hosted game), plus the standing ones: Windows Build Support, the offline cap of 10% for 1 hour,
 license, signing, releases and tags.
+
+## Round 7 scope
+
+Baseline on `main` (`7bf874c`): 129/129 EditMode tests, balance bot 2h 09m (day 27), and the tour passes all 38 checks at
+1600×900 (load average 17). This round looks at the game again through the tour's screenshots rather than the browser
+plumbing, and finds four things a player meets in ordinary play, plus two browser leftovers from round 6. Localization
+stays deferred (large), real phones and tablets can't be tried here, and the owner's decisions are unchanged (Windows Build
+Support, the offline cap of 10% for 1 hour, license, signing, releases and tags, redeploying `gh-pages`).
+
+### 1. Activity toasts you can read
+
+In the tour's mid- and late-game shots the activity feed's log lines show through the toast cards stacked on top of it,
+and two-line toasts ("Promoted to Board Member! You get a parking spot…") spill past the bottom of their card.
+
+* Toasts draw above the feed with nothing showing through, and every card is tall enough for its text.
+
+**Acceptance**: in the tour's late-game shots no feed text is visible inside a toast card, and a tour check finds every
+toast's text inside its card (two-line promotions and trophies included). **Verify**: that check, before/after crops.
+
+### 2. Coming back after closing the game
+
+Earnings from time with the game closed (10% for at most an hour) are a six-second toast over the login screen, while the
+camera is still flying in. A returning player easily misses it, and nothing says how long they were away or that time
+past the hour didn't count.
+
+* After logging in, the "While you were away" card (round 2) also covers time with the game closed, or a browser tab that
+  was hidden for at least a minute: how long, what the agents earned, the rate and the cap, and how much time was past the
+  cap. If both happened (a closed game, then idle days in session), it says both. The economy doesn't change.
+
+**Acceptance**: after a closed-game absence of over an hour the card shows the time away, the earnings (equal to what was
+credited) and that the time past an hour wasn't counted; under the cap it doesn't mention the cap; a gap under a minute
+shows nothing. **Verify**: EditMode tests for the report's numbers and wording; a tour segment that loads a save written
+two hours "ago" and logs PASS when the card shows the right numbers (screenshot).
+
+### 3. The next goal in the endless game stops pointing a year ahead
+
+After the first Factory the next goal is the next frontier agent type even when it's far out of reach: the tour's endless
+shot says "Hire your first Simulation Farm… about 447d 13h", while a reorg that would vest hundreds of Stock Options is
+ready.
+
+* When the next frontier agent is more than an hour away at the current rate and a reorg is worth taking (it would at
+  least double your options, or give you your first), the goal is the reorg. Otherwise unchanged.
+
+**Acceptance**: an EditMode test for each case (agent close, agent far with a reorg ready, agent far without one); along a
+bot career the goal never shows an estimate over an hour while a reorg is ready; the balance test is unchanged (display
+only). **Verify**: those tests and the tour's endless screenshot.
+
+### 4. Phones zoomed into the monitor don't miss what needs them
+
+Round 6 lets a phone player zoom into the CorpOS screen, but then whatever appears outside the zoomed view is missed: a
+model drop (the game's golden cookie) or an outage banner, and the 5 PM, review and email dialogs, which sit in the middle
+of the screen and block taps while they're up, so a player zoomed into the store taps and nothing happens.
+
+* A dialog opening on the monitor returns a zoomed view to the whole screen.
+* A model drop or outage banner outside the zoomed view shows a small chip at that edge of the phone's screen; tapping it
+  moves the view onto it.
+
+**Acceptance**: with simulated touches, zoomed into the store, a forced model drop shows the chip, a tap on it brings the
+drop card fully into view and a tap on the card catches it; a dialog opening while zoomed resets the zoom to 1; nothing
+changes when not zoomed or with a mouse. **Verify**: new checks in the tour's touch segment (screenshots), and the touch
+web test still passing.
+
+### 5. FULLSCREEN in the pause menu in one tap
+
+In the browser the pause menu's FULLSCREEN button (round 6) only asks: browsers allow fullscreen only during an input
+event, the game's button acts a frame later, so the switch waits for the next tap.
+
+* The page arms a one-shot fullscreen request when the finger or mouse goes down on the button, and makes it on the
+  release, inside the browser's input event.
+
+**Acceptance**: in headless Chromium, mouse and touch, one press of FULLSCREEN makes the page fullscreen without another
+tap. **Verify**: the web test and touch test check it.
+
+### 6. Trace the WebGL objects that rise for an hour (time-boxed)
+
+Round 6 saw the glue's live WebGL objects rise from about 1,030 to 1,450 over the first hour and then level off. The
+attached soak now logs every object table.
+
+* Run the attached soak for about 30 minutes and name the table that grows. Fix it only if it is the game's own doing and
+  the fix is small; otherwise record what it is.
+
+**Acceptance**: a named object type with its growth, or an honest "not found". **Verify**: the soak CSV.
+
+Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes, the Chromium and Firefox web tests and the
+touch test pass, the benchmark is re-run, screenshots go to `docs/media/improvements/round7/`, and the real
+`~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and after (before: `prefs` unchanged since round 6).
