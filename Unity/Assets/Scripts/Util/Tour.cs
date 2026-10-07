@@ -303,7 +303,9 @@ namespace AgentClicker
             Debug.Log(_screenMinAll >= MinScreenText
                 ? $"[Tour] PASS menus and overlays never draw text below {MinScreenText} pt (smallest {_screenMinAll:0.#}: {_screenMinWhat})"
                 : $"[Tour] FAIL menus and overlays draw {_screenMinAll:0.#} pt text: {_screenMinWhat}");
-            Debug.Log($"[Tour] smallest text on the CorpOS monitor: {_monitorMinAll:0.#} pt ({_monitorMinWhat})");
+            Debug.Log(_monitorSmall.Count == 0
+                ? $"[Tour] PASS the CorpOS monitor never draws text below {MinMonitorText} pt (smallest {_monitorMinAll:0.#}: {_monitorMinWhat})"
+                : $"[Tour] FAIL the CorpOS monitor draws text below {MinMonitorText} pt: {string.Join(" | ", _monitorSmall.Values)}");
             Debug.Log("[Tour] done");
             Application.Quit();
         }
@@ -758,7 +760,9 @@ namespace AgentClicker
             yield return null;
         }
 
-        const float MinScreenText = 15f;
+        const float MinScreenText = 15f, MinMonitorText = 14f;
+        static readonly System.Collections.Generic.SortedDictionary<string, string> _monitorSmall =
+            new System.Collections.Generic.SortedDictionary<string, string>();
         static float _screenMinAll = float.MaxValue, _monitorMinAll = float.MaxValue;
         static string _screenMinWhat = "", _monitorMinWhat = "";
 
@@ -800,6 +804,12 @@ namespace AgentClicker
                 {
                     var c = info.characterInfo[i];
                     if (!c.isVisible) continue;
+                    if (monitor && c.pointSize < MinMonitorText - 0.05f)
+                    {
+                        string key = t.transform.parent ? t.transform.parent.name + "/" + t.name : t.name;
+                        if (!_monitorSmall.ContainsKey(key))
+                            _monitorSmall[key] = $"{key} {c.pointSize:0.#} pt \"{t.GetParsedText().Replace("\n", " ").Substring(0, Mathf.Min(30, t.GetParsedText().Length))}\" ({shot})";
+                    }
                     if (monitor ? c.pointSize < monitorMin : c.pointSize < screenMin)
                     {
                         string what = $"{t.name} \"{t.GetParsedText().Replace("\n", " ").Substring(0, Mathf.Min(40, t.GetParsedText().Length))}\"";

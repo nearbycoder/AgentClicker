@@ -452,7 +452,7 @@ namespace AgentClicker.UI
             var o = _gm.Model.ActiveOutage;
             if (o == null) { if (_outage.gameObject.activeSelf) HideOutage(); return; }
             _outageText.text = $"⚠ {o.LabName} API OUTAGE: production halved ({o.Remaining:0}s)\n" +
-                               $"<size=80%>Click to fail over to a backup provider ({o.ClicksLeft} more)</size>";
+                               $"<size=85%>Click to fail over to a backup provider ({o.ClicksLeft} more)</size>";
         }
 
         // ------------------------------------------------------------------ inbox

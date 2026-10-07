@@ -36,7 +36,7 @@ namespace AgentClicker.UI
 
             _ticker = UIKit.Text(bar.transform, "Ticker", "", 15, Theme.TextDim, TextAlignmentOptions.Midline);
             _ticker.rectTransform.TopLeft(350, 0, 520, 46);
-            _ticker.fontStyle = FontStyles.Italic;
+            // italic by tag, not fontStyle: TMP only finds the "…" for a long ticker in a component without a style
 
             _clock = UIKit.Text(bar.transform, "Clock", "", 18, Theme.Text, TextAlignmentOptions.MidlineRight, UIFonts.Medium);
             _clock.rectTransform.TopLeft(870, 0, 270, 46);
@@ -49,7 +49,7 @@ namespace AgentClicker.UI
 
             var view = UIKit.Button(bar.transform, "View", Theme.PanelLight, () => _gm.Cam.Toggle(), 8);
             view.GetComponent<RectTransform>().TopLeft(1280, 8, 140, 30);
-            _viewLabel = view.Label("Look around  [Tab]", 13, Theme.TextDim, UIFonts.Medium);
+            _viewLabel = view.Label("Look around  [Tab]", 14, Theme.TextDim, UIFonts.Medium);
 
             var menu = UIKit.Button(bar.transform, "Menu", Theme.PanelLight, () => _gm.Menu.OpenPause(), 8);
             menu.GetComponent<RectTransform>().TopLeft(1428, 8, 40, 30);
@@ -83,7 +83,7 @@ namespace AgentClicker.UI
             if (_tickerTimer <= 0)
             {
                 _tickerTimer = 14f;
-                UIKit.Set(_ticker, m.PastFiveOClock ? "It's after 5. Your agents don't mind overtime. Do you?" : _gm.RandomTicker());
+                UIKit.Set(_ticker, "<i>" + (m.PastFiveOClock ? "It's after 5. Your agents don't mind overtime. Do you?" : _gm.RandomTicker()) + "</i>");
             }
         }
     }
@@ -136,7 +136,7 @@ namespace AgentClicker.UI
             _terminal.textWrappingMode = TextWrappingModes.NoWrap;
             PointerRelay.On(term).Down = OnShip;
 
-            _focusLabel = UIKit.Text(term.transform, "FocusLabel", "FOCUS", 13, Theme.TextDim, TextAlignmentOptions.MidlineLeft, UIFonts.Bold);
+            _focusLabel = UIKit.Text(term.transform, "FocusLabel", "FOCUS", 14, Theme.TextDim, TextAlignmentOptions.MidlineLeft, UIFonts.Bold);
             _focusLabel.rectTransform.TopLeft(18, 200, 150, 20);
             UIKit.Bar(term.transform, "Focus", Theme.PanelLight, Theme.Gold, out _focusFill, 4).rectTransform.TopLeft(150, 206, 252, 8);
 
@@ -175,7 +175,7 @@ namespace AgentClicker.UI
             _today = UIKit.Text(today.transform, "Earned", "", 18, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Medium);
             _today.rectTransform.TopLeft(20, 34, 380, 24);
             UIKit.Bar(today.transform, "Bar", Theme.PanelLight, Theme.Accent, out _quotaFill).rectTransform.TopLeft(20, 62, 380, 10);
-            _asksLabel = UIKit.Text(today.transform, "AsksLabel", "", 13, Theme.TextDim, TextAlignmentOptions.TopLeft, UIFonts.Bold);
+            _asksLabel = UIKit.Text(today.transform, "AsksLabel", "", 14, Theme.TextDim, TextAlignmentOptions.TopLeft, UIFonts.Bold);
             _asksLabel.rectTransform.TopLeft(20, 84, 380, 18);
             for (int i = 0; i < _asks.Length; i++)
             {
@@ -185,7 +185,7 @@ namespace AgentClicker.UI
             }
             _title = UIKit.Text(today.transform, "Title", "", 17, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Bold);
             _title.rectTransform.TopLeft(20, 160, 380, 22);
-            _next = UIKit.Text(today.transform, "Next", "", 13, Theme.TextDim, TextAlignmentOptions.TopLeft);
+            _next = UIKit.Text(today.transform, "Next", "", 14, Theme.TextDim, TextAlignmentOptions.TopLeft);
             _next.rectTransform.TopLeft(20, 184, 380, 40);
 
             for (int i = 0; i < 3; i++) AddLine(FlavorText.CodeLine(_rng), false);
@@ -405,7 +405,7 @@ namespace AgentClicker.UI
             _goalTitle.textWrappingMode = TextWrappingModes.NoWrap;
             _goalTitle.overflowMode = TextOverflowModes.Ellipsis;
             UIKit.Bar(card.transform, "Bar", Theme.PanelLight, Theme.Accent2, out _goalFill, 3).rectTransform.TopLeft(12, 60, 520, 6);
-            _goalStatus = UIKit.Text(card.transform, "Status", "", 13, Theme.TextDim, TextAlignmentOptions.TopLeft, UIFonts.Medium);
+            _goalStatus = UIKit.Text(card.transform, "Status", "", 14, Theme.TextDim, TextAlignmentOptions.TopLeft, UIFonts.Medium);
             _goalStatus.rectTransform.TopLeft(12, 70, 520, 18);
             _goalStatus.textWrappingMode = TextWrappingModes.NoWrap;
         }

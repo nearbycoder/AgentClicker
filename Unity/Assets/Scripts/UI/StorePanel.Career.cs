@@ -46,10 +46,10 @@ namespace AgentClicker.UI
         {
             _viewFactory = UIKit.Button(page, "ViewFactory", Theme.PanelLight, () => { _boardRoom = false; _hover = null; Refresh(); }, 6);
             _viewFactory.GetComponent<RectTransform>().TopLeft(0, 0, 150, 30);
-            _viewFactory.Label("FACTORY", 13, Theme.Text, UIFonts.Bold);
+            _viewFactory.Label("FACTORY", 14, Theme.Text, UIFonts.Bold);
             _viewBoard = UIKit.Button(page, "ViewBoard", Theme.PanelLight, () => { _boardRoom = true; _hover = null; Refresh(); }, 6);
             _viewBoard.GetComponent<RectTransform>().TopLeft(156, 0, 150, 30);
-            _viewBoardLabel = _viewBoard.Label("BOARD ROOM", 13, Theme.Text, UIFonts.Bold);
+            _viewBoardLabel = _viewBoard.Label("BOARD ROOM", 14, Theme.Text, UIFonts.Bold);
             _optionsLabel = UIKit.Text(page, "Options", "", 15, Theme.Gold, TextAlignmentOptions.MidlineRight, UIFonts.Bold);
             _optionsLabel.rectTransform.TopLeft(310, 0, 210, 30);
 
@@ -65,7 +65,7 @@ namespace AgentClicker.UI
             _reqTitle.rectTransform.TopLeft(4, 148, 500, 20);
             _factoryReqs = UIKit.Text(_factoryView, "Reqs", "", 17, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Medium);
             _factoryReqs.enableAutoSizing = true;
-            _factoryReqs.fontSizeMin = 13;
+            _factoryReqs.fontSizeMin = 14;
             _factoryReqs.fontSizeMax = 17;
             _factoryReqs.rectTransform.TopLeft(4, 172, 516, 150);
             _factoryReqs.lineSpacing = 14;
@@ -114,11 +114,12 @@ namespace AgentClicker.UI
                 row.Icon.rectTransform.TopLeft(10, 11, 44, 44);
                 UIKit.Text(row.Icon.transform, "Glyph", p.Repeatable ? "◆" : "★", 22, Theme.Bg, TextAlignmentOptions.Center, UIFonts.Bold).rectTransform.Fill();
                 row.Name = UIKit.Text(row.Button.transform, "Name", p.Name, 17, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Bold);
-                row.Name.rectTransform.TopLeft(66, 7, 320, 22);
-                row.Desc = UIKit.Text(row.Button.transform, "Desc", p.Description, 12, Theme.TextDim, TextAlignmentOptions.TopLeft);
-                row.Desc.rectTransform.TopLeft(66, 29, 330, 34);
-                row.Cost = UIKit.Text(row.Button.transform, "Cost", "", 16, Theme.Gold, TextAlignmentOptions.MidlineRight, UIFonts.Bold);
-                row.Cost.rectTransform.TopLeft(396, 0, 110, 66);
+                row.Name.rectTransform.TopLeft(66, 6, 320, 22);
+                // the price sits beside the name, so the description gets the row's full width
+                row.Cost = UIKit.Text(row.Button.transform, "Cost", "", 16, Theme.Gold, TextAlignmentOptions.TopRight, UIFonts.Bold);
+                row.Cost.rectTransform.TopLeft(386, 7, 120, 22);
+                row.Desc = UIKit.Text(row.Button.transform, "Desc", p.Description, 14, Theme.TextDim, TextAlignmentOptions.TopLeft);
+                row.Desc.rectTransform.TopLeft(66, 27, 440, 36);
                 Hover(row.Button, () => PerkInfo(def));
                 _perkRows.Add(row);
             }
@@ -225,7 +226,7 @@ namespace AgentClicker.UI
             UIKit.Set(_boardHeader,
                 $"<color=#FFD166>◆ {NumberFormat.Short(m.State.options)}</color> to spend  ·  {NumberFormat.Short(m.State.optionsEarned)} earned " +
                 $"(+{NumberFormat.Percent(m.OptionValue * m.State.optionsEarned)} production)\n" +
-                "<size=90%><color=#828EA5>Spending options never lowers your production bonus. Perks last forever.</color></size>");
+                "<color=#828EA5>Spending options never lowers your production bonus. Perks last forever.</color>");
             foreach (var r in _perkRows)
             {
                 var p = r.Def;
@@ -281,10 +282,10 @@ namespace AgentClicker.UI
             while (i < all.Count)
             {
                 var cat = all[i].Category;
-                var label = UIKit.Text(_trophyGrid, "Cat" + cat, "", 12, Theme.TextDim, TextAlignmentOptions.TopLeft, UIFonts.Bold);
-                label.rectTransform.TopLeft(0, y, 516, 15);
+                var label = UIKit.Text(_trophyGrid, "Cat" + cat, "", 14, Theme.TextDim, TextAlignmentOptions.TopLeft, UIFonts.Bold);
+                label.rectTransform.TopLeft(0, y, 516, 17);
                 _trophyLabels.Add((cat, label));
-                y += 16;
+                y += 18;
                 int n = 0;
                 for (; i < all.Count && all[i].Category == cat; i++, n++)
                 {
@@ -363,7 +364,7 @@ namespace AgentClicker.UI
                 string dots = new string('●', Mathf.Max(0, r)) + new string('○', Mathf.Max(0, GameModel.RapportMax - Mathf.Max(0, r)));
                 string col = r >= GameModel.PerkThreshold ? "#3DDC97" : r < 0 ? "#FF5D5D" : "#A4AFC2";
                 sb.Append($"{CallDatabase.PeopleNames[i]}  <color={col}>{dots} {(r > 0 ? "+" : "")}{r}</color>\n");
-                if (m.HasPerk(p)) sb.Append($"<size=85%><color=#3DDC97>   ✓ {CallDatabase.PerkNames[i]}</color></size>\n");
+                if (m.HasPerk(p)) sb.Append($"<size=95%><color=#3DDC97>   ✓ {CallDatabase.PerkNames[i]}</color></size>\n");
             }
             return sb.ToString();
         }
@@ -375,7 +376,7 @@ namespace AgentClicker.UI
             foreach (var c in s.agentCounts) if (c > 0) types++;
             string Row(string label, string value) => $"<color=#A4AFC2>{label}</color>   {value}\n";
             _sb.Clear();
-            _sb.Append("<color=#4DD0E1>THIS DIVISION</color>  <size=85%><color=#828EA5>").Append(m.DivisionName).Append("</color></size>\n")
+            _sb.Append("<color=#4DD0E1>THIS DIVISION</color>  <size=95%><color=#828EA5>").Append(m.DivisionName).Append("</color></size>\n")
                .Append(Row("Credits in bank", NumberFormat.Grouped(s.credits)))
                .Append(Row("Earned here", NumberFormat.Short(s.lifetimeEarned)))
                .Append(Row("Credits/sec", $"{NumberFormat.Short(m.Cps)}  ({NumberFormat.Mult(m.GlobalMultiplier)} global)"))
@@ -405,7 +406,7 @@ namespace AgentClicker.UI
                .Append(Row("Clout", NumberFormat.Mult(m.CloutMultiplier)))
                .Append(Row("Factory", s.factoryBuilt ? "x2.00" : "<color=#828EA5>not built</color>"))
                .Append('\n')
-               .Append("<color=#FFD166>PEOPLE</color>  <size=85%><color=#828EA5>(phone-call choices change how they feel; 3+ unlocks a perk)</color></size>\n")
+               .Append("<color=#FFD166>PEOPLE</color>  <size=95%><color=#828EA5>(phone-call choices change how they feel; 3+ unlocks a perk)</color></size>\n")
                .Append(People(m));
             UIKit.Set(_stats, _sb.ToString());
         }

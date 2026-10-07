@@ -62,6 +62,7 @@ namespace AgentClicker.UI
         readonly List<UpgradeTile> _upgradeTiles = new List<UpgradeTile>();
         int _upgradeTilesActive;
 
+        readonly Dictionary<Tab, TextMeshProUGUI> _tabCounts = new Dictionary<Tab, TextMeshProUGUI>();
         readonly TextMeshProUGUI _infoTitle, _infoBody, _infoFoot;
         Func<(string, string, string)> _hover;
 
@@ -83,13 +84,25 @@ namespace AgentClicker.UI
                 var t = (Tab)i;
                 var b = UIKit.Button(card.transform, "Tab" + names[i], Theme.PanelLight, () => SetTab(t), 8);
                 b.GetComponent<RectTransform>().TopLeft(16 + i * 88, 52, 84, 34);
-                var label = b.Label(names[i], 13, Theme.Text, UIFonts.Bold);
-                label.enableAutoSizing = true;
-                label.fontSizeMin = 9;
-                label.fontSizeMax = 13;
+                var label = b.Label(names[i], 14, Theme.Text, UIFonts.Bold);
                 label.textWrappingMode = TextWrappingModes.NoWrap;
                 _tabLabels[t] = label;
                 _tabButtons[t] = b;
+                // counts sit in a pill on the tab's top edge, so the tab names keep their full size
+                if (t == Tab.Upgrades || t == Tab.Trophies)
+                {
+                    var pill = UIKit.Panel(b.transform, "Count", t == Tab.Upgrades ? Theme.Good : Theme.Gold, 9);
+                    pill.rectTransform.anchorMin = pill.rectTransform.anchorMax = new Vector2(1, 1);
+                    pill.rectTransform.pivot = new Vector2(1, 0.5f);
+                    pill.rectTransform.anchoredPosition = new Vector2(4, 2);
+                    pill.rectTransform.sizeDelta = new Vector2(30, 19);
+                    var n = UIKit.Text(pill.transform, "N", "", 14, Theme.Bg, TextAlignmentOptions.Center, UIFonts.Bold);
+                    n.rectTransform.Fill();
+                    n.textWrappingMode = TextWrappingModes.NoWrap;
+                    n.overflowMode = TextOverflowModes.Overflow;
+                    pill.gameObject.SetActive(false);
+                    _tabCounts[t] = n;
+                }
             }
 
             // pages
@@ -112,9 +125,7 @@ namespace AgentClicker.UI
             _infoBody.rectTransform.TopLeft(16, 36, 492, 48);
             _infoFoot = UIKit.Text(info.transform, "Foot", "", 14, Theme.Accent, TextAlignmentOptions.TopLeft, UIFonts.Medium);
             _infoFoot.rectTransform.TopLeft(16, 88, 492, 20);
-            _infoFoot.enableAutoSizing = true; // long agent stats plus an estimate shrink a little rather than wrap
-            _infoFoot.fontSizeMin = 11;
-            _infoFoot.fontSizeMax = 14;
+            _infoFoot.textWrappingMode = TextWrappingModes.NoWrap;
 
             SetTab(Tab.Agents);
         }
@@ -158,7 +169,7 @@ namespace AgentClicker.UI
         // ------------------------------------------------------------------ agents
         AgentRow[] BuildAgents(RectTransform page)
         {
-            UIKit.Text(page, "Buy", "BUY", 13, Theme.TextDim, TextAlignmentOptions.MidlineLeft, UIFonts.Medium).rectTransform.TopLeft(4, 0, 40, 28);
+            UIKit.Text(page, "Buy", "BUY", 14, Theme.TextDim, TextAlignmentOptions.MidlineLeft, UIFonts.Medium).rectTransform.TopLeft(4, 0, 40, 28);
             for (int i = 0; i < Amounts.Length; i++)
             {
                 int amt = Amounts[i];
@@ -195,8 +206,8 @@ namespace AgentClicker.UI
                 row.Owned.enableAutoSizing = true;
                 row.Owned.fontSizeMin = 18;
                 row.Owned.fontSizeMax = 34;
-                row.Badge = UIKit.Text(b.transform, "Badge", "", 12, Theme.Gold, TextAlignmentOptions.TopRight, UIFonts.Bold);
-                row.Badge.rectTransform.TopLeft(300, 6, 204, 16);
+                row.Badge = UIKit.Text(b.transform, "Badge", "", 14, Theme.Gold, TextAlignmentOptions.TopRight, UIFonts.Bold);
+                row.Badge.rectTransform.TopLeft(300, 5, 204, 18);
                 Hover(b, () => AgentInfo(idx));
                 rows[i] = row;
             }
@@ -232,7 +243,7 @@ namespace AgentClicker.UI
                 foot += $"  ·  {m.AgentCount(i)} producing {NumberFormat.Rate(m.AgentTypeCps(i))} ({NumberFormat.Percent(m.RawCps > 0 ? m.AgentTypeCps(i) / m.RawCps : 0)})";
             int n = _buyAmount == BuyMax ? Mathf.Max(1, m.MaxAffordable(i)) : _buyAmount;
             foot += AffordIn(m.AgentCost(i, n));
-            return ($"{a.Name}  <size=70%><color=#A4AFC2>by {lab.Name}</color></size>",
+            return ($"{a.Name}  <size=80%><color=#A4AFC2>by {lab.Name}</color></size>",
                     $"{a.Description}\n<i><color=#828EA5>\"{lab.Tagline}\"</color></i>", foot);
         }
 
@@ -243,7 +254,7 @@ namespace AgentClicker.UI
             _upgradeHeader.rectTransform.TopLeft(4, 0, 360, 28);
             _buyAll = UIKit.Button(page, "BuyAll", Theme.Good, BuyAllUpgrades, 6);
             _buyAll.GetComponent<RectTransform>().TopLeft(364, 0, 154, 28);
-            _buyAllLabel = _buyAll.Label("BUY ALL", 13, Theme.Bg, UIFonts.Bold);
+            _buyAllLabel = _buyAll.Label("BUY ALL", 14, Theme.Bg, UIFonts.Bold);
             Hover(_buyAll, () => ("Buy all", "Buys every upgrade you can afford, cheapest first.", ""));
             var content = UIKit.ScrollList(page, "List", 6, out _);
             content.parent.GetComponent<RectTransform>().TopLeft(0, 38, 524, 542);
@@ -379,11 +390,12 @@ namespace AgentClicker.UI
                      .rectTransform.Fill();
                 row.Name = UIKit.Text(b.transform, "Name", o.Name, 18, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Bold);
                 row.Name.rectTransform.TopLeft(66, 9, 300, 24);
-                row.Desc = UIKit.Text(b.transform, "Desc", o.Description, 13, Theme.TextDim, TextAlignmentOptions.TopLeft);
-                row.Desc.rectTransform.TopLeft(66, 33, 330, 24);
+                // the price sits beside the name, so the description gets the row's full width
+                row.Cost = UIKit.Text(b.transform, "Cost", "", 16, Theme.Good, TextAlignmentOptions.TopRight, UIFonts.Bold);
+                row.Cost.rectTransform.TopLeft(366, 10, 138, 22);
+                row.Desc = UIKit.Text(b.transform, "Desc", o.Description, 14, Theme.TextDim, TextAlignmentOptions.TopLeft);
+                row.Desc.rectTransform.TopLeft(66, 34, 440, 24);
                 row.Desc.textWrappingMode = TextWrappingModes.NoWrap;
-                row.Cost = UIKit.Text(b.transform, "Cost", "", 16, Theme.Good, TextAlignmentOptions.MidlineRight, UIFonts.Bold);
-                row.Cost.rectTransform.TopLeft(380, 0, 124, 64);
                 Hover(b, () => OfficeInfo(def));
                 _officeRows.Add(row);
             }
@@ -436,7 +448,7 @@ namespace AgentClicker.UI
             if (ups != _lastUpgradeBadge)
             {
                 _lastUpgradeBadge = ups;
-                _tabLabels[Tab.Upgrades].text = ups > 0 ? $"UPGRADES <color=#3DDC97>{ups}</color>" : "UPGRADES";
+                SetCount(Tab.Upgrades, ups);
             }
             bool highlight = m.CanBuildFactory || m.CanReorg && _gm.Model.State.endingSeen || CanAffordAnyPerk(m);
             UIKit.Set(_tabLabels[Tab.Factory], highlight ? "<color=#FFD166>FACTORY</color>" : "FACTORY");
@@ -444,13 +456,23 @@ namespace AgentClicker.UI
             if (trophies != _lastTrophyBadge)
             {
                 _lastTrophyBadge = trophies;
-                _tabLabels[Tab.Trophies].text = trophies > 0 ? $"TROPHIES <color=#FFD166>{trophies}</color>" : "TROPHIES";
+                SetCount(Tab.Trophies, trophies);
             }
 
             var info = _hover?.Invoke() ?? DefaultInfo();
             UIKit.Set(_infoTitle, info.Item1);
             UIKit.Set(_infoBody, info.Item2);
             UIKit.Set(_infoFoot, info.Item3);
+        }
+
+        void SetCount(Tab t, int n)
+        {
+            var text = _tabCounts[t];
+            var pill = (RectTransform)text.transform.parent;
+            UIKit.SetActive(pill, n > 0);
+            if (n <= 0) return;
+            text.text = n.ToString();
+            pill.sizeDelta = new Vector2(Mathf.Max(22, text.preferredWidth + 12), pill.sizeDelta.y);
         }
 
         (string, string, string) DefaultInfo()
