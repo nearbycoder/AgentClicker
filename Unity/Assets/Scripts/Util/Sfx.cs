@@ -8,9 +8,9 @@ namespace AgentClicker.Util
     public enum Sound { Key, Crit, Buy, BigBuy, Drop, DropClaim, Alert, Fixed, Promotion, Bell, Login, Error, Whoosh, UiClick, Mail, Page, PickUp, HangUp, Chapter, Trophy }
 
     /// <summary>
-    /// Procedurally synthesised audio: sound effects, an office ambience loop and a lo-fi music loop.
+    /// Procedurally synthesised audio: sound effects, an office ambience loop and lo-fi music.
     /// The game ships with zero audio files. Music is rendered on a worker thread at startup (in slices on the
-    /// main thread in the browser build, which has no threads).
+    /// main thread in the browser build, which has no threads): a 25 s loop first, then a 101 s piece that takes over.
     /// </summary>
     public class Sfx : MonoBehaviour
     {
@@ -19,12 +19,13 @@ namespace AgentClicker.Util
 
         readonly Dictionary<Sound, AudioClip[]> _clips = new Dictionary<Sound, AudioClip[]>();
         AudioSource[] _voices;
-        AudioSource _ambience, _music, _ring;
+        AudioSource _ambience, _music, _ring, _musicNext;
         int _next;
         float _lastKey;
         float _sfxVolume = 0.8f, _musicVolume = 0.45f, _ambienceVolume = 0.5f;
         float _musicDuck = 1f, _musicFade;
-        Task<float[]> _musicJob;
+        Task<float[]> _musicJob, _songJob;
+        double _musicStartDsp, _switchDsp;
         static readonly System.Random Rng = new System.Random(5);
 
         public static Sfx Instance { get; private set; }
@@ -54,22 +55,59 @@ namespace AgentClicker.Util
             _music = gameObject.AddComponent<AudioSource>();
             _music.loop = true;
             _music.priority = 0;
+            // the short loop first, so music starts as soon as it can; then the long piece takes over
 #if UNITY_WEBGL && !UNITY_EDITOR
-            StartCoroutine(LofiMusic.RenderInSteps(MusicRate, 7, 6.0, SetMusic));
+            StartCoroutine(RenderMusicInSteps());
 #else
             _musicJob = Task.Run(() => LofiMusic.Render(MusicRate, seed: 7));
 #endif
             ApplyVolumes();
         }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        System.Collections.IEnumerator RenderMusicInSteps()
+        {
+            yield return LofiMusic.RenderInSteps(MusicRate, 7, 6.0, SetMusic);
+            yield return LofiMusic.RenderInSteps(MusicRate, 7, 6.0, SetSong, song: true);
+        }
+#endif
+
         void SetMusic(float[] data)
         {
             var clip = AudioClip.Create("lofi", data.Length, 1, MusicRate, false);
             clip.SetData(data, 0);
             _music.clip = clip;
-            _music.Play();
+            // started on the audio clock, so the loop's bar lines are known exactly for the move to the long piece
+            _musicStartDsp = AudioSettings.dspTime + 0.1;
+            _music.PlayScheduled(_musicStartDsp);
             _musicFade = 0f;
             Debug.Log($"[Sfx] music ready ({data.Length / (float)MusicRate:0.0} s loop) after {Time.realtimeSinceStartup:0.0} s");
+#if !UNITY_WEBGL || UNITY_EDITOR
+            _songJob = Task.Run(() => LofiMusic.Render(MusicRate, seed: 7, song: true));
+#endif
+        }
+
+        /// <summary>
+        /// The long piece is ready: it starts exactly where the loop next comes round to its start (the song's first
+        /// 8 bars are the loop itself), and the loop stops at the same instant.
+        /// </summary>
+        void SetSong(float[] data)
+        {
+            if (_music.clip == null) return;
+            var clip = AudioClip.Create("lofi-long", data.Length, 1, MusicRate, false);
+            clip.SetData(data, 0);
+            double loop = _music.clip.samples / (double)MusicRate;
+            double now = AudioSettings.dspTime;
+            _switchDsp = _musicStartDsp + Math.Max(1, Math.Ceiling((now + 0.5 - _musicStartDsp) / loop)) * loop;
+            _musicNext = gameObject.AddComponent<AudioSource>();
+            _musicNext.loop = true;
+            _musicNext.priority = 0;
+            _musicNext.clip = clip;
+            ApplyVolumes();
+            _musicNext.PlayScheduled(_switchDsp);
+            _music.SetScheduledEndTime(_switchDsp);
+            Debug.Log($"[Sfx] long piece ready ({data.Length / (float)MusicRate:0.0} s) after {Time.realtimeSinceStartup:0.0} s; " +
+                      $"takes over from the loop in {_switchDsp - now:0.0} s");
         }
 
         void Update()
@@ -79,6 +117,22 @@ namespace AgentClicker.Util
                 if (_musicJob.Status == TaskStatus.RanToCompletion) SetMusic(_musicJob.Result);
                 else Debug.LogWarning("[Sfx] music render failed: " + _musicJob.Exception?.GetBaseException().Message);
                 _musicJob = null;
+            }
+            if (_songJob != null && _songJob.IsCompleted)
+            {
+                if (_songJob.Status == TaskStatus.RanToCompletion) SetSong(_songJob.Result);
+                else Debug.LogWarning("[Sfx] long piece render failed: " + _songJob.Exception?.GetBaseException().Message);
+                _songJob = null;
+            }
+            if (_musicNext != null && AudioSettings.dspTime > _switchDsp + 0.2)
+            {
+                // the loop has handed over: drop it
+                var loop = _music;
+                _music = _musicNext;
+                _musicNext = null;
+                Destroy(loop.clip);
+                Destroy(loop);
+                Debug.Log($"[Sfx] the long piece is playing ({(_music.isPlaying ? "playing" : "NOT playing")}, at {_music.time:0.0} s)");
             }
             if (_musicFade < 1f)
             {
@@ -118,7 +172,9 @@ namespace AgentClicker.Util
         void ApplyVolumes()
         {
             if (_ambience) _ambience.volume = 0.22f * _ambienceVolume;
-            if (_music) _music.volume = 0.55f * _musicVolume * _musicDuck * _musicFade;
+            float music = 0.55f * _musicVolume * _musicDuck * _musicFade;
+            if (_music) _music.volume = music;
+            if (_musicNext) _musicNext.volume = music;
         }
 
         /// <summary>The synthesised clip for a sound (its first variant), e.g. for exporting trailer stingers.</summary>
@@ -252,79 +308,134 @@ namespace AgentClicker.Util
         }
     }
 
-    /// <summary>A seamless lo-fi loop: Rhodes-ish chords, round bass, swung drums, vinyl crackle.</summary>
+    /// <summary>
+    /// Seamless lo-fi music: Rhodes-ish chords, round bass, swung drums, vinyl crackle. Two renders of the same
+    /// material: the 8-bar <b>loop</b> (25 s, quick to make, plays first) and the 32-bar <b>song</b> (101 s) that
+    /// replaces it: A (the loop) · B (a second progression) · C (a breakdown without drums) · A' (a new melody, ending
+    /// on the loop's last bar). The song's first 8 bars are the loop sample for sample, so playback can move from the
+    /// end of the loop to the start of the song without a seam.
+    /// </summary>
     public static class LofiMusic
     {
         public const double Bpm = 76;
+        public const int LoopBars = 8, SongBars = 32;
 
-        public static float[] Render(int rate, int seed)
+        public static int BarSamples(int rate) => (int)(4 * 60.0 / Bpm * rate);
+        public static int Length(int rate, bool song) => (song ? SongBars : LoopBars) * BarSamples(rate);
+
+        public static float[] Render(int rate, int seed, bool song = false)
         {
             float[] result = null;
-            var steps = RenderInSteps(rate, seed, double.PositiveInfinity, b => result = b);
+            var steps = RenderInSteps(rate, seed, double.PositiveInfinity, b => result = b, song);
             while (steps.MoveNext()) { }
             return result;
         }
 
+        enum Style { Full, Breakdown, BreakdownTurn }
+
+        struct Bar
+        {
+            public int[] Chord;
+            public int Key;      // seeds the bar's own randomness: the same key renders the same bar
+            public int Index;    // position in its section (drum and bass patterns alternate on it)
+            public Style Style;
+            public double Melody; // chance of a melody note on each eighth
+        }
+
+        // A: Fmaj7 - Em7 - Dm7 - Cmaj7 · B: Am7 - Dm7 - G7 - Cmaj7 · C: Dm7 - Em7 - Fmaj7 - G7sus, two bars each
+        static readonly int[][] ChordsA = { new[] { 53, 57, 60, 64 }, new[] { 52, 55, 59, 62 }, new[] { 50, 53, 57, 60 }, new[] { 48, 52, 55, 59 } };
+        static readonly int[][] ChordsB = { new[] { 57, 60, 64, 67 }, new[] { 50, 53, 57, 60 }, new[] { 55, 59, 62, 65 }, new[] { 48, 52, 55, 59 } };
+        static readonly int[][] ChordsC = { new[] { 50, 53, 57, 60 }, new[] { 52, 55, 59, 62 }, new[] { 53, 57, 60, 64 }, new[] { 55, 60, 62, 65 } };
+        static readonly int[] Scale = { 60, 62, 64, 67, 69, 72, 74, 76 };
+
+        static Bar[] Plan(bool song)
+        {
+            var bars = new Bar[song ? SongBars : LoopBars];
+            for (int i = 0; i < 8; i++)
+            {
+                bars[i] = new Bar { Chord = ChordsA[i / 2], Key = i, Index = i, Style = Style.Full, Melody = 0.28 };
+                if (!song) continue;
+                bars[8 + i] = new Bar { Chord = ChordsB[i / 2], Key = 100 + i, Index = i, Style = Style.Full, Melody = 0.3 };
+                bars[16 + i] = new Bar { Chord = ChordsC[i / 2], Key = 200 + i, Index = i, Style = i == 7 ? Style.BreakdownTurn : Style.Breakdown, Melody = 0.2 };
+                bars[24 + i] = new Bar { Chord = ChordsA[i / 2], Key = 300 + i, Index = i, Style = Style.Full, Melody = 0.34 };
+            }
+            // the song ends on the loop's last bar, so the tails that wrap into its first bar are the loop's own
+            if (song) bars[SongBars - 1] = bars[LoopBars - 1];
+            return bars;
+        }
+
         /// <summary>
-        /// The same loop, rendered a few notes at a time: yields whenever a slice has taken `budgetMs`, so a
+        /// Renders the loop or the song a few notes at a time: yields whenever a slice has taken `budgetMs`, so a
         /// coroutine can spread the work over frames.
         /// </summary>
-        public static System.Collections.IEnumerator RenderInSteps(int rate, int seed, double budgetMs, Action<float[]> done)
+        public static System.Collections.IEnumerator RenderInSteps(int rate, int seed, double budgetMs, Action<float[]> done, bool song = false)
         {
             var clock = System.Diagnostics.Stopwatch.StartNew();
             bool Spent() { if (clock.Elapsed.TotalMilliseconds < budgetMs) return false; clock.Restart(); return true; }
-            var rng = new System.Random(seed);
             double beat = 60.0 / Bpm;
-            int bars = 8;
-            int length = (int)(bars * 4 * beat * rate);
-            var buf = new float[length];
+            int barSamples = BarSamples(rate);
+            var plan = Plan(song);
+            var buf = new float[plan.Length * barSamples];
 
-            // Fmaj7 - Em7 - Dm7 - Cmaj7, two bars each
-            int[][] chords = { new[] { 53, 57, 60, 64 }, new[] { 52, 55, 59, 62 }, new[] { 50, 53, 57, 60 }, new[] { 48, 52, 55, 59 } };
-            int[] scale = { 60, 62, 64, 67, 69, 72, 74, 76 };
-
-            for (int bar = 0; bar < bars; bar++)
+            for (int b = 0; b < plan.Length; b++)
             {
-                var chord = chords[bar / 2 % chords.Length];
-                double barStart = bar * 4 * beat;
-                // chords: beat 1 and the "and" of 3
-                foreach (double at in new[] { 0.0, 2.5 })
+                var bar = plan[b];
+                var rng = new System.Random(seed * 1000 + bar.Key);
+                var chord = bar.Chord;
+                bool full = bar.Style == Style.Full;
+                double barStart = b * barSamples / (double)rate;
+                // chords: beat 1 and the "and" of 3; in the breakdown one long chord a bar
+                foreach (double at in full ? new[] { 0.0, 2.5 } : new[] { 0.0 })
                     foreach (int note in chord)
                     {
-                        AddNote(buf, rate, barStart + at * beat + rng.NextDouble() * 0.012, Midi(note), 2.4, 0.075, Rhodes);
+                        AddNote(buf, rate, barStart + at * beat + rng.NextDouble() * 0.012, Midi(note), full ? 2.4 : 3.2, full ? 0.075 : 0.085, Rhodes);
                         if (Spent()) yield return null;
                     }
-                // bass: root on 1 and 3 (plus a pickup on the "and" of 4 every other bar)
+                // bass: root on 1 and 3 (plus a pickup on the "and" of 4 every other bar); the breakdown holds the root
                 double root = Midi(chord[0] - 12);
-                AddNote(buf, rate, barStart, root, 1.4, 0.2, Bass);
-                AddNote(buf, rate, barStart + 2 * beat, root, 1.2, 0.17, Bass);
-                if (bar % 2 == 1) AddNote(buf, rate, barStart + 3.5 * beat, Midi(chord[2] - 12), 0.4, 0.12, Bass);
+                if (full)
+                {
+                    AddNote(buf, rate, barStart, root, 1.4, 0.2, Bass);
+                    AddNote(buf, rate, barStart + 2 * beat, root, 1.2, 0.17, Bass);
+                    if (bar.Index % 2 == 1) AddNote(buf, rate, barStart + 3.5 * beat, Midi(chord[2] - 12), 0.4, 0.12, Bass);
+                }
+                else AddNote(buf, rate, barStart, root, 2.2, 0.17, Bass);
                 // sparse melody
                 for (int e = 0; e < 8; e++)
                 {
-                    if (rng.NextDouble() > 0.28) continue;
+                    if (rng.NextDouble() > bar.Melody) continue;
                     double swing = e % 2 == 1 ? 0.12 : 0;
-                    AddNote(buf, rate, barStart + (e * 0.5 + swing) * beat, Midi(scale[rng.Next(scale.Length)]), 0.9, 0.045, Pluck);
+                    AddNote(buf, rate, barStart + (e * 0.5 + swing) * beat, Midi(Scale[rng.Next(Scale.Length)]), 0.9, 0.045, Pluck);
                 }
-                // drums
+                // drums; the breakdown keeps a soft hat on the beat, and its last bar brings the kick back in
                 for (int e = 0; e < 8; e++)
                 {
                     double swing = e % 2 == 1 ? 0.12 : 0;
                     double at = barStart + (e * 0.5 + swing) * beat;
-                    if (e == 0 || e == 4 || (e == 5 && bar % 2 == 0)) AddNote(buf, rate, at, 0, 0.35, 0.5, Kick);
-                    if (e == 2 || e == 6) AddNote(buf, rate, at, 0, 0.3, 0.16, Snare);
-                    AddNote(buf, rate, at, 0, 0.08, e % 2 == 0 ? 0.035 : 0.022, Hat);
+                    if (full)
+                    {
+                        if (e == 0 || e == 4 || (e == 5 && bar.Index % 2 == 0)) AddNote(buf, rate, at, 0, 0.35, 0.5, Kick);
+                        if (e == 2 || e == 6) AddNote(buf, rate, at, 0, 0.3, 0.16, Snare);
+                        AddNote(buf, rate, at, 0, 0.08, e % 2 == 0 ? 0.035 : 0.022, Hat);
+                    }
+                    else
+                    {
+                        if (e % 2 == 0) AddNote(buf, rate, at, 0, 0.08, 0.02, Hat);
+                        if (bar.Style == Style.BreakdownTurn && (e == 4 || e == 6)) AddNote(buf, rate, at, 0, 0.35, 0.35, Kick);
+                        if (bar.Style == Style.BreakdownTurn && e == 7) AddNote(buf, rate, at, 0, 0.3, 0.12, Snare);
+                    }
                 }
                 if (Spent()) yield return null;
             }
 
-            // vinyl crackle + warm low-pass + gentle limiter
+            // vinyl crackle + warm low-pass + gentle limiter (the same from the first sample in the loop and the song)
+            var noise = new System.Random(seed);
             double lp = 0, k = 1 - Math.Exp(-2 * Math.PI * 4200 / rate);
-            for (int i = 0; i < length; i++)
+            for (int i = 0; i < buf.Length; i++)
             {
                 double x = buf[i];
-                if (rng.NextDouble() < 0.0006) x += (rng.NextDouble() - 0.5) * 0.08;
-                x += (rng.NextDouble() - 0.5) * 0.004;
+                if (noise.NextDouble() < 0.0006) x += (noise.NextDouble() - 0.5) * 0.08;
+                x += (noise.NextDouble() - 0.5) * 0.004;
                 lp += (x - lp) * k;
                 buf[i] = (float)Math.Tanh(lp * 1.4) * 0.8f;
                 if ((i & 0x3FFF) == 0 && Spent()) yield return null;
@@ -334,7 +445,7 @@ namespace AgentClicker.Util
 
         static double Midi(int n) => 440.0 * Math.Pow(2, (n - 69) / 12.0);
 
-        delegate double Voice(double t, double hz, ref double state);
+        delegate double Voice(double t, double hz, ref double state, ref uint noise);
 
         /// <summary>Renders a note into the buffer, wrapping around the end so the loop is seamless.</summary>
         static void AddNote(float[] buf, int rate, double start, double hz, double duration, double gain, Voice voice)
@@ -342,51 +453,58 @@ namespace AgentClicker.Util
             int s0 = (int)(start * rate);
             int n = (int)(duration * rate);
             double state = 0;
+            // noise voices draw from a generator seeded by where the note starts, so a bar renders the same every time
+            uint noise = (uint)s0 * 2654435761u ^ 0x9E3779B9u;
             for (int i = 0; i < n; i++)
             {
                 double t = i / (double)rate;
-                buf[(s0 + i) % buf.Length] += (float)(voice(t, hz, ref state) * gain);
+                buf[(s0 + i) % buf.Length] += (float)(voice(t, hz, ref state, ref noise) * gain);
             }
         }
 
         static double S(double t, double hz) => Math.Sin(2 * Math.PI * hz * t);
 
-        static double Rhodes(double t, double hz, ref double st)
+        static double Rhodes(double t, double hz, ref double st, ref uint noise)
         {
             double env = Math.Min(1, t / 0.008) * Math.Exp(-t / 1.1);
             double trem = 1 + 0.12 * Math.Sin(2 * Math.PI * 4.5 * t);
             return (S(t, hz) + 0.35 * S(t, hz * 2.001) * Math.Exp(-t / 0.3) + 0.12 * S(t, hz * 3) * Math.Exp(-t / 0.12)) * env * trem;
         }
 
-        static double Bass(double t, double hz, ref double st)
+        static double Bass(double t, double hz, ref double st, ref uint noise)
         {
             double env = Math.Min(1, t / 0.01) * Math.Exp(-t / 0.7);
             return Math.Tanh(1.6 * (S(t, hz) + 0.25 * S(t, hz * 2))) * env;
         }
 
-        static double Pluck(double t, double hz, ref double st) =>
+        static double Pluck(double t, double hz, ref double st, ref uint noise) =>
             (S(t, hz) + 0.2 * S(t, hz * 2)) * Math.Min(1, t / 0.004) * Math.Exp(-t / 0.25);
 
-        static double Kick(double t, double hz, ref double st)
+        static double Kick(double t, double hz, ref double st, ref uint noise)
         {
             double f = 45 + 80 * Math.Exp(-t / 0.035);
-            st += 2 * Math.PI * f / 32000.0;
+            st += 2 * Math.PI * f / 32000.0; // tuned at the music's rate
             return Math.Sin(st) * Math.Exp(-t / 0.16);
         }
 
-        [ThreadStatic] static System.Random _noise;
-        static double N() => ((_noise ??= new System.Random(11)).NextDouble() * 2 - 1);
-
-        static double Snare(double t, double hz, ref double st)
+        /// <summary>White noise in [-1, 1) from a xorshift generator.</summary>
+        static double N(ref uint x)
         {
-            double n = N();
+            if (x == 0) x = 0x6D2B79F5u;
+            x ^= x << 13; x ^= x >> 17; x ^= x << 5;
+            return x / 2147483648.0 - 1;
+        }
+
+        static double Snare(double t, double hz, ref double st, ref uint noise)
+        {
+            double n = N(ref noise);
             st += (n - st) * 0.35;                 // soften the noise a little
             return (st * 0.8 + 0.3 * S(t, 185)) * Math.Exp(-t / 0.09);
         }
 
-        static double Hat(double t, double hz, ref double st)
+        static double Hat(double t, double hz, ref double st, ref uint noise)
         {
-            double n = N();
+            double n = N(ref noise);
             double hp = n - st;                    // crude high-pass
             st = n;
             return hp * 0.5 * Math.Exp(-t / 0.02);
