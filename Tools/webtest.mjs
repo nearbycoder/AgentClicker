@@ -189,6 +189,23 @@ async function main() {
     check(audio.peak > 0.001, `audio is produced after the first clicks (peak ${audio.peak.toFixed(4)}, contexts ${audio.contexts}, ${audio.states})`);
     await shot("04_shipped");
 
+    // the CEO's email opens by itself once the clicking pauses; read it and close it with Esc
+    const modalOpen = async () => {
+      const from = log.length;
+      await page.evaluate(() => window.unityInstance.SendMessage("Game", "LogScreenPoint", "Modal"));
+      for (let i = 0; i < 20; i++) {
+        await sleep(100);
+        const line = log.slice(from).find((l) => l.includes("[Probe] Modal"));
+        if (line) return !line.includes("none");
+      }
+      return false;
+    };
+    let mailOpen = false;
+    for (let i = 0; i < 12 && !mailOpen; i++) { await sleep(500); mailOpen = await modalOpen(); }
+    await shot("04b_ceo_email");
+    if (mailOpen) { await page.keyboard.press("Escape"); await sleep(600); }
+    check(mailOpen && !(await modalOpen()), "the CEO's email opened when the clicking paused, and Esc closed it");
+
     // hire an Autocomplete (top row of the store)
     await page.mouse.click(1290, 235);
     await sleep(600);

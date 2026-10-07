@@ -599,6 +599,7 @@ namespace AgentClicker.UI
 
         // ------------------------------------------------------------------ modals
         bool _modalDismissable;
+        float _modalOpenedAt;
 
         RectTransform OpenModal(float w, float h, out Image card, bool dismissable = true)
         {
@@ -607,7 +608,9 @@ namespace AgentClicker.UI
             dim.rectTransform.Fill();
             _modal = dim.gameObject;
             _modalDismissable = dismissable;
-            if (dismissable) PointerRelay.On(dim).Click = _ => CloseModal();
+            _modalOpenedAt = Time.unscaledTime;
+            // a click already on its way (fast clicking, or input queued during a stalled frame) doesn't close it unread
+            if (dismissable) PointerRelay.On(dim).Click = _ => { if (Time.unscaledTime - _modalOpenedAt > 0.5f) CloseModal(); };
             card = UIKit.Panel(dim.transform, "Card", Theme.Panel, 22, true); // raycast target: clicks on the card don't close it
             card.rectTransform.Center(w, h);
             return card.rectTransform;
