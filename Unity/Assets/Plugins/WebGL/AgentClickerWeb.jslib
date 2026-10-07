@@ -1,5 +1,44 @@
 // Browser glue for the WebGL build.
 mergeInto(LibraryManager.library, {
+  // The engine's WebGL glue (Emscripten's GL.getNewId) takes every GL object id from one counter that only goes up, and
+  // pads each object table with empty slots up to it. Unity makes a GL fence every frame, so the counter climbs about 60 a
+  // second and every table grows with it: the page's JS heap gained about 15 MB an hour while the tab was visible. From
+  // here on, the object types the engine deletes and recreates get the lowest free id in their own table instead, as
+  // native GL drivers do. Programs and shaders keep the engine's allocator (the glue checks program ids against the
+  // counter). Test tools: ?glids=engine keeps the engine's allocator; window.agentClickerGL() reports the tables.
+  AgentClicker_ReuseGLIds__deps: ['$GL'],
+  AgentClicker_ReuseGLIds: function () {
+    var names = ['buffers', 'textures', 'framebuffers', 'renderbuffers', 'syncs', 'vaos', 'queries', 'samplers',
+                 'transformFeedbacks'];
+    var reuse = names.map(function (n) { return GL[n]; }).filter(function (t) { return Array.isArray(t); });
+    var engine = GL.getNewId;
+    var on = new URLSearchParams(location.search).get('glids') !== 'engine';
+    if (on && !GL.agentClickerReuse) {
+      GL.agentClickerReuse = true;
+      GL.getNewId = function (table) {
+        if (reuse.indexOf(table) < 0) return engine(table);
+        var id = 1; // 0 means "no object" in GL
+        while (id < table.length && table[id]) id++;
+        if (id === table.length) table.push(null);
+        return id;
+      };
+    }
+    window.agentClickerGL = function () {
+      var r = { reuse: !!GL.agentClickerReuse, counter: GL.counter, largest: 0, live: 0 };
+      names.concat(['programs', 'shaders']).forEach(function (n) {
+        var t = GL[n];
+        if (!Array.isArray(t)) return;
+        var live = 0;
+        for (var i = 0; i < t.length; i++) if (t[i]) live++;
+        r[n] = t.length + '/' + live;
+        r.largest = Math.max(r.largest, t.length);
+        r.live += live;
+      });
+      return r;
+    };
+    console.log('[GL] ' + (GL.agentClickerReuse ? 'reusing freed GL object ids' : "engine's GL id allocator (?glids=engine)"));
+  },
+
   // persistentDataPath lives in an in-memory file system backed by IndexedDB: push a finished save to IndexedDB now,
   // so it survives closing or reloading the tab. One sync at a time; a save during a sync gets one more sync after it.
   AgentClicker_SyncFileSystem: function () {

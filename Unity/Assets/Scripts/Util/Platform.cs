@@ -12,6 +12,10 @@ namespace AgentClicker.Util
         [DllImport("__Internal")] static extern void AgentClicker_SaveWhenHidden(string objectName, string methodName);
         [DllImport("__Internal")] static extern void AgentClicker_DownloadText(string fileName, string text);
         [DllImport("__Internal")] static extern void AgentClicker_PickTextFile(string objectName, string methodName);
+        [DllImport("__Internal")] static extern void AgentClicker_ReuseGLIds();
+
+        /// <summary>WebGL objects get the lowest free id in their own table, so the engine's id tables stop growing.</summary>
+        public static void ReuseGLIds() => AgentClicker_ReuseGLIds();
 
         /// <summary>The browser downloads <paramref name="text"/> as a file.</summary>
         public static void DownloadText(string fileName, string text) => AgentClicker_DownloadText(fileName, text);
@@ -28,6 +32,8 @@ namespace AgentClicker.Util
         public static readonly bool IsWeb = false;
 
         public static void SyncFileSystem() { }
+
+        public static void ReuseGLIds() { }
 
         public static void SaveWhenHidden(string objectName, string methodName) { }
 

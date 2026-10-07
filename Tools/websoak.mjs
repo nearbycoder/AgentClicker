@@ -6,6 +6,9 @@
 //   CHROMIUM_PATH=/path/to/chrome-headless-shell node Tools/websoak.mjs detached [minutes] [out dir]
 //
 // Same browser setup as Tools/webtest.mjs (CHROMIUM_PATH, FIREFOX_PATH). Writes soak.csv and console.log.
+// WEBGL_DIR serves another copy of the build (default Builds/WebGL), so a long run can go on while the build is remade.
+// WEBSOAK_QUERY adds to the page's URL (for example "glids=engine": the engine's own WebGL id allocator, for an A/B).
+// The gl_* columns are the WebGL glue's id counter, its largest object table and the live objects in all of them.
 //
 // "detached" runs Chromium with no DevTools connection at all (an attached client makes the browser keep every console
 // message, which could itself look like a leak). This script serves the build and starts the browser itself; the
@@ -27,6 +30,8 @@ if (engine === "firefox") {
   process.env.TMPDIR = path.join(root, "Logs", "tmp");
   mkdirSync(process.env.TMPDIR, { recursive: true });
 }
+const build = path.resolve(process.env.WEBGL_DIR || path.join(root, "Builds", "WebGL"));
+const query = process.env.WEBSOAK_QUERY ? "&" + process.env.WEBSOAK_QUERY : "";
 const pw = engine === "detached" ? null : require(process.env.PLAYWRIGHT_CORE || "playwright-core");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -37,12 +42,12 @@ function freePort() {
 }
 
 const header = "seconds,day,phase,cps,frames,avg_ms,max_ms,gc_mb,mono_used_mb,mono_heap_mb,unity_alloc_mb,unity_reserved_mb,rss_mb," +
-               "gameobjects,textures,materials,meshes,toasts,wasm_heap_mb,js_heap_mb";
+               "gameobjects,textures,materials,meshes,toasts,wasm_heap_mb,js_heap_mb,gl_counter,gl_largest,gl_live";
+const glColumns = (gl) => gl ? `${gl.counter},${gl.largest},${gl.live}` : ",,";
 
 async function detached() {
   const exe = process.env.CHROMIUM_PATH;
   if (!exe) throw new Error("detached mode needs CHROMIUM_PATH (a chrome-headless-shell or chrome binary)");
-  const build = path.join(root, "Builds", "WebGL");
   const types = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json" };
   const rows = [];
   let done = false, samples = 0, last = Date.now();
@@ -59,7 +64,7 @@ async function detached() {
           const csv = /^\[Soak\] (\d+,[^\n]*)/.exec(r.text);
           if (!csv) return;
           samples++;
-          rows.push(`${csv[1]},,${r.js >= 0 ? (r.js / 1048576).toFixed(1) : ""}`);
+          rows.push(`${csv[1]},,${r.js >= 0 ? (r.js / 1048576).toFixed(1) : ""},${glColumns(r.gl)}`);
           writeFileSync(path.join(out, "soak.csv"), header + "\n" + rows.join("\n") + "\n");
         } catch (e) { /* a partial post: skip it */ }
       });
@@ -73,7 +78,7 @@ async function detached() {
   const port = await freePort();
   await new Promise((r) => server.listen(port, "127.0.0.1", r));
   const args = ["-soak", "", String(minutes), "-daylength", "30"].map((a) => "arg=" + encodeURIComponent(a)).join("&");
-  const url = `http://127.0.0.1:${port}/?report=/soak-report&${args}`;
+  const url = `http://127.0.0.1:${port}/?report=/soak-report&${args}${query}`;
   const profile = path.join(out, "profile");
   mkdirSync(profile, { recursive: true });
   const browser = spawn(exe, ["--headless", "--use-angle=vulkan", "--enable-features=Vulkan", "--ignore-gpu-blocklist",
@@ -98,7 +103,7 @@ async function detached() {
 async function main() {
   if (engine === "detached") return detached();
   const port = await freePort();
-  const server = spawn("python3", ["-m", "http.server", String(port), "--bind", "127.0.0.1", "-d", path.join(root, "Builds", "WebGL")],
+  const server = spawn("python3", ["-m", "http.server", String(port), "--bind", "127.0.0.1", "-d", build],
                        { stdio: "ignore" });
   const launch = { headless: true };
   if (engine === "chromium") {
@@ -125,14 +130,15 @@ async function main() {
         wasm: (() => { const m = window.unityInstance?.Module; const b = m?.wasmMemory?.buffer ?? m?.HEAPU8?.buffer ?? m?.HEAP8?.buffer;
                         return b ? b.byteLength : -1; })(),
         js: performance.memory ? performance.memory.usedJSHeapSize : -1,
-      })).catch(() => ({ wasm: -1, js: -1 }));
-      const row = `${csv[1]},${(extra.wasm / 1048576).toFixed(1)},${(extra.js / 1048576).toFixed(1)}`;
+        gl: window.agentClickerGL ? window.agentClickerGL() : null,
+      })).catch(() => ({ wasm: -1, js: -1, gl: null }));
+      const row = `${csv[1]},${(extra.wasm / 1048576).toFixed(1)},${(extra.js / 1048576).toFixed(1)},${glColumns(extra.gl)}`;
       rows.push(row);
       console.log("[WebSoak] " + row);
       writeFileSync(path.join(out, "soak.csv"), header + "\n" + rows.join("\n") + "\n");
     });
     const args = ["-soak", "", String(minutes), "-daylength", "30"].map((a) => "arg=" + encodeURIComponent(a)).join("&");
-    await page.goto(`http://127.0.0.1:${port}/?${args}`);
+    await page.goto(`http://127.0.0.1:${port}/?${args}${query}`);
     const end = Date.now() + (minutes + 5) * 60000;
     while (!done && Date.now() < end) await sleep(2000);
     await page.screenshot({ path: path.join(out, "last.png") });

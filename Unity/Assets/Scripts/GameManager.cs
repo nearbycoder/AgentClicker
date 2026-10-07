@@ -71,6 +71,7 @@ namespace AgentClicker
             Settings = GameSettings.Load();
             if (Platform.IsWeb)
             {
+                Platform.ReuseGLIds();
                 SaveSystem.Written = Platform.SyncFileSystem;
                 GameSettings.Saved = Platform.SyncFileSystem; // the browser keeps PlayerPrefs in the same IndexedDB file system
                 Platform.SaveWhenHidden(gameObject.name, nameof(Save));
