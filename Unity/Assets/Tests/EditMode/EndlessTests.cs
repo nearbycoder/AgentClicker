@@ -64,6 +64,34 @@ namespace AgentClicker.Tests
         }
 
         [Test]
+        public void WordsNameTheNumberFromAMillionToACentillion()
+        {
+            Assert.AreEqual("", NumberFormat.Words(999_999), "K needs no name");
+            Assert.AreEqual("1.00 million", NumberFormat.Words(1e6));
+            Assert.AreEqual("22.0 quadrillion", NumberFormat.Words(2.2e16));
+            Assert.AreEqual("190 tredecillion", NumberFormat.Words(1.9e44));
+            Assert.AreEqual("1.00 novemnonagintillion", NumberFormat.Words(1e300));
+            Assert.AreEqual("1.00 centillion", NumberFormat.Words(1e303));
+            Assert.AreEqual("", NumberFormat.Words(1e306), "past a centillion it's scientific notation, which needs no name");
+            Assert.AreEqual("", NumberFormat.Words(double.MaxValue));
+            Assert.AreEqual("", NumberFormat.Words(double.NaN));
+            Assert.AreEqual("", NumberFormat.Words(double.PositiveInfinity));
+            for (int k = 2; k < NumberFormat.NamedTiers; k++)
+            {
+                double v = System.Math.Pow(10, 3 * k);
+                string shortText = NumberFormat.Short(v), words = NumberFormat.Words(v);
+                Assert.AreEqual(NumberFormat.LongName(k), words.Substring(words.IndexOf(' ') + 1), $"10^{3 * k}");
+                // the same digits as the short form, right below a power of a thousand too
+                Assert.AreEqual(shortText.Substring(0, 4), words.Substring(0, 4), $"10^{3 * k}");
+                if (k == 2) continue; // just below a million there's no name
+                string below = NumberFormat.Words(v * 0.9999999);
+                StringAssert.StartsWith("999 " + NumberFormat.LongName(k - 1), below, $"just below 10^{3 * k}");
+            }
+            NumberFormat.Style = NumberStyle.Scientific;
+            Assert.AreEqual("", NumberFormat.Words(2.2e16), "scientific notation is read as it is");
+        }
+
+        [Test]
         public void ScientificStyleIsASetting()
         {
             NumberFormat.Style = NumberStyle.Scientific;

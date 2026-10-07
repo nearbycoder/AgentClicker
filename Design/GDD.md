@@ -301,7 +301,8 @@ The Factory ends the story, not the game. Like Cookie Clicker, there is always a
   reorgs, options, drops, outages, calls, asks and story beats. Each adds 4% **Clout**.
 * **Big numbers.** Every power of a thousand up to a centillion (1e303) has a short name (K, M, B, T, Qa, Qi,
   Sx, Sp, Oc, No, Dc, UDc … Vg … Ce); beyond that, or by choice in Settings, numbers switch to scientific
-  notation. All arithmetic saturates at the largest double, so nothing ever becomes NaN or breaks a save.
+  notation. From a million up, the credits card's label says the number in words ("COMPUTE CREDITS · 190 tredecillion"),
+  and the Stats tab does for the bank and all-time earnings past a quadrillion. All arithmetic saturates at the largest double, so nothing ever becomes NaN or breaks a save.
 
 **Pacing.** `BalanceSimulator.RunCareer` plays division after division with a fixed lap after each Factory.
 With one-hour laps (`Tools/unity.sh exec AgentClicker.EditorTools.BalanceReport.Career`), the bot gets:

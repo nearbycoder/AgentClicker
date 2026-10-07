@@ -147,8 +147,8 @@ the pipeline booting, the camera pulls back, and Sam puts their feet up. Then th
   of Staff who catches drops for you and a repeatable Board Seat.
 * **512 trophies**, each adding Clout, which fifteen influence upgrades (LinkedIn Post … Your Face on Currency)
   turn into production.
-* **Big numbers**: every power of a thousand up to a centillion (1e303) has a name, scientific notation is one
-  setting away, and nothing ever overflows.
+* **Big numbers**: every power of a thousand up to a centillion (1e303) has a name, and the credits card spells it
+  out ("22.0Qa", with "22.0 quadrillion" above it). Scientific notation is one setting away, and nothing ever overflows.
 
 ### Settings and quality of life
 

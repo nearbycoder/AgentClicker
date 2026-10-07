@@ -83,6 +83,7 @@ namespace AgentClicker
             yield return new WaitForSeconds(0.3f);
             yield return Shot("02_desktop_day1");
             LogGoal("day 1");
+            CheckCreditsLabel("day 1", null);
             yield return MuteSegment();
             M.DeliverNextMail();
             M.DeliverNextMail();
@@ -247,6 +248,7 @@ namespace AgentClicker
             yield return new WaitForSeconds(1.2f);
             yield return Shot("15_frontier_agents");
             LogGoal("after the Factory");
+            CheckCreditsLabel("after the Factory", "22.0 quadrillion");
             // three toasts, two of them two lines long, stacked on a full activity feed
             _gm.Computer.Toast("Promoted to Board Member! You get a parking spot. You don't drive. The agents park there now.", Theme.Accent2, 8f);
             _gm.Computer.Toast("★ TROPHY  Millionaire  Earn 1 million credits, across every division.", Theme.Gold, 8f);
@@ -302,6 +304,7 @@ namespace AgentClicker
             yield return new WaitForSeconds(1.5f);
             yield return Shot("23_endgame_numbers");
             LogGoal("every agent owned");
+            CheckCreditsLabel("end game", "190 tredecillion");
             _gm.Computer.SelectStoreTab(StorePanel.TrophiesTabIndex);
             yield return new WaitForSeconds(0.6f);
             yield return Shot("24_endgame_trophies");
@@ -1021,6 +1024,19 @@ namespace AgentClicker
             if (monitorMin < _monitorMinAll) { _monitorMinAll = monitorMin; _monitorMinWhat = $"{monitorWhat} in {shot}"; }
             string Fmt(float v, string w) => v == float.MaxValue ? "none" : $"{v:0.#} pt ({w})";
             Debug.Log($"[Text] {shot}: screen {Fmt(screenMin, screenWhat)}, monitor {Fmt(monitorMin, monitorWhat)}");
+        }
+
+        /// <summary>The credits card names a big number in words (none for small ones), on one line inside the card.</summary>
+        void CheckCreditsLabel(string when, string words)
+        {
+            var t = _gm.Computer.CreditsLabel;
+            t.ForceMeshUpdate();
+            string text = t.GetParsedText();
+            float right = t.textBounds.max.x, width = t.rectTransform.rect.xMax;
+            bool named = words == null ? text == "COMPUTE CREDITS" : text.EndsWith(words);
+            Debug.Log(named && t.textInfo.lineCount == 1 && right <= width + 0.5f
+                ? $"[Tour] PASS credits label {when}: \"{text}\" ({right:0} of {width:0} px)"
+                : $"[Tour] FAIL credits label {when}: \"{text}\", {t.textInfo.lineCount} lines, {right:0} of {width:0} px, expected {words ?? "no name"}");
         }
 
         /// <summary>Every toast's text lies inside its card, and the cards hide the activity feed under them.</summary>

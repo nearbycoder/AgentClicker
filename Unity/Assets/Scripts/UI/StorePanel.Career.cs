@@ -369,6 +369,9 @@ namespace AgentClicker.UI
             return sb.ToString();
         }
 
+        // grouped digits say it plainly up to a quadrillion; past that, the suffix gets its name
+        static string InWords(double v) => v >= 1e15 && NumberFormat.Words(v).Length > 0 ? $"  <color=#828EA5>({NumberFormat.Words(v)})</color>" : "";
+
         void RefreshStats(GameModel m)
         {
             var s = m.State;
@@ -377,7 +380,7 @@ namespace AgentClicker.UI
             string Row(string label, string value) => $"<color=#A4AFC2>{label}</color>   {value}\n";
             _sb.Clear();
             _sb.Append("<color=#4DD0E1>THIS DIVISION</color>  <size=95%><color=#828EA5>").Append(m.DivisionName).Append("</color></size>\n")
-               .Append(Row("Credits in bank", NumberFormat.Grouped(s.credits)))
+               .Append(Row("Credits in bank", NumberFormat.Grouped(s.credits) + InWords(s.credits)))
                .Append(Row("Earned here", NumberFormat.Short(s.lifetimeEarned)))
                .Append(Row("Credits/sec", $"{NumberFormat.Short(m.Cps)}  ({NumberFormat.Mult(m.GlobalMultiplier)} global)"))
                .Append(Row("Click power", NumberFormat.Short(m.ClickPower)))
@@ -392,7 +395,7 @@ namespace AgentClicker.UI
                .Append(Row("Division", $"{m.DivisionName} <color=#828EA5>(#{s.reorgs + 1})</color>  ·  {s.reorgs} reorg{(s.reorgs == 1 ? "" : "s")}"))
                .Append(Row("Stock Options", $"◆ {NumberFormat.Short(s.options)} to spend · {NumberFormat.Short(s.optionsEarned)} earned"))
                .Append(Row("Trophies", $"{m.AchievementCount} / {GameModel.AchievementTotal}  ·  Clout +{NumberFormat.Percent(m.Clout)}"))
-               .Append(Row("All-time earned", NumberFormat.Short(s.allTimeEarned)))
+               .Append(Row("All-time earned", NumberFormat.Short(s.allTimeEarned) + InWords(s.allTimeEarned)))
                .Append(Row("Hand-shipped", $"{NumberFormat.Short(s.allTimeHandmade)} from {s.allTimeClicks:N0} clicks"))
                .Append(Row("Days worked", $"{s.totalDays:N0}  ·  ★ {s.totalStars:N0} quotas met"))
                .Append(Row("Factories built", s.factoriesBuilt + (s.bestFactoryDay > 0 ? $"  ·  fastest on day {s.bestFactoryDay}" : "")))

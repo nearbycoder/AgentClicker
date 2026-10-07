@@ -72,6 +72,24 @@ namespace AgentClicker.Core
             return Truncate(scaled, fmt) + Suffixes[tier];
         }
 
+        /// <summary>
+        /// The number in words from a million up, so a player can tell what "TDc" is: 22.0 quadrillion, 190 tredecillion.
+        /// Empty below a million (K is familiar), past a centillion, or when numbers are written in scientific notation.
+        /// Same digits as <see cref="Short"/>.
+        /// </summary>
+        public static string Words(double v)
+        {
+            if (Style == NumberStyle.Scientific || double.IsNaN(v) || double.IsInfinity(v) || v < 1e6) return "";
+            int tier = (int)Math.Floor(Math.Log10(v) / 3 + 1e-12);
+            if (tier >= Suffixes.Length) return "";
+            double scaled = v / Math.Pow(1000, tier);
+            if (scaled >= 1000) { scaled /= 1000; tier++; }
+            if (scaled < 1) { scaled *= 1000; tier--; }
+            if (tier >= Suffixes.Length || tier < 2) return "";
+            string fmt = scaled < 10 ? "0.00" : scaled < 100 ? "0.0" : "0";
+            return Truncate(scaled, fmt) + " " + LongNames[tier];
+        }
+
         /// <summary>1.23e45, with the mantissa floored like <see cref="Short"/>.</summary>
         public static string Scientific(double v)
         {

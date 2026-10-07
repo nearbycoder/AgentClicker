@@ -120,7 +120,8 @@ namespace AgentClicker.UI
         readonly System.Random _rng = new System.Random();
         readonly StringBuilder _sb = new StringBuilder();
         readonly TextMeshProUGUI[] _asks = new TextMeshProUGUI[2];
-        TextMeshProUGUI _asksLabel, _focusLabel;
+        TextMeshProUGUI _asksLabel, _focusLabel, _creditsLabel;
+        string _shownCredits;
         int _asksKey = -1;
         Image _focusFill;
 
@@ -133,8 +134,10 @@ namespace AgentClicker.UI
             // credits
             var card = UIKit.Panel(col, "Credits", Theme.Panel, 14);
             card.rectTransform.TopLeft(0, 0, 420, 132);
-            UIKit.Text(card.transform, "Label", "COMPUTE CREDITS", 14, Theme.TextDim, TextAlignmentOptions.TopLeft, UIFonts.Medium)
-                 .rectTransform.TopLeft(20, 14, 300, 20);
+            // names the number once the suffixes stop being familiar: "COMPUTE CREDITS · 22.0 quadrillion"
+            _creditsLabel = UIKit.Text(card.transform, "Label", "COMPUTE CREDITS", 14, Theme.TextDim, TextAlignmentOptions.TopLeft, UIFonts.Medium);
+            _creditsLabel.rectTransform.TopLeft(20, 14, 380, 20);
+            _creditsLabel.textWrappingMode = TextWrappingModes.NoWrap;
             _credits = UIKit.Text(card.transform, "Amount", "0", 60, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Bold);
             _credits.rectTransform.TopLeft(18, 28, 390, 70);
             _credits.textWrappingMode = TextWrappingModes.NoWrap;
@@ -248,10 +251,21 @@ namespace AgentClicker.UI
             _terminal.SetText(_sb);
         }
 
+        /// <summary>The credits card's label (the tour checks it names the number and fits).</summary>
+        public TextMeshProUGUI CreditsLabel => _creditsLabel;
+
         public void Refresh()
         {
             var m = _gm.Model;
-            _credits.text = NumberFormat.Short(m.State.credits);
+            string shown = NumberFormat.Short(m.State.credits);
+            if (shown != _shownCredits)
+            {
+                // the words only change when the digits do
+                _shownCredits = shown;
+                _credits.text = shown;
+                string words = NumberFormat.Words(m.State.credits);
+                UIKit.Set(_creditsLabel, words.Length == 0 ? "COMPUTE CREDITS" : "COMPUTE CREDITS  <color=#828EA5>·</color>  " + words);
+            }
             _rate.text = $"+{NumberFormat.Rate(m.Cps)}";
             _sb.Clear();
             foreach (var b in m.Buffs) _sb.Append(b.Name).Append(" x").Append((int)b.Mult).Append(" · ").Append((int)b.Remaining).Append("s  ");
