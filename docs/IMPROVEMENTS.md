@@ -618,3 +618,13 @@ hardware.
 <https://nearbycoder.github.io/AgentClicker/>, served from the `gh-pages` branch (a copy of `Builds/WebGL` from this round's code plus a `.nojekyll`
 file). The build's Brotli files carry their own decompression fallback, so they work even though GitHub Pages doesn't
 send `Content-Encoding: br`. To update it, rebuild with `Tools/unity.sh build-webgl` and replace the branch's files.
+
+**Sharp on high-DPI screens (after the first deploy, 2026-10-06).** On an iPhone the hosted game looked soft: the page
+capped the pixel ratio at 1.5, so a 3× screen rendered at half its resolution (1398×645 on a 2796×1290 display) and the
+browser stretched it. The page now uses the screen's real pixel ratio up to a 4K pixel budget (3840×2160) and follows
+resizes and rotation. Measured in headless Chromium with device emulation: iPhone landscape and portrait now render at
+the native 2796×1290 / 1290×2796, a 1512×982 @2× laptop at native 3024×1964 (was 2268×1473), a 1600×900 desktop is
+unchanged, and a 2560×1440 @2× desktop stays at 3840×2160 as before. Chromium web test still 12/12. Not tried on a real
+iPhone (no Safari here); a 3× screen draws about four times the pixels it did, so older phones may run slower, and
+Settings → Graphics → Render scale or a lower Quality preset brings it back down.
+![The store on an emulated iPhone: before (1.5x cap) and after (native 3x)](media/improvements/round4/web_iphone_resolution_before_after.jpg)
