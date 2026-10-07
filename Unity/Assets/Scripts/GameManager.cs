@@ -735,8 +735,12 @@ namespace AgentClicker
             Cam.SetMode(CamMode.Monitor, 1.3f);
         }
 
+        /// <summary>When the player last shipped code by hand (unscaled time).</summary>
+        public float LastHandShip { get; private set; } = -10f;
+
         public ClickResult Ship()
         {
+            LastHandShip = Time.unscaledTime;
             var r = Model.Click();
             Employee.NotifyClick();
             Sfx.Play(r.Crit ? Sound.Crit : Sound.Key, r.Crit ? 0.8f : 0.45f);

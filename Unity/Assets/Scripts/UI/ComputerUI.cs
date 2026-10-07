@@ -489,15 +489,22 @@ namespace AgentClicker.UI
             var mail = StoryDatabase.MailById(_autoOpenMail);
             if (mail == null || m.State.mailRead.Contains(_autoOpenMail) || !_gm.Settings.autoOpenStoryMail) { _autoOpenMail = null; return; }
             if (!StoryDatabase.ShouldAutoOpen(m, mail) || !_desktop.gameObject.activeSelf || _modal != null ||
-                _gm.Cam.Mode != Office.CamMode.Monitor || _gm.Calls.Busy) return;
+                _gm.Cam.Mode != Office.CamMode.Monitor || _gm.Calls.Busy || ShippingNow) return;
             StartCoroutine(OpenInboxSoon(_autoOpenMail));
             _autoOpenMail = null;
         }
 
+        /// <summary>
+        /// The player is clicking SHIP CODE right now. An email that opened under a burst of clicks would be closed
+        /// unread by the next click on its backdrop, so it waits for a pause.
+        /// </summary>
+        bool ShippingNow => Time.unscaledTime - _gm.LastHandShip < 1.5f;
+
         System.Collections.IEnumerator OpenInboxSoon(string id)
         {
             yield return new WaitForSecondsRealtime(0.9f);
-            if (_modal == null && _desktop.gameObject.activeSelf) ShowInbox(id);
+            while (ShippingNow) yield return null;
+            if (_modal == null && _desktop.gameObject.activeSelf && !_gm.Calls.Busy) ShowInbox(id);
         }
 
         public bool InboxOpen { get; private set; }
