@@ -97,6 +97,22 @@
         devicePixelRatio: pixelRatio(),
       };
 
+      // test tools only (Tools/websoak.mjs detached): ?report=/path posts each [Soak] sample the game logs, with the
+      // page's JS heap, to that path on this server, so a long run needs no DevTools connection. Installed before the
+      // loader, which keeps its own reference to console.log.
+      var report = new URLSearchParams(location.search).get("report");
+      if (report && report.charAt(0) === "/") {
+        var log = console.log;
+        console.log = function () {
+          log.apply(console, arguments);
+          var text = String(arguments[0]);
+          if (text.indexOf("[Soak]") !== 0) return;
+          var mem = performance.memory;
+          fetch(report, { method: "POST", body: JSON.stringify({ text: text, js: mem ? mem.usedJSHeapSize : -1,
+                                                                 jsTotal: mem ? mem.totalJSHeapSize : -1 }) }).catch(function () {});
+        };
+      }
+
       var script = document.createElement("script");
       script.src = buildUrl + "/{{{ LOADER_FILENAME }}}";
       script.onload = function () {
