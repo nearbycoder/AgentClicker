@@ -208,6 +208,7 @@ namespace AgentClicker
 
             // ---- autopilot: nobody touches the keyboard from 5 PM to the next morning ----------
             yield return AutopilotSegment();
+            yield return OfflineSegment();
 
             // ---- the ending ---------------------------------------------------
             _gm.Login();
@@ -403,6 +404,61 @@ namespace AgentClicker
             M.RandomEventsEnabled = true;
             ap.ClockOutAfter = defaults.ClockOutAfter; ap.GoHomeAfter = defaults.GoHomeAfter;
             ap.ClockInAfter = defaults.ClockInAfter; ap.LogInAfter = defaults.LogInAfter;
+        }
+
+        /// <summary>
+        /// Time the game didn't run: two hours closed shows the card with what was credited and that the second hour didn't
+        /// count, ten minutes paused doesn't mention the cap, and thirty seconds shows nothing.
+        /// </summary>
+        IEnumerator OfflineSegment()
+        {
+            M.RandomEventsEnabled = false;
+            if (_gm.Computer.ModalOpen) _gm.Computer.CloseModal();
+            yield return new WaitForSeconds(0.5f);
+
+            double before = M.State.credits;
+            double gain = _gm.CreditOffline(2 * 3600, paused: false), credited = M.State.credits - before;
+            yield return WaitFor(() => _gm.Computer.ModalOpen, 3f);
+            yield return new WaitForSeconds(0.6f);
+            yield return Shot("10g_offline_report");
+            string text = _gm.Computer.LastAwayReportText;
+            bool ok = _gm.Computer.ModalOpen && gain > 0 && System.Math.Abs(credited - gain) < 1e-6 * gain
+                      && text.Contains("Your agents kept working") && text.Contains("Game closed") && text.Contains("2h 00m")
+                      && text.Contains("+" + NumberFormat.Credits(gain)) && text.Contains("Only the first 1 hour counted; the other 1h 00m didn't.");
+            Debug.Log(ok ? $"[Tour] PASS offline: two hours closed shows the card (+{NumberFormat.Credits(gain)}, the second hour didn't count)"
+                         : $"[Tour] FAIL offline: two hours closed (modal {_gm.Computer.ModalOpen}, gain {gain}, credited {credited}): {text.Replace("\n", " / ")}");
+            _gm.Computer.CloseModal();
+            yield return new WaitForSeconds(0.4f);
+
+            gain = _gm.CreditOffline(600, paused: true);
+            yield return WaitFor(() => _gm.Computer.ModalOpen, 3f);
+            text = _gm.Computer.LastAwayReportText;
+            ok = _gm.Computer.ModalOpen && text.Contains("Game paused") && text.Contains("10m 00s") && text.Contains("10% for up to 1 hour")
+                 && !text.Contains("Only the first");
+            Debug.Log(ok ? "[Tour] PASS offline: ten minutes paused shows the card without the cap note"
+                         : $"[Tour] FAIL offline: ten minutes paused (modal {_gm.Computer.ModalOpen}): {text}");
+            _gm.Computer.CloseModal();
+            yield return new WaitForSeconds(0.4f);
+
+            before = M.State.credits;
+            _gm.CreditOffline(30, paused: false);
+            yield return new WaitForSeconds(1.5f);
+            Debug.Log(!_gm.Computer.ModalOpen && M.State.credits > before
+                ? "[Tour] PASS offline: thirty seconds is credited without a card"
+                : $"[Tour] FAIL offline: thirty seconds (modal {_gm.Computer.ModalOpen}, credits +{M.State.credits - before})");
+            if (_gm.Computer.ModalOpen) _gm.Computer.CloseModal();
+
+            // idle days and closed time in one card (the real thresholds are too long to reach in the tour)
+            var both = new AwaySummary { Days = 3, Seconds = 900, Credits = 4.2e9, QuotasMet = 2, QuotasMissed = 1, CallsMissed = 2,
+                                         FromDay = M.State.day - 3, ToDay = M.State.day };
+            var closed = new AwaySummary();
+            closed.AddOffline(3 * 3600 + 600, 6.4e9, M.OfflineEfficiency, M.OfflineCapSeconds, paused: false);
+            both.MergeOffline(closed);
+            _gm.Computer.ShowAwayReport(both);
+            yield return new WaitForSeconds(0.6f);
+            yield return Shot("10h_away_report_combined");
+            _gm.Computer.CloseModal();
+            M.RandomEventsEnabled = true;
         }
 
         void LogGoal(string when)

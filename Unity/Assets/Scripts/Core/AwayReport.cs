@@ -2,11 +2,64 @@ using System;
 
 namespace AgentClicker.Core
 {
-    /// <summary>What happened between the player's last input and their return.</summary>
+    /// <summary>
+    /// What happened between the player's last input and their return: idle work days the game ran by itself, and time
+    /// the game didn't run at all (closed, a hidden browser tab, a sleeping laptop), credited at the offline rate.
+    /// </summary>
     public sealed class AwaySummary
     {
         public double Seconds, Credits;
         public int Days, QuotasMet, QuotasMissed, CallsMissed, DropsMissed, FromDay, ToDay;
+
+        /// <summary>Time the game wasn't running, what it earned at the offline rate, and the time past the cap that didn't count.</summary>
+        public double OfflineSeconds, OfflineCredits, OfflineUncounted, OfflineRate, OfflineCapSeconds;
+        /// <summary>The game was running but stopped (a hidden tab or sleep), rather than closed.</summary>
+        public bool OfflinePaused, OfflineClosed;
+
+        /// <summary>Gaps shorter than this aren't worth a card (a quick restart, a glance at another tab).</summary>
+        public const double MinOfflineSeconds = 60;
+
+        public bool HasDays => Days > 0;
+        public bool HasOffline => OfflineSeconds >= MinOfflineSeconds && OfflineCredits > 0;
+
+        /// <summary>Adds a stretch the game didn't run: <paramref name="credits"/> is what <see cref="GameModel.ApplyOffline"/> paid for it.</summary>
+        public void AddOffline(double seconds, double credits, double rate, double capSeconds, bool paused)
+        {
+            if (!(seconds > 0)) return;
+            OfflineSeconds += seconds;
+            OfflineCredits += Math.Max(0, credits);
+            OfflineUncounted += Math.Max(0, seconds - capSeconds);
+            OfflineRate = rate;
+            OfflineCapSeconds = capSeconds;
+            if (paused) OfflinePaused = true; else OfflineClosed = true;
+        }
+
+        /// <summary>Adds the other summary's offline time to this one.</summary>
+        public void MergeOffline(AwaySummary o)
+        {
+            if (o == null) return;
+            OfflineSeconds += o.OfflineSeconds;
+            OfflineCredits += o.OfflineCredits;
+            OfflineUncounted += o.OfflineUncounted;
+            OfflineRate = o.OfflineRate;
+            OfflineCapSeconds = o.OfflineCapSeconds;
+            OfflinePaused |= o.OfflinePaused;
+            OfflineClosed |= o.OfflineClosed;
+        }
+
+        public string OfflineLabel => OfflineClosed && OfflinePaused ? "Game not running" : OfflinePaused ? "Game paused" : "Game closed";
+
+        /// <summary>"10% for up to 1 hour" (of the normal production rate).</summary>
+        public string OfflineRateText => $"{NumberFormat.Percent(OfflineRate)} for up to {Hours(OfflineCapSeconds)}";
+
+        /// <summary>Said only when part of the time didn't count: "Only the first 1 hour counted; the other 2h 00m didn't."</summary>
+        public string OfflineCapNote => OfflineUncounted >= 1
+            ? $"Only the first {Hours(OfflineCapSeconds)} counted; the other {NumberFormat.Duration(OfflineUncounted)} didn't."
+            : null;
+
+        /// <summary>The caps are whole hours (1, 4, 24): "1 hour", "4 hours".</summary>
+        static string Hours(double seconds) =>
+            seconds >= 3600 && seconds % 3600 == 0 ? $"{seconds / 3600:0} hour{(seconds == 3600 ? "" : "s")}" : NumberFormat.Duration(seconds);
     }
 
     /// <summary>

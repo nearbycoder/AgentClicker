@@ -698,38 +698,69 @@ namespace AgentClicker.UI
             go.Label("GO HOME  →", 26, Theme.Bg);
         }
 
-        /// <summary>"While you were away": what the agents did between the player's last input and their return.</summary>
+        /// <summary>
+        /// "While you were away": the work days the agents ran between the player's last input and their return, and time
+        /// the game didn't run at all (paid at the offline rate).
+        /// </summary>
         public void ShowAwayReport(AwaySummary a)
         {
-            var card = OpenModal(760, 520, out _);
-            UIKit.Text(card, "Kicker", $"WHILE YOU WERE AWAY · {NumberFormat.Duration(a.Seconds).ToUpperInvariant()}", 16, Theme.TextDim,
-                       TextAlignmentOptions.Top, UIFonts.Medium).rectTransform.TopLeft(0, 34, 760, 24);
-            UIKit.Text(card, "Title", a.Days == 1 ? "Your agents ran a day without you" : $"Your agents ran {a.Days} days without you",
-                       38, Theme.Accent, TextAlignmentOptions.Top, UIFonts.Bold).rectTransform.TopLeft(20, 66, 720, 50);
-
             string Row(string label, string value) => $"<color=#A4AFC2>{label}</color><pos=42%>{value}\n";
-            string days = a.FromDay == a.ToDay ? $"Day {a.ToDay}" : $"Day {a.FromDay} → Day {a.ToDay}";
-            string quotas = a.QuotasMissed == 0 ? $"<color=#FFD166>{a.QuotasMet} met ★</color>"
-                          : $"<color=#FFD166>{a.QuotasMet} met ★</color>  ·  <color=#FF5D5D>{a.QuotasMissed} missed</color>";
-            string missed = a.CallsMissed + a.DropsMissed == 0 ? "nothing"
-                          : string.Join("  ·  ", new[]
-                            {
-                                a.CallsMissed > 0 ? $"{a.CallsMissed} call{(a.CallsMissed == 1 ? "" : "s")}" : null,
-                                a.DropsMissed > 0 ? $"{a.DropsMissed} model drop{(a.DropsMissed == 1 ? "" : "s")}" : null,
-                            }.Where(x => x != null));
-            var body = UIKit.Text(card, "Rows",
-                Row("Calendar", days) +
-                Row("Agents earned", $"<color=#3DDC97>+{NumberFormat.Credits(a.Credits)}</color>") +
-                Row("Quotas", quotas) +
-                Row("You missed", missed), 22, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Medium);
-            body.rectTransform.TopLeft(90, 150, 600, 220);
+            string rows = "";
+            if (a.HasDays)
+            {
+                string days = a.FromDay == a.ToDay ? $"Day {a.ToDay}" : $"Day {a.FromDay} → Day {a.ToDay}";
+                string quotas = a.QuotasMissed == 0 ? $"<color=#FFD166>{a.QuotasMet} met ★</color>"
+                              : $"<color=#FFD166>{a.QuotasMet} met ★</color>  ·  <color=#FF5D5D>{a.QuotasMissed} missed</color>";
+                string missed = a.CallsMissed + a.DropsMissed == 0 ? "nothing"
+                              : string.Join("  ·  ", new[]
+                                {
+                                    a.CallsMissed > 0 ? $"{a.CallsMissed} call{(a.CallsMissed == 1 ? "" : "s")}" : null,
+                                    a.DropsMissed > 0 ? $"{a.DropsMissed} model drop{(a.DropsMissed == 1 ? "" : "s")}" : null,
+                                }.Where(x => x != null));
+                rows += Row("Calendar", days) +
+                        Row("Agents earned", $"<color=#3DDC97>+{NumberFormat.Credits(a.Credits)}</color>") +
+                        Row("Quotas", quotas) +
+                        Row("You missed", missed);
+            }
+            if (a.HasOffline)
+            {
+                string earned = $"<color=#3DDC97>+{NumberFormat.Credits(a.OfflineCredits)}</color>";
+                rows += a.HasDays
+                    ? Row(a.OfflineLabel, $"{NumberFormat.Duration(a.OfflineSeconds)}  ·  {earned}")
+                    : Row(a.OfflineLabel, NumberFormat.Duration(a.OfflineSeconds)) + Row("Agents earned", earned);
+                rows += Row("Offline rate", a.OfflineRateText);
+            }
+            int lines = rows.Split('\n').Length - 1;
+
+            // the note: what didn't count, and how to keep earning at the full rate
+            string note = a.HasOffline && a.OfflineCapNote != null
+                ? a.OfflineCapNote + (_gm.Settings.autopilotDay ? " Leave the game running and the day runs itself at the full rate." : "")
+                : a.HasDays ? "The work day runs itself while you're away. Turn it off in Settings → Gameplay." : "";
+            string title = a.HasDays ? (a.Days == 1 ? "Your agents ran a day without you" : $"Your agents ran {a.Days} days without you")
+                                     : "Your agents kept working";
+            double seconds = a.HasDays ? a.Seconds + a.OfflineSeconds : a.OfflineSeconds;
+
+            const float rowHeight = 33; // 22 pt rows with line spacing
+            float bodyHeight = lines * rowHeight, noteTop = 150 + bodyHeight + 30, noteHeight = note.Length > 90 ? 48 : 24;
+            float buttonTop = noteTop + noteHeight + 24, height = buttonTop + 72 + 38;
+            var card = OpenModal(760, height, out _);
+            UIKit.Text(card, "Kicker", $"WHILE YOU WERE AWAY · {NumberFormat.Duration(seconds).ToUpperInvariant()}", 16, Theme.TextDim,
+                       TextAlignmentOptions.Top, UIFonts.Medium).rectTransform.TopLeft(0, 34, 760, 24);
+            UIKit.Text(card, "Title", title, 38, Theme.Accent, TextAlignmentOptions.Top, UIFonts.Bold).rectTransform.TopLeft(20, 66, 720, 50);
+            var body = UIKit.Text(card, "Rows", rows, 22, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Medium);
+            body.rectTransform.TopLeft(90, 150, 600, bodyHeight);
             body.lineSpacing = 22;
-            UIKit.Text(card, "Note", "The work day runs itself while you're away. Turn it off in Settings → Gameplay.", 15, Theme.TextFaint,
-                       TextAlignmentOptions.Top).rectTransform.TopLeft(40, 360, 680, 24);
+            var noteText = UIKit.Text(card, "Note", note, 15, Theme.TextFaint, TextAlignmentOptions.Top);
+            noteText.rectTransform.TopLeft(40, noteTop, 680, noteHeight);
+            noteText.textWrappingMode = TextWrappingModes.Normal;
             var go = UIKit.Button(card, "BackToWork", Theme.Accent, CloseModal, 14);
-            go.GetComponent<RectTransform>().TopLeft(230, 410, 300, 72);
+            go.GetComponent<RectTransform>().TopLeft(230, buttonTop, 300, 72);
             go.Label("BACK TO WORK", 24, Theme.Bg);
+            LastAwayReportText = $"{title} | {body.text} | {note}";
         }
+
+        /// <summary>The last away card's title, rows and note (the tour checks its numbers).</summary>
+        public string LastAwayReportText { get; private set; } = "";
 
         public void ShowFactoryBoot()
         {

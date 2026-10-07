@@ -132,6 +132,10 @@ Cost of the *n*-th copy: `baseCost × 1.15^n`. Bulk buys: x1, x10, x100 and MAX.
   goes home after 15 s on the review, clocks in after 8 s of night and logs in after 10 s, then toasts
   what it did. Any input restarts the countdown; calls, menus, story cards and the ending hold it, and
   choosing WORK LATE keeps that day's overtime.
+* **Game closed** (or a hidden browser tab, or a sleeping laptop): agents earn 10% of their rate for at most an
+  hour (Remote Work and Unlimited PTO raise both). After a gap of a minute or more, the "While you were away" card shows
+  the time, the credits and the rate, and says how much time went past the cap; it waits until the player is at the
+  desktop and active, and joins the idle days if there were any.
 * **Promotions** come from lifetime earnings: Junior Developer → Developer →
   Senior Developer → Staff Engineer → Principal Engineer → AI Whisperer →
   Chief Agent Officer. Promotions change the office: the cubicle walls disappear,

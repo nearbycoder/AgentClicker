@@ -50,7 +50,8 @@ namespace AgentClicker
 
         float _saveTimer, _tutorialTimer;
         bool _boardRoomOnLogin;
-        double _offlineGain;
+        /// <summary>Time the game didn't run (closed, a hidden tab, sleep), waiting to be reported on the desktop.</summary>
+        AwaySummary _pendingOffline;
         bool _automated;   // tour / benchmark / soak: skip the title screen
         float? _dayLengthOverride;   // -daylength: wins over the setting
 
@@ -132,7 +133,7 @@ namespace AgentClicker
                 // Always resume at the start of a session: back at the login screen of the same day.
                 if (Model.Phase == GamePhase.Working || Model.Phase == GamePhase.Review) Model.State.Phase = GamePhase.Login;
                 double away = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - Model.State.lastSaveUnix;
-                _offlineGain = Model.ApplyOffline(away);
+                CreditOffline(away, paused: false);
             }
 
             Sfx = gameObject.AddComponent<Sfx>();
@@ -401,13 +402,23 @@ namespace AgentClicker
 
         void UpdateAway(bool input)
         {
-            if (OnTitle || InEnding || !AutopilotAllowed) { Away.Restart(Model); return; }
-            Away.Tick(Time.unscaledDeltaTime);
-            if (input) PlayerReturned();
-            if (_pendingAway != null && Computer.DesktopShown && !Computer.ModalOpen && !Menu.Blocking && !Calls.Busy)
+            if (OnTitle || InEnding) { Away.Restart(Model); return; }
+            if (!AutopilotAllowed) Away.Restart(Model);
+            else
             {
-                Computer.ShowAwayReport(_pendingAway);
+                Away.Tick(Time.unscaledDeltaTime);
+                if (input) PlayerReturned();
+            }
+            // time the game didn't run waits for a player who is here (just logged in, or back at the keyboard), and joins
+            // the idle days if they were away for those too
+            bool offlineReady = _pendingOffline != null && Away.AwaySeconds < 30;
+            if ((_pendingAway != null || offlineReady) && Computer.DesktopShown && !Computer.ModalOpen && !Menu.Blocking && !Calls.Busy)
+            {
+                var report = _pendingAway ?? new AwaySummary { FromDay = Model.State.day, ToDay = Model.State.day };
+                if (offlineReady) report.MergeOffline(_pendingOffline);
+                if (report.HasDays || report.HasOffline) Computer.ShowAwayReport(report);
                 _pendingAway = null;
+                if (offlineReady) _pendingOffline = null;
             }
         }
 
@@ -492,10 +503,23 @@ namespace AgentClicker
             double now = Time.realtimeSinceStartupAsDouble, gap = _lastFrameTime < 0 ? 0 : now - _lastFrameTime;
             _lastFrameTime = now;
             if (gap < 60 || OnTitle || !SavingEnabled) return;
-            double gain = Model.ApplyOffline(gap);
-            if (gain > 0)
-                Computer.Toast($"While the game was paused for {NumberFormat.Duration(gap)}, your agents earned {NumberFormat.Credits(gain)} " +
-                               $"<color=#A4AFC2>({NumberFormat.Percent(Model.OfflineEfficiency)} rate)</color>", Theme.Good, 6f);
+            CreditOffline(gap, paused: true);
+        }
+
+        /// <summary>
+        /// Pays the offline rate for time the game didn't run, and keeps it for the "While you were away" card. Public for
+        /// the tour, which can't close the game.
+        /// </summary>
+        public double CreditOffline(double seconds, bool paused)
+        {
+            double gain = Model.ApplyOffline(seconds);
+            if (seconds >= AwaySummary.MinOfflineSeconds && gain > 0)
+            {
+                _pendingOffline ??= new AwaySummary();
+                _pendingOffline.AddOffline(seconds, gain, Model.OfflineEfficiency, Model.OfflineCapSeconds, paused);
+                Debug.Log($"[Away] game {(paused ? "paused" : "closed")} for {NumberFormat.Duration(seconds)}, +{NumberFormat.Short(gain)} at the offline rate");
+            }
+            return gain;
         }
 
         void HandleKeys()
@@ -557,12 +581,6 @@ namespace AgentClicker
             Menu.HideAll();
             if (Model.Phase == GamePhase.Night) Overlay.ShowNight(0, instant: true);
             else BeginMorning(false);
-            if (_offlineGain > 0)
-            {
-                Computer.Toast($"While you were away, your agents earned {NumberFormat.Credits(_offlineGain)} " +
-                               $"<color=#A4AFC2>({NumberFormat.Percent(Model.OfflineEfficiency)} rate, up to {NumberFormat.Duration(Model.OfflineCapSeconds)})</color>", Theme.Good, 6f);
-                _offlineGain = 0;
-            }
         }
 
         public void NewGame()
@@ -570,7 +588,7 @@ namespace AgentClicker
             if (SavingEnabled) SaveSystem.Delete();
             Model.Load(new GameState());
             Model.DayLengthSeconds = DayLength;
-            _offlineGain = 0;
+            _pendingOffline = null;
             Office.Refresh(false);
             Computer.ResetSession();
             Menu.HideAll();
@@ -694,7 +712,7 @@ namespace AgentClicker
             if (state.Phase == GamePhase.Working || state.Phase == GamePhase.Review) state.Phase = GamePhase.Login;
             Model.Load(state);
             Model.DayLengthSeconds = DayLength;
-            _offlineGain = 0;
+            _pendingOffline = null;
             Save();
             Computer.ResetSession();
             Office.Refresh(false);
