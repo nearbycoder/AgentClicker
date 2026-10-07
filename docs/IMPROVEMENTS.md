@@ -1,8 +1,8 @@
 # Agent Clicker: improvement plan
 
 Written on 2026-10-06, after v0.1.0 (published 2026-10-04). This document ranks what would most raise the
-game's quality for a real player, then records each round's scope and results. Rounds 1–7 (branches
-`improvements` to `improvements-7`) are merged into `main`; round 8 is on `improvements-8`.
+game's quality for a real player, then records each round's scope and results. Rounds 1–8 (branches
+`improvements` to `improvements-8`) are merged into `main`; round 9 is on `improvements-9`.
 
 ## Baseline (what was run, and what it showed)
 
@@ -1177,3 +1177,77 @@ Deferred, and why:
 
 Owner decisions: unchanged. Redeploying `gh-pages` (it would bring rounds 5–8 to the hosted game), the offline-earnings cap
 (10% for 1 hour; a browser tab in the background earns at that rate), Windows Build Support, license, signing, releases and tags.
+
+## Round 9 scope
+
+Baseline on `main` (`ac55db2`, identical to `origin/main`): the tour passes all 55 checks at 1600×900 (load average 9–12).
+This round's tour runs go to a private nested KWin (`Tools/nested.sh`, new: its own Wayland socket, D-Bus session and
+config folder), so no test window opens on the shared desktop. Looking through the baseline screenshots, and at what a
+player meets after a few hours with the game open, found four things. Localization stays deferred (large), real phones and
+tablets can't be tried here, and the owner's decisions are unchanged (Windows Build Support, the offline cap of 10% for 1
+hour, license, signing, releases and tags, redeploying `gh-pages`).
+
+### 1. Lists that show they scroll
+
+No list in CorpOS has a scrollbar. The Board Room shows 7 of its 16 perks with nothing to say there are more, the Stats tab
+cuts off at the PEOPLE heading, and the store's agent list grows to 20 rows. A mouse player may find the wheel; a touch or
+gamepad player has no reason to try.
+
+* Every scrolling list (store agents, upgrades, office, Board Room, Stats, the inbox and an email's body) gets a slim
+  scrollbar on its right edge, only while its content doesn't fit. Its thumb shows how much is left and can be dragged with
+  the mouse, a finger or the gamepad cursor.
+
+**Acceptance**: in the Board Room and the late-game agent list the bar shows, with its thumb's share of the track equal to
+the visible share of the list; a real mouse drag of the thumb to the bottom scrolls the list to its end; a list that fits
+(the day 1 agent list) shows no bar; nothing is covered (rows keep their width). **Verify**: tour checks with Input System
+mouse events, screenshots.
+
+### 2. Music that doesn't repeat every 25 seconds
+
+The lo-fi music is one 8-bar loop (25.3 s) with the same four chords twice. An idle game stays open for hours, so it plays
+that loop over a hundred times an hour.
+
+* A longer piece built from the same instruments: four 8-bar sections (the current one, a second chord progression, a
+  sparse breakdown without drums, and a return with a varied melody), about 100 s before it repeats. The current loop
+  renders first and plays as it does today, so music doesn't start later than now (the browser renders on its only thread);
+  when the long piece is ready, playback moves to it at the loop's next bar line, without a gap.
+
+**Acceptance**: the piece is at least 90 s long; no two sections are the same audio; the loop point and the switch are
+seamless (no jump between the last and first samples, larger than the piece's own sample-to-sample steps); levels match
+today's (peak and RMS within about 2 dB, no clipping); the music still reports ready at about the same time; in the browser
+frame times while it renders stay within the current budget. **Verify**: an EditMode test on the rendered buffer (length,
+section differences, seam, levels), the player log (render times, the switch), the Chromium web test's audio check, and a
+spectrogram in `docs/media/improvements/round9/`. Nobody here can listen to it, so whether it sounds good is for the owner.
+
+### 3. Timed effects you can read
+
+The credits card has one 200-pixel line for every timed effect: with Benchmark Hype and an outage up it reads "Benchmark
+Hype x7 · 49s O…", and a call's Buzz or Coffee alongside a drop's effect is cut the same way. The 5 PM card is written once
+when it opens, so it can say "Quota not met yet" while the quota panel beside it says "✓ met" (overtime counts).
+
+* Production effects (Hype, Buzz, an outage) stay on the credits card, in short form and with their time left, using the
+  space the rate doesn't need; click effects (Caffeine Rush, Coffee) move to the SHIP CODE button's line, next to the click
+  power they multiply.
+* The 5 PM card keeps its quota line current while it's open and says how far along the day is ("1.19B of 2.00M").
+
+**Acceptance**: with Hype, Caffeine Rush and an outage active at once, every effect's name, multiplier and seconds left are
+on screen, none cut off or overlapping; the 5 PM card changes from "not met" to "met" when overtime passes the quota.
+**Verify**: tour checks of the texts' bounds and content, screenshots.
+
+### 4. The browser tab says what's happening
+
+A browser player who keeps the game in a tab beside their work sees "Agent Clicker" in the tab and the window's title,
+whatever happens. Idle games traditionally put the score there, and a model drop or a ringing phone is when you want to
+look.
+
+* In the browser, the page title shows the credits ("22.0Qa credits · Agent Clicker") and puts an alert in front while
+  something needs the player: "★ Model drop!", "☎ Phone ringing", "⚠ API outage", "5 PM: clock out?". It updates at most
+  once a second and goes back to plain "Agent Clicker" on the title screen.
+
+**Acceptance**: in headless Chromium and Firefox the title shows the credits after login, the drop alert while a drop is up
+and the ringing alert while the phone rings, and drops them afterwards; no page errors. **Verify**: new checks in
+`Tools/webtest.mjs` (both browsers), through the existing test hooks.
+
+Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes in the nested KWin, the Chromium and Firefox
+web tests and the touch test pass, the benchmark is re-run, screenshots go to `docs/media/improvements/round9/`, and the real
+`~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and after (before: `prefs` unchanged since round 8).
