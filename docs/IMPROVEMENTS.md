@@ -610,6 +610,11 @@ Deferred, and why:
 * A pre-existing TMP warning (an ellipsis glyph missing in a CorpOS text on day 1) appears in every tour log; it's
   harmless (TMP falls back to truncating) and wasn't traced this round.
 
-Owner decisions: unchanged (Windows Build Support, browser hosting, the offline cap of 10% for 1 hour, license,
-signing, releases and tags, re-cutting the trailer), plus whether gamepad support should be announced before someone
-tries it on real hardware.
+Owner decisions: unchanged (Windows Build Support, the offline cap of 10% for 1 hour, license, signing, releases and
+tags, re-cutting the trailer), plus whether gamepad support should be announced before someone tries it on real
+hardware.
+
+**Hosting (decided by the owner after this round, 2026-10-06):** the browser build is on GitHub Pages at
+<https://nearbycoder.github.io/AgentClicker/>, served from the `gh-pages` branch (a copy of `Builds/WebGL` from this round's code plus a `.nojekyll`
+file). The build's Brotli files carry their own decompression fallback, so they work even though GitHub Pages doesn't
+send `Content-Encoding: br`. To update it, rebuild with `Tools/unity.sh build-webgl` and replace the branch's files.

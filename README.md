@@ -17,7 +17,7 @@ An idle clicker about a developer who quietly hands their whole job to AI agents
 
 <p align="center">
   <a href="docs/media/trailer.mp4"><img src="docs/media/trailer-poster.jpg" alt="Watch the Agent Clicker trailer (1:41)" width="800"></a><br>
-  <sub>▶ <a href="docs/media/trailer.mp4">Watch the trailer</a> (1:41, 1080p, with sound)</sub>
+  <sub>▶ <a href="docs/media/trailer.mp4">Watch the trailer</a> (1:41, 1080p, with sound) · 🎮 <a href="https://nearbycoder.github.io/AgentClicker/"><b>Play it in your browser</b></a></sub>
 </p>
 
 ---
@@ -190,8 +190,9 @@ shortens the work day (seconds).
 build made on Linux. It is unsigned and hasn't been tested on a Mac. If macOS refuses to open it, run
 `xattr -cr "Agent Clicker.app"` and then `codesign --force --deep -s - "Agent Clicker.app"`.
 
-**In a browser (local build, not hosted yet).** `Tools/unity.sh build-webgl` makes a browser build in
-`Builds/WebGL`, about 15 MB to download. Serve the folder with any static web server, for example
+**In a browser.** Play it at **<https://nearbycoder.github.io/AgentClicker/>** (GitHub Pages, about 15 MB to download; desktop browsers with a
+mouse and keyboard or a gamepad). The hosted copy is the `gh-pages` branch, a plain copy of a browser build.
+`Tools/unity.sh build-webgl` makes the same build in `Builds/WebGL`. Serve the folder with any static web server, for example
 `python3 -m http.server -d Builds/WebGL 8000`, and open <http://localhost:8000>. The page (from
 `Unity/Assets/WebGLTemplates/AgentClicker`) fills the browser window, shows a progress bar while loading, has a
 fullscreen button, and tells touch-only devices up front that the game needs a mouse and keyboard. The save goes to the
@@ -334,7 +335,7 @@ release (v0.1.0).
 * **The browser build is new and lightly tested**: it was checked in headless Chrome and Firefox 157 on Linux (start
   a game, autopilot login, audio playing, save, reload, continue, save files) and soaked for 30 minutes in Chrome and
   20 in Firefox.
-  Safari, phones and tablets (there's no touch support) haven't been tried, and it isn't hosted anywhere yet. Playwright's WebKit (Safari's
+  Safari, phones and tablets (there's no touch support) haven't been tried. It's hosted on GitHub Pages; Playwright's WebKit (Safari's
   engine) doesn't start on this CachyOS machine: it is built against Ubuntu 24.04 libraries (ICU 74, flite, libjxl
   0.8). Music starts a few seconds after loading because it's synthesised on the page's only thread.
 * **No Windows build yet.** The build script has a Windows target, but it hasn't been built or tested.
