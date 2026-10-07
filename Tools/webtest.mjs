@@ -211,6 +211,37 @@ async function main() {
     await sleep(600);
     await shot("05_hired");
 
+    // ---- a page behind another window saves power, and the WebGL id tables don't grow with every frame ----------
+    // The game's own frame rate (the page's animation frames keep their pace when the game caps its own). Focus is
+    // moved with the window's blur and focus events, which is what the engine listens to.
+    const gameFps = async (secs) => {
+      const from = log.length;
+      await page.evaluate((s) => window.unityInstance.SendMessage("Game", "LogFrameRate", String(s)), secs);
+      for (let i = 0; i < (secs + 10) * 4; i++) {
+        await sleep(250);
+        const line = log.slice(from).find((l) => l.includes("[Probe] fps"));
+        if (line) return { fps: parseFloat(/fps ([\d.]+)/.exec(line)[1]), line: line.replace(/^.*\[Probe\] /, "") };
+      }
+      return { fps: -1, line: "no answer" };
+    };
+    const glStats = () => page.evaluate(() => window.agentClickerGL ? window.agentClickerGL() : null);
+    const gl0 = await glStats(), glT0 = Date.now();
+    const front = await gameFps(3);
+    await page.evaluate(() => window.dispatchEvent(new FocusEvent("blur")));
+    await sleep(500);
+    const behind = await gameFps(3);
+    await page.evaluate(() => window.dispatchEvent(new FocusEvent("focus")));
+    await sleep(500);
+    const back = await gameFps(3);
+    console.log(`[Web] game frame rate: in front ${front.line} · behind another window ${behind.line} · in front again ${back.line}`);
+    check(behind.fps > 0 && behind.fps <= 17 && back.fps >= Math.max(20, behind.fps * 1.5),
+          `the game drops to about 15 fps behind another window and comes back (${front.fps} → ${behind.fps} → ${back.fps} fps)`);
+    const gl1 = await glStats(), glSecs = (Date.now() - glT0) / 1000;
+    console.log(`[Web] WebGL ids: ${JSON.stringify(gl0)} → ${JSON.stringify(gl1)}`);
+    check(!!gl0 && !!gl1 && gl1.reuse && gl1.counter - gl0.counter < 3 * glSecs,
+          `WebGL ids are reused: the shared id counter went ${gl0?.counter} → ${gl1?.counter} in ${glSecs.toFixed(0)} s ` +
+          `(the engine's own allocator adds about one a frame), largest table ${gl0?.largest} → ${gl1?.largest}`);
+
     // ---- hiding the tab saves at once -------------------------------------------------------------------
     // wait for an autosave, then ship more code: only a save on hide can include those clicks
     const before = await readSave(page);

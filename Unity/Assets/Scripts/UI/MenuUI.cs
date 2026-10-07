@@ -264,7 +264,8 @@ namespace AgentClicker.UI
                     Slider("Field of view", 40f, 70f, () => s.fieldOfView, v => s.fieldOfView = v, y, v => $"{v:0}°"); Next();
                     Toggle("Post-processing (bloom, AO, grading)", () => s.postProcessing, v => s.postProcessing = v, y); Next();
                     Toggle("Show FPS counter", () => s.showFps, v => s.showFps = v, y); Next();
-                    if (!Platform.IsWeb) Toggle("Save power when in background", () => s.throttleInBackground, v => s.throttleInBackground = v, y);
+                    Toggle("Save power when in background", () => s.throttleInBackground, v => s.throttleInBackground = v, y,
+                           "15 fps while another window is in front");
                     break;
                 case SettingsTab.Audio:
                     Slider("Master volume", 0, 1, () => s.masterVolume, v => s.masterVolume = v, y, Pct); Next();

@@ -641,6 +641,26 @@ namespace AgentClicker
             if (found.Count == 0) Debug.Log($"[Probe] {name} none");
         }
 
+        /// <summary>
+        /// Test hook for the browser tests (<c>unityInstance.SendMessage("Game", "LogFrameRate", "2")</c>): logs the game's
+        /// own frame rate over the next few seconds (the page's animation frames keep their pace when the game caps its own).
+        /// </summary>
+        public void LogFrameRate(string seconds)
+        {
+            float s = float.TryParse(seconds, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : 2f;
+            StartCoroutine(MeasureFrameRate(Mathf.Clamp(s, 0.5f, 30f)));
+        }
+
+        IEnumerator MeasureFrameRate(float seconds)
+        {
+            int frames = Time.frameCount;
+            float start = Time.realtimeSinceStartup;
+            yield return new WaitForSecondsRealtime(seconds);
+            float fps = (Time.frameCount - frames) / Mathf.Max(0.001f, Time.realtimeSinceStartup - start);
+            Debug.Log($"[Probe] fps {fps.ToString("0.0", CultureInfo.InvariantCulture)} focused {Application.isFocused} " +
+                      $"cap {Application.targetFrameRate}");
+        }
+
         public void OnSaveFileLoaded(string text)
         {
             var state = SaveSystem.Validate(text, out string error);

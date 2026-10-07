@@ -105,7 +105,11 @@ namespace AgentClicker.Util
         {
             if (Platform.IsWeb)
             {
-                Application.targetFrameRate = -1; // the browser's display refresh; hidden tabs pause on their own
+                // the browser paces frames to the display and stops hidden tabs on its own, but a visible tab behind
+                // another window keeps rendering at full speed. A frame cap only takes effect there with vsync off.
+                bool throttle = !focused && s.throttleInBackground;
+                QualitySettings.vSyncCount = throttle ? 0 : 1;
+                Application.targetFrameRate = throttle ? 15 : -1;
                 return;
             }
             if (!focused && s.throttleInBackground)
