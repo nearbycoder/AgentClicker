@@ -149,6 +149,28 @@ async function main() {
     await shot("01_title");
     check(pageErrors.length === 0, "loaded to the title screen without page errors");
 
+    // home-screen play: the web app manifest parses and its icons load (Chromium can read the parsed manifest)
+    if (engine === "chromium") {
+      const cdp = await context.newCDPSession(page);
+      const m = await cdp.send("Page.getAppManifest");
+      const parsed = m.data ? JSON.parse(m.data) : null;
+      const icons = [...(parsed?.icons ?? []).map((i) => i.src), "icon-180.png"];
+      const loadedIcons = await page.evaluate((srcs) => Promise.all(srcs.map((src) => new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(`${src} ${img.naturalWidth}x${img.naturalHeight}`);
+        img.onerror = () => resolve(null);
+        img.src = src;
+      }))), icons);
+      const meta = await page.evaluate(() => ({
+        ios: document.querySelector('meta[name="apple-mobile-web-app-capable"]')?.content,
+        touchIcon: document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute("href"),
+      }));
+      check(!!parsed && (m.errors ?? []).length === 0 && parsed.display === "fullscreen" && parsed.orientation === "landscape" &&
+            loadedIcons.every(Boolean) && meta.ios === "yes" && meta.touchIcon === "icon-180.png",
+            `the web app manifest parses (${(m.errors ?? []).length} errors, display ${parsed?.display}, ${parsed?.orientation}) and its icons ` +
+            `load (${loadedIcons.join(", ")}); iOS home-screen tags present`);
+    }
+
     // settings are kept in PlayerPrefs, in the same IndexedDB file system: switch numbers to scientific
     await page.mouse.click(250, 579); // SETTINGS
     await sleep(1000);
