@@ -1117,3 +1117,63 @@ README's "Long sessions" note. **Verify**: `docs/media/improvements/round8/`, lo
 
 Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes, the benchmark is re-run, screenshots go to
 `docs/media/improvements/round8/`, and the real `~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and after.
+
+## Round 8 results (2026-10-07)
+
+All three player items landed on `improvements-8`, one commit each after the plan (`2dc2162`), and item 4 ran its two hours
+and answered its question (no fix needed). Tests: **139/139** (137 at baseline; 2 new, and the goal test checks the new
+wording), balance bot unchanged at 2h 09m (day 27), career check unchanged (Marketing 59m 30s, Sales 47m 28s, Legal 47m 18s).
+The tour now runs 55 checks (47), all passing at 1600×900 (load average 20–23) and 1024×768 (21). On this round's browser
+build the Chromium web test passes 19/19 (18), Firefox 18/18 (17) and the touch test 27/27 (load average 15–20, with the
+soak's Chrome sharing the GPU). Screenshots and data are in [`docs/media/improvements/round8/`](media/improvements/round8).
+
+| Item | Commit | Verified by |
+|---|---|---|
+| 1. Mute in one click | `7f68edc`, `813cd26` | A real Input System click on the top bar's ♪ sets the listener to 0, writes `"muted":true` to the (throwaway) settings and leaves the master volume at 0.80; a real `M` key event brings it back to 0.80. An EditMode test covers the volume rule (mute, mute-in-background while unfocused, the sliders untouched, the setting surviving JSON). In the browser, the page's audio peak with music and ambience playing went 0.106 → 0.00000 → 0.124 with `M`, `M` in Chromium and 0.108 → 0.00000 → 0.124 in Firefox |
+| 2. Big numbers you can read | `4bdf666` | An EditMode test for every named tier (1.00 million … 1.00 centillion, the same digits as the short form, the edges right below each power of a thousand, nothing past a centillion or in scientific notation). Tour checks on the credits label: "COMPUTE CREDITS" on day 1, "· 22.0 quadrillion" after the Factory and "· 190 tredecillion" in the end game, one line, 232 of 380 px |
+| 3. A tidy activity panel | `732d725` | Tour checks: with one toast up in the late game, 6 feed lines are hidden whole and 3 show above the stack; with three two-line toasts, all 9 are hidden and none shows under a card; a logged line too long for the panel ends in "…" with every line inside the panel. The goal test checks both reorg titles; the career run now prints "Reorg for +82 Stock Options (you have 82)" |
+| 4. Two hours in the browser (time-boxed) | this commit | `Tools/websoak.mjs detached 120` on a WebGL build of `main` (`d788a3a`): 240 samples, 81 in-game days, 56–60 fps, load average 2–93. See below |
+
+![The top bar's ♪ button, on and muted](media/improvements/round8/mute_button_on_off.jpg)
+
+![The credits card before and after: 190TDc, now with "190 tredecillion"](media/improvements/round8/credits_in_words_before_after.jpg)
+
+![The activity panel before (left) and after (right): one toast in the late game, three toasts, and the end-game reorg goal](media/improvements/round8/activity_panel_before_after.jpg)
+
+**Buffers rise once, then stay put (item 4).** The detached run now logs the live buffers and textures on their own. The
+lowest live buffer count in each 15-minute window went 671 (first window) → 1,031 → 1,032 → 1,032 → 1,033 → 1,033 → 1,044 →
+1,045: one step of about 360 in the first 15 minutes (most of it around minute 10, as the late-game office fills up), then
+flat for 100 minutes. The highs swing between about 1,480 and 1,590 as the UI and text meshes are rebuilt, with no trend.
+Textures stayed at 121–122, GameObjects at 1,141–1,156, the glue's largest table at 1,640–1,862, and the JS heap's lowest
+point in each window at 60.6–60.8 MB. Round 6's rise from about 1,030 to 1,450 live objects is the same one-time step seen in
+all tables together. Nothing to fix.
+
+![Page JS heap, live WebGL buffers and all live WebGL objects over two hours in Chrome](media/improvements/round8/soak_browser_two_hours.jpg)
+
+Also measured: `Tools/benchmark.sh` A/B against the published v0.1.0 (downloaded to `Builds/`, deleted afterwards), alternating
+two runs each at load average 21–38 with the browser soak running: at the 60 fps cap while clicking, main-thread CPU read 4.20
+and 5.06 ms for v0.1.0 and 4.49 and 4.35 ms for this build in the monitor view, and 3.81 / 4.56 against 3.94 / 4.00 ms in the
+endless state. No sign of a regression. The credits label only rebuilds when the shown number changes, so it adds no work per
+frame. The real `~/.config/unity3d/Nearby Games/Agent Clicker/` was hashed before and after: only `TestResults.xml` changed (the
+editor's test package, as in rounds 3–7); `prefs` is unchanged and there is no save.
+
+Changes from the plan:
+* Item 1: `M` works everywhere except under the Settings screen, whose toggle shows the setting (pressing `M` there would
+  leave the toggle out of date). It works over calls, where a ringing phone is when you want it. The tour checks the
+  mute-in-background rule through the EditMode test rather than in the player, because the tour counts as focused.
+* Item 1 also fixed the Controls tab: the touch entry for zoom, "Two fingers (office, monitor)", wrapped into the next row
+  and broke the table. It now says "Pinch".
+* Item 3: instead of a backing behind the toasts, the feed became one text per line: a line a toast stack reaches is hidden
+  whole, and a long line ends in "…" (TMP's masking let about 20 px run past the panel). When three tall toasts are up the
+  whole feed is hidden, as the cards already covered it. The toasts still cover part of the "ACTIVITY" label then.
+* Item 3: the unreached reorg goal says how far along you are ("Double your Stock Options: +2 of the 10 you have"); the plan
+  only gave the reached wording.
+
+Deferred, and why:
+* **Real phones and tablets**, iOS Safari and Android Chrome: still emulation only.
+* **Days-long browser runs and GPU memory**: two hours shows the buffer count levelling off; GPU memory isn't visible to the
+  page.
+* **Localization (#13)**: still large, not started. **WebKit**: unchanged (needs Ubuntu 24.04 libraries or a Mac).
+
+Owner decisions: unchanged. Redeploying `gh-pages` (it would bring rounds 5–8 to the hosted game), the offline-earnings cap
+(10% for 1 hour; a browser tab in the background earns at that rate), Windows Build Support, license, signing, releases and tags.

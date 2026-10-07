@@ -8,7 +8,8 @@
 // Same browser setup as Tools/webtest.mjs (CHROMIUM_PATH, FIREFOX_PATH). Writes soak.csv and console.log.
 // WEBGL_DIR serves another copy of the build (default Builds/WebGL), so a long run can go on while the build is remade.
 // WEBSOAK_QUERY adds to the page's URL (for example "glids=engine": the engine's own WebGL id allocator, for an A/B).
-// The gl_* columns are the WebGL glue's id counter, its largest object table and the live objects in all of them.
+// The gl_* columns are the WebGL glue's id counter, its largest object table, the live objects in all of them, and the
+// live buffers and textures on their own (buffers are the type that comes and goes).
 //
 // "detached" runs Chromium with no DevTools connection at all (an attached client makes the browser keep every console
 // message, which could itself look like a leak). This script serves the build and starts the browser itself; the
@@ -42,8 +43,10 @@ function freePort() {
 }
 
 const header = "seconds,day,phase,cps,frames,avg_ms,max_ms,gc_mb,mono_used_mb,mono_heap_mb,unity_alloc_mb,unity_reserved_mb,rss_mb," +
-               "gameobjects,textures,materials,meshes,toasts,wasm_heap_mb,js_heap_mb,gl_counter,gl_largest,gl_live";
-const glColumns = (gl) => gl ? `${gl.counter},${gl.largest},${gl.live}` : ",,";
+               "gameobjects,textures,materials,meshes,toasts,wasm_heap_mb,js_heap_mb,gl_counter,gl_largest,gl_live,gl_buffers_live,gl_textures_live";
+// the page reports each table as "length/live"
+const liveIn = (t) => (typeof t === "string" ? t.split("/")[1] : "") ?? "";
+const glColumns = (gl) => gl ? `${gl.counter},${gl.largest},${gl.live},${liveIn(gl.buffers)},${liveIn(gl.textures)}` : ",,,,";
 
 async function detached() {
   const exe = process.env.CHROMIUM_PATH;

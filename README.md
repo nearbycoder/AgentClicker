@@ -202,7 +202,7 @@ build made on Linux. It is unsigned and hasn't been tested on a Mac. If macOS re
 **In a browser.** Play it at **<https://nearbycoder.github.io/AgentClicker/>** (GitHub Pages, about 15 MB to download; a mouse and keyboard, a gamepad, or a touch screen
 held sideways). The hosted copy is the `gh-pages` branch, a plain copy of a browser build; it was published before touch
 play, monitor zoom, home-screen play, the memory fix below and the later polish (the away card for a closed game, one-tap
-FULLSCREEN, the zoom chip) were added, so they arrive on the site with its next update.
+FULLSCREEN, the zoom chip, the mute button) were added, so they arrive on the site with its next update.
 `Tools/unity.sh build-webgl` makes the same build in `Builds/WebGL`. Serve the folder with any static web server, for example
 `python3 -m http.server -d Builds/WebGL 8000`, and open <http://localhost:8000>. The page (from
 `Unity/Assets/WebGLTemplates/AgentClicker`) fills the browser window, shows a progress bar while loading, has a
@@ -216,7 +216,7 @@ a tab you aren't looking at, so time in a hidden tab counts like time with the g
 headless Chrome and Firefox on Linux; see the known issues below. `Tools/webtest.mjs chromium|firefox` repeats that
 check (load, new game, autopilot login, SHIP CODE, audio level, hire, save on hide, settings, CONTINUE after a reload,
 moving a save file into a fresh browser profile, the 15 fps cap behind another window, the web app manifest, the away
-card after reopening the page "two hours later", and the pause menu's FULLSCREEN). Firefox
+card after reopening the page "two hours later", the pause menu's FULLSCREEN, and `M` muting the sound). Firefox
 is driven over WebDriver BiDi, so the system Firefox works without a Playwright browser download. `Tools/webtouch.mjs` plays it by touch alone in Chromium's touch emulation,
 at a tablet size and a phone held sideways, including zooming into the monitor.
 
@@ -351,9 +351,10 @@ release (v0.1.0).
   15 MB an hour while the tab was visible. The game now hands out freed ids again (a small JavaScript plugin that replaces
   the glue's allocator), and 100 minutes in Chrome with nothing attached stayed flat (lowest point 60.3–60.8 MB in every
   15 minutes). That was measured in headless Chrome and checked in Firefox; it hasn't run for days on a real phone. The
-  page's live WebGL objects rose from about 1,030 to 1,450 over the first hour of that run and then levelled off; a later
-  30-minute run that logged every object table found only the engine's vertex and index buffers moving (670–830 live, no
-  trend), so the rise is most likely those buffers, but a run long enough to show it with every table logged hasn't been done.
+  page's live WebGL objects rise once and then stay put: in a two-hour run with nothing attached, the engine's vertex and
+  index buffers (the only object type that comes and goes) went from a low of 671 to about 1,030 in the first 15 minutes and
+  then held at a low of 1,031–1,045 in every 15 minutes for the next 100, with the JS heap's low points at 60.6–60.8 MB
+  throughout. Days-long runs and GPU memory haven't been measured.
 * **macOS is experimental**: the build is made on Linux, isn't signed or notarised, and hasn't been run on a Mac.
 * **The browser build is new and lightly tested**: it was checked in headless Chrome and Firefox 157 on Linux (start
   a game, autopilot login, audio playing, save, reload, continue, save files), played by touch in Chrome's touch
