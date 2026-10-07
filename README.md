@@ -260,8 +260,9 @@ Tools/benchmark.sh             # uncapped frame times, GC and render stats in a 
 Tools/soak.sh 60               # leave a late-game office alone for an hour; memory and objects every 30 s
 ```
 
-The browser build has the same checks: `Tools/webtest.mjs chromium|firefox` plays through it and `Tools/websoak.mjs`
-soaks it (both need a `playwright-core`, see the comments at the top of each).
+The browser build has the same checks: `Tools/webtest.mjs chromium|firefox` plays through it, `Tools/webtouch.mjs` plays it
+by touch, and `Tools/websoak.mjs` soaks it (`detached` runs the browser with no DevTools connection; see the comments at
+the top of each for the `playwright-core` and browser they need).
 
 ## Project structure
 
@@ -332,13 +333,14 @@ release (v0.1.0).
   no managed code on the stack) during an automated screenshot tour, while the machine was badly overloaded.
   It hasn't been reproduced or explained: the other four runs that session and 15 runs since (release and
   development builds, at load averages from 15 to 73) were all clean.
-* **Long sessions**: an hour of the desktop build left alone (40 in-game days), 30 minutes of the browser build in
-  Chrome and 20 in Firefox showed no growth in the game's memory or objects (the page's JS heap in Chrome drifted a
-  few MB, probably the test harness; see docs/IMPROVEMENTS.md). Nothing longer has been run.
+* **Long sessions**: an hour of the desktop build left alone (40 in-game days) showed no growth in the game's memory or
+  objects. In the browser, Unity's memory stays flat too, but the page's JavaScript heap grows about 15 MB an hour
+  while the tab is visible and rendering (two hours in Chrome: 61 → 95 MB), because the engine's WebGL glue never reuses
+  GL object ids. A hidden tab doesn't grow. A fix is proposed in docs/IMPROVEMENTS.md (round 5) but not made yet.
 * **macOS is experimental**: the build is made on Linux, isn't signed or notarised, and hasn't been run on a Mac.
 * **The browser build is new and lightly tested**: it was checked in headless Chrome and Firefox 157 on Linux (start
-  a game, autopilot login, audio playing, save, reload, continue, save files) and soaked for 30 minutes in Chrome and
-  20 in Firefox.
+  a game, autopilot login, audio playing, save, reload, continue, save files), played by touch in Chrome's touch
+  emulation, and soaked for two hours in Chrome and 20 minutes in Firefox.
   Safari and real phones and tablets haven't been tried: touch play was tested in headless Chromium's touch emulation
   (a 1180×820 tablet and an 844×390 phone held sideways) and with simulated touches in the desktop tour, not with real
   fingers, iOS Safari or Android Chrome. It's hosted on GitHub Pages; Playwright's WebKit (Safari's

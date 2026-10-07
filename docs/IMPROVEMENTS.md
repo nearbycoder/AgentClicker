@@ -697,3 +697,72 @@ load average noted.
 Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes, the Chromium and Firefox web tests
 still pass, the benchmark is re-run, and the real `~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and
 after.
+
+## Round 5 results (2026-10-07)
+
+Items 1 and 2 landed on `improvements-5`; item 3 ran and found a real browser leak (cause identified, not fixed; see
+below). A fourth fix came out of the touch testing. Tests: **129/129**, balance bot unchanged at 2h 09m (day 27). The
+tour now runs 34 checks (24 in round 4), all passing at 1600×900 (load average 13–23) and 1024×768 (13–14).
+Screenshots, soak data and the chart are in [`docs/media/improvements/round5/`](media/improvements/round5).
+
+| Item | Commit | Verified by |
+|---|---|---|
+| 1. Play by touch | `8170037` | Tour segment on a simulated Input System `Touchscreen`, 8 checks: tap the monitor to log in and the first SHIP CODE tap ships; 5 taps → 5 clicks with touch prompts on; two fingers at once → 2; a tap hires and the info panel keeps the agent after the finger lifts; tapped ANSWER and a reply (prompts "ANSWER", "Tap a reply"); a drag across the room turns the camera 38° while a drag starting on SHIP CODE turns it 0°; pinch out 2.45 → 3.05 m, pinching in sits back down; the autopilot waits while the player taps; moving the mouse brings mouse prompts back. `Tools/webtouch.mjs` in headless Chromium with touch emulation, no mouse or keyboard: **17/17** at 1180×820 @2× and 844×390 @3× (title with no mouse-and-keyboard card, tap-to-login, 24 taps → 24 clicks, hire, drag, pinch to sit down, ⚙ and RESUME, no page errors) plus the portrait "turn sideways" note, load average about 25 |
+| Fix: the CEO's email under a burst of clicks | `389fb66`, `3a1cbaa` | Found by the touch test: on day 1 the inbox opened by itself after the 10th click and the next click (or tap) landed on its backdrop and closed it unread, so one click never shipped. Mouse players hit it too. Auto-opened emails now wait for a 1.5 s pause in hand-shipping, and a modal ignores backdrop clicks for its first half second (a stalled frame at load average 40 once let queued taps reach it). Burst screenshots before the fix; the web tests now check the email opens at the first pause (Chromium and Firefox: Esc closes it) |
+| 2. Readable CorpOS monitor | `4cdb1bf` | The tour now lists every monitor text under 14 pt in every shot: the first run found the badge, tab labels, perk descriptions, trophy categories, info footer and four `<size=..%>` tags; after the change none at 1600×900 or 1024×768. The ellipsis warning is gone from the tour log (the cause: an italic `fontStyle` on the top-bar ticker; TMP never looks up "…" for a styled component, so long tickers were cut mid-word). Before/after crops of the office tab, Board Room and trophies |
+| 3. Long browser run, no test client | `88c7f51` | `Tools/websoak.mjs detached 120`: 120 minutes, 81 in-game days, a steady 60 fps, no page errors, load average 1–30. See below |
+
+**The browser build's JS heap grows with every frame it renders (item 3).** With nothing attached to the browser, the
+page's JS heap rose from 61 to 95 MB over two hours; its lowest point in each 15-minute window climbed 61 → 64 → 68 → 71 →
+74 → 79 → 83 → 91 MB, about 15–17 MB an hour, at the same rate as round 4's attached 30-minute run. So the test client
+was not the cause. Unity's own memory stayed flat the whole time (84 MB allocated, 104 MB reserved, managed heap 13–17
+MB, 1,133–1,155 GameObjects, 610–622 meshes).
+
+A sampling heap profile (8 minutes, after forced garbage collection; the heap still grew 61.2 → 63.2 MB) puts every
+surviving allocation in Emscripten's WebGL glue in Unity's `framework.js`: `glFenceSync`, `glGenBuffers`,
+`glGenTextures`, `glGenFramebuffers` and `glGenRenderbuffers` through `GL.genObject`. In that glue, `GL.getNewId` takes
+ids from one counter shared by every object type that only ever goes up, and pads whichever table it is filling with
+empty slots up to the counter. Unity creates a GL fence every frame, so the counter climbs about 60 a second, and every
+table the engine later adds an object to (buffers, textures, framebuffers, renderbuffers, syncs) grows with it. That is
+engine and toolchain code, not the game. In practice: a browser tab left open and visible grows about 15 MB an hour at
+60 fps (about 120 MB over an 8-hour workday); a hidden tab doesn't render, so it doesn't grow; the desktop build isn't
+affected (its round 4 hour was flat).
+
+![Page JS heap, Unity memory and object counts over two hours in Chrome](media/improvements/round5/soak_browser_detached.jpg)
+
+Not fixed this round: it needs either a patch to engine internals or a Unity/Emscripten version that reuses ids. Options,
+smallest first: (a) a jslib that replaces `GL.getNewId` with one that hands out the lowest free id per table (GL allows
+reusing a deleted name; needs a long soak plus the full web tests in Chrome and Firefox, since Unity's renderer is the
+only client); (b) cap the frame rate when the browser player has been away for a while (as the desktop build already
+does at 15 fps when unfocused), which slows the growth and saves battery; (c) check whether a newer Unity 6 patch
+release ships a newer Emscripten. Recommended: (a), behind a test, next round.
+
+Also measured: `Tools/benchmark.sh` A/B against the published v0.1.0 (downloaded to `Builds/`, deleted afterwards),
+alternating two runs each at load average 18–23 with the browser soak running: main-thread CPU 3.3–4.5 ms for v0.1.0 and
+3.2–4.6 ms for this build in the same views, frame rates and allocations swinging run to run as before. SetPass calls
+rose by 3–4 (the count pills), no measurable cost. The real `~/.config/unity3d/Nearby Games/Agent Clicker/` was hashed
+before and after: only `TestResults.xml` changed (the editor's test package, as in rounds 3 and 4); `prefs` is
+unchanged and there is no save.
+
+Changes from the plan:
+* Touch was verified only in emulation (Chromium's touch events and the Input System's simulated `Touchscreen`); no
+  real phone, tablet, iOS Safari or Android browser was available.
+* The tablet and phone runs found that Playwright's zero-length taps can start and end inside one frame under load;
+  the web test now taps for 50 ms (real taps last longer) and reports zero-length taps for information only (24/24 in
+  the final run).
+* Item 2's office descriptions now use the row's full width, but the longest (the Lava Lamp's) still ends in "…" at
+  14 pt (it was cut sooner before); the full text is in the info panel.
+* `GameManager.LogScreenPoint` is a new test hook, reachable only through `unityInstance.SendMessage`, so the web test
+  can find buttons at any window size.
+* The hosted copy on `gh-pages` is still round 4's build, so touch play isn't on the site until it's redeployed (the
+  owner's call).
+
+Deferred, and why:
+* **The browser JS-heap growth fix** (above): engine internals, needs its own round of testing.
+* **Real devices**: iOS Safari, Android Chrome, a real tablet, a real gamepad and a Steam Deck are still untested here.
+* **Localization (#13)**: still large, not started.
+* **WebKit**: unchanged (Playwright's WebKit needs Ubuntu 24.04 libraries; Safari needs a Mac).
+
+Owner decisions: redeploying `gh-pages` (it would bring touch play and the day 1 email fix to the hosted game), whether
+to try the engine-level fix for the browser memory growth (option a above), plus the standing ones: Windows Build
+Support, the offline cap of 10% for 1 hour, license, signing, releases and tags.

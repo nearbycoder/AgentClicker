@@ -178,6 +178,10 @@ Later divisions get a short victory lap instead of the full ending.
 * **Monitor view**: the camera dollies into the main monitor, so the 2D game fills the screen.
 * Toggle views with `Tab`, the mouse wheel, or the on-screen button. Right-drag in
   office view to look around.
+* **Input**: mouse and keyboard; a gamepad drives an on-screen cursor; on a touch screen (the browser build on a
+  tablet or a phone held sideways) taps are clicks, one finger dragged across the office looks around, a pinch zooms
+  (pinching in all the way sits back down), and the store keeps the last tapped item's details because touch has no
+  hover. Prompts follow whichever input was used last.
 * Extra monitors run live world-space dashboards.
 * Time of day drives the sunlight through the window and the wall clock's hands.
 * Employee animations: Idle, Typing, Sip, Relax (hands behind head), FeetUp.
@@ -207,8 +211,9 @@ Omni Conductor.
 | 6. Epilogue | Factory built | Record quarter, lunch with Priya, and the CEO admits he has been an Orchestrator since Q2. |
 
 Emails are delivered while you're working, at most one every 8 seconds. Chapter-opening emails open the
-inbox automatically once you've shipped your first 10 lines of code, so day 1 starts at SHIP CODE (this can be
-turned off in settings). Chapter banners wait until no modal, model drop or call is on screen, and sit in the
+inbox automatically once you've shipped your first 10 lines of code and paused clicking for 1.5 s, so day 1 starts at
+SHIP CODE and a burst of clicks can't close the email unread (this can be turned off in settings). For the same
+reason a modal ignores clicks on its backdrop for its first half second. Chapter banners wait until no modal, model drop or call is on screen, and sit in the
 upper part of the screen, clear of SHIP CODE. The morning day card shows the current chapter.
 New games start with three intro cards, and the ending has five epilogue cards followed by a credits roll.
 
