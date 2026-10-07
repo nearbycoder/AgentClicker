@@ -202,7 +202,7 @@ build made on Linux. It is unsigned and hasn't been tested on a Mac. If macOS re
 **In a browser.** Play it at **<https://nearbycoder.github.io/AgentClicker/>** (GitHub Pages, about 15 MB to download; a mouse and keyboard, a gamepad, or a touch screen
 held sideways). The hosted copy is the `gh-pages` branch, a plain copy of a browser build; it was published before touch
 play, monitor zoom, home-screen play, the memory fix below and the later polish (the away card for a closed game, one-tap
-FULLSCREEN, the zoom chip, the mute button) were added, so they arrive on the site with its next update.
+FULLSCREEN, the zoom chip, the mute button, scrollbars, the longer music, the tab's title) were added, so they arrive on the site with its next update.
 `Tools/unity.sh build-webgl` makes the same build in `Builds/WebGL`. Serve the folder with any static web server, for example
 `python3 -m http.server -d Builds/WebGL 8000`, and open <http://localhost:8000>. The page (from
 `Unity/Assets/WebGLTemplates/AgentClicker`) fills the browser window, shows a progress bar while loading, has a
@@ -210,13 +210,14 @@ fullscreen button on the title screen (where the browser allows one; iPhones don
 in one tap), and asks a phone or
 tablet held upright to turn sideways. On a phone, **Add to Home Screen** (Safari's share menu, or Chrome's menu) gives the game its own icon
 and opens it full-screen and landscape, without the browser's bars. While another window is in front of the page the game drops to
-15 fps to save power (Settings → Graphics). The save goes to the
+15 fps to save power (Settings → Graphics). The tab's title shows your credits ("22.0Qa credits · Agent Clicker") and puts a model drop,
+a ringing phone, an outage or the 5 PM card in front ("★ Model drop! · …"), so a tab beside your work tells you when to look. The save goes to the
 browser's storage (IndexedDB), is written the moment you hide or close the tab, and survives a reload. Browsers pause
 a tab you aren't looking at, so time in a hidden tab counts like time with the game closed. It has been tried in
 headless Chrome and Firefox on Linux; see the known issues below. `Tools/webtest.mjs chromium|firefox` repeats that
 check (load, new game, autopilot login, SHIP CODE, audio level, hire, save on hide, settings, CONTINUE after a reload,
 moving a save file into a fresh browser profile, the 15 fps cap behind another window, the web app manifest, the away
-card after reopening the page "two hours later", the pause menu's FULLSCREEN, and `M` muting the sound). Firefox
+card after reopening the page "two hours later", the pause menu's FULLSCREEN, `M` muting the sound, the tab's title, and the long music piece taking over from the loop). Firefox
 is driven over WebDriver BiDi, so the system Firefox works without a Playwright browser download. `Tools/webtouch.mjs` plays it by touch alone in Chromium's touch emulation,
 at a tablet size and a phone held sideways, including zooming into the monitor.
 
@@ -239,7 +240,7 @@ editor at `~/Unity/Hub/Editor/6000.6.2f1/Editor/Unity`, or set `UNITY_EDITOR` to
 ```sh
 Tools/unity.sh setup       # URP, post-processing, player settings, reimport models (idempotent)
 Tools/unity.sh scene       # regenerate Assets/Scenes/Main.unity from the models (the scene is committed)
-Tools/unity.sh tests       # 139 EditMode tests, including the economy balance simulation
+Tools/unity.sh tests       # 147 EditMode tests, including the economy balance simulation
 Tools/unity.sh build       # Linux player → Builds/Linux
 Tools/unity.sh build-mac   # universal macOS player → Builds/Mac
 Tools/unity.sh build-webgl # browser build (Brotli, works on any static host) → Builds/WebGL
@@ -257,7 +258,9 @@ blender -b --factory-startup -P Blender/scripts/build_all.py -- --preview   # pl
 ```
 
 **Audio.** There's nothing to regenerate: the game ships with zero audio files. Sound effects, the office
-ambience and the lo-fi music loop are synthesised when the game starts (`Unity/Assets/Scripts/Util/Sfx.cs`).
+ambience and the lo-fi music are synthesised when the game starts (`Unity/Assets/Scripts/Util/Sfx.cs`): a 25-second loop
+plays first, and a 101-second piece built on it (four sections, one of them a breakdown without drums) takes over at the
+loop's next turn. `Tools/unity.sh exec AgentClicker.EditorTools.MusicExport.Run` writes both to `Logs/` as WAV files.
 
 **Balance.** `Tools/unity.sh tests` fails if a greedy bot finishes the first Factory in under 1.5 or over 5
 hours, or if later divisions aren't clearly faster than the first. For a ten-division career report, run
@@ -269,6 +272,7 @@ hours, or if later divisions aren't clearly faster than the first. For a ten-div
 Tools/make_trailer.sh          # record every shot with the scripted director, then edit (needs ffmpeg, python3)
 Tools/make_trailer.sh --edit   # re-edit from Recordings/trailer without recording again
 Tools/tour.sh                  # screenshot tour of every phase, for visual checks
+Tools/nested.sh Tools/tour.sh  # the same inside a private nested KWin (no window on your desktop)
 Tools/benchmark.sh             # uncapped frame times, GC and render stats in a late-game office
 Tools/soak.sh 60               # leave a late-game office alone for an hour; memory and objects every 30 s
 ```
@@ -306,8 +310,9 @@ docs/media/                   trailer, teaser loop, poster and screenshots
 * **The economy is a plain C# model** (`GameModel`) with no Unity dependencies, covered by EditMode tests.
   `BalanceSimulator` plays the game greedily to keep pacing in range, and all money math saturates at the
   largest double, so huge numbers can't turn into NaN or Infinity in a save.
-* **Procedural audio.** Key clicks, chimes, the phone ring, the office hum and a 76 BPM lo-fi loop (Rhodes
-  chords, bass, plucked melody, swung drums) are synthesised on a worker thread at startup.
+* **Procedural audio.** Key clicks, chimes, the phone ring, the office hum and 76 BPM lo-fi music (Rhodes
+  chords, bass, plucked melody, swung drums) are synthesised on a worker thread at startup. The music's 101-second piece
+  starts with its own 25-second loop sample for sample, so the loop can play first and hand over on the audio clock.
 * **Performance work** for a game that idles in the background: nested canvases so a ticking number only
   rebuilds its own batch, pooled floating numbers faded with CanvasGroups, prewarmed font atlases,
   on-demand reflection probes, and a 15 fps cap when the window is unfocused. A late-game office ran at about
@@ -369,6 +374,8 @@ release (v0.1.0).
 * **No Windows build yet.** The build script has a Windows target, but it hasn't been built or tested.
 * **Gamepad support is new and only tested with a simulated controller**: the tour drives an Input System gamepad
   device with the same events a real one sends, but no physical controller or Steam Deck has been tried. English only.
+* **The music was checked by measurement, not by ear**: the long piece's length, its sections, its loop points and its
+  level are tested, but nobody has listened to it on this machine.
 * **Pacing is tuned by a bot.** The balance tests keep the first Factory between 1.5 and 5 hours for a greedy
   bot; real players will vary.
 * **The trailer and screenshots** come from the scripted `-trailer` mode, which jumps between prepared save

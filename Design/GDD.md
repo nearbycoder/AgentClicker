@@ -194,11 +194,18 @@ Later divisions get a short victory lap instead of the full ending.
   monitor resets the zoom so it can't open out of sight. Prompts follow whichever input was used last.
 * **Browser**: the page asks for a phone held upright to be turned, shows a Fullscreen button on the title screen (the
   pause menu has one in the game), and carries a web app manifest so a phone's "Add to Home Screen" opens the game
-  full-screen and landscape. Behind another window it drops to 15 fps like the desktop build.
+  full-screen and landscape. Behind another window it drops to 15 fps like the desktop build. The tab's title shows the credits, with a model drop,
+  a ringing phone, an outage or the 5 PM card in front (`TabTitle`), updated once a second.
 * Extra monitors run live world-space dashboards.
 * Time of day drives the sunlight through the window and the wall clock's hands.
 * Employee animations: Idle, Typing, Sip, Relax (hands behind head), FeetUp.
 * Procedurally synthesised sound effects: key clicks, purchase chimes, alerts.
+* Procedurally synthesised lo-fi music at 76 BPM: an 8-bar loop (25 s) renders first and plays, then a 32-bar piece
+  (101 s: A = the loop, B = Am7–Dm7–G7–Cmaj7, C = a breakdown without drums, A' = a new melody ending on the loop's last
+  bar) takes over exactly where the loop comes round again. Its first 8 bars are the loop sample for sample.
+* Every scrolling list (store, Board Room, Stats, inbox) shows a slim scrollbar while its rows don't fit.
+* Timed effects: production effects (Hype, Buzz, an outage) beside the rate with their seconds left, click effects
+  (Caffeine Rush, Coffee) on SHIP CODE's line. The 5 PM card's quota line follows overtime while it's up.
 
 ## 11. Tech
 

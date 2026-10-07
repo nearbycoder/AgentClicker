@@ -1251,3 +1251,59 @@ and the ringing alert while the phone rings, and drops them afterwards; no page 
 Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes in the nested KWin, the Chromium and Firefox
 web tests and the touch test pass, the benchmark is re-run, screenshots go to `docs/media/improvements/round9/`, and the real
 `~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and after (before: `prefs` unchanged since round 8).
+
+## Round 9 results (2026-10-07)
+
+All four items landed on `improvements-9`, one commit each after the plan (`9176250`) and the nested-KWin tool (`3e5244f`),
+plus one fix the browser tests found (`6f9e287`). Tests: **147/147** (139 at baseline; 8 new), balance bot unchanged at 2h 09m
+(day 27). The tour now runs 62 checks (55), all passing at 1600×900 (load average 18) and 1024×768 (17–18), every run inside a
+private nested KWin. On the final browser build the Chromium web test passes 21/21 (19), Firefox 20/20 (18) and the touch test
+27/27 (load average 15–21). Screenshots are in [`docs/media/improvements/round9/`](media/improvements/round9).
+
+| Item | Commit | Verified by |
+|---|---|---|
+| 1. Lists that show they scroll | `8b8cc72` | Tour checks: no bar on the day 1 agent list (230 of 542 px used); in the late-game agent list, the Stats tab and the Board Room the bar shows with its thumb's share of the track equal to the share in view (40 %, 88 %, 43 %), and rows end 2 px left of its lane; a real Input System mouse drag of the Board Room's thumb to the bottom scrolls the list to its end (0.00) |
+| 2. Music that doesn't repeat every 25 seconds | `648fe74`, `6f9e287` | `MusicTests`: the piece is 101.1 s (4 × 25.3 s); its first 8 bars equal the loop sample for sample; the four sections differ by 62–113 % of their level; both loop points are seamless (jump 0.0115 / 0.0117 against a 99.9th-percentile step of 0.034); overall level −0.7 dB against the loop (the drumless breakdown −5 dB, the others within 0.2 dB), peak 0.673, no clipping. Desktop player: loop ready after 4.0 s (3.8 s at baseline), long piece after 7.4 s, playing from the loop's next turn. Browser: loop ready after 5.6–6.8 s, long piece after 14–29 s, frame intervals during its render median 16.7 ms, 99th percentile 16.8 ms, longest 33 ms; the web tests check it takes over and plays (audio peak 0.10–0.13) in Chromium and Firefox. Spectrogram below |
+| 3. Timed effects you can read | `b967404` | Tour check with Benchmark Hype, Caffeine Rush and an outage at once: "Hype x7 60s · Outage x0.5 22s" beside "+61.8M/s" and "+27.2M per click · 10 % crit · Caffeine x77 20s" on SHIP CODE, each on one line inside its box, clear of the rate. The 5 PM card's line went "Quota not met yet: 400T of 1.00Qa." → "Quota met: 1.20Qa of 1.00Qa." while it was open |
+| 4. The browser tab says what's happening | `44b28aa` | `TabTitleTests` (wording and order). The web tests in Chromium and Firefox: "Agent Clicker" on the title screen, "41 credits · Agent Clicker" after login, "★ Model drop! · 41 credits · …" while a drop is up and back after it's caught, "☎ Phone ringing · 42 credits · …" while the phone rings and back after declining |
+
+![The Board Room before (no sign of the other nine perks) and after, at the top and dragged to the end](media/improvements/round9/board_room_scrollbar_before_after.jpg)
+
+![Timed effects on the credits card before ("Benchmark Hype x7 · 49s O…") and after, with Caffeine on SHIP CODE](media/improvements/round9/timed_effects_before_after.jpg)
+
+![The long piece: A (the loop), B, C (the breakdown without drums) and A'](media/improvements/round9/music_long_piece_spectrogram.jpg)
+
+**Found by the browser tests (`6f9e287`).** The first browser build lost the web test's click on LOAD FILE in a fresh profile, twice
+in a row, and the same click worked 45 seconds after loading. The long piece renders on the page's only thread in 6 ms slices, but
+the melody, bass and drum notes ran without a budget check, so some frames were long enough for a quick press and release to land
+in one frame and never reach the button (a hitch a player could feel too). The render now checks its budget after every note; with
+that the same zero-length click works 4 seconds after loading and the frame intervals above hold through the render. The web test
+keeps its zero-length click so it stays sensitive to this.
+
+Also measured: `Tools/benchmark.sh` A/B against the published v0.1.0 (downloaded to `Builds/`, deleted afterwards), alternating two
+runs each inside the nested KWin at load average 14–20: at the 60 fps cap while clicking, main-thread CPU read 4.23 and 4.16 ms for
+v0.1.0 and 4.30 and 3.98 ms for this build in the monitor view, and 3.56 / 4.10 against 3.91 / 4.03 ms in the endless state;
+uncapped figures swung run to run as before. SetPass calls rose by 3–4 (the scrollbars). No sign of a regression. The real
+`~/.config/unity3d/Nearby Games/Agent Clicker/` was hashed before and after: `prefs` has the same content (the editor rewrote it
+during a build), `TestResults.xml` changed (the editor's test package, as in rounds 3–8), and the editor's analytics files under
+`Unity/` changed (editor runs, as noted in round 3). No save, and no game setting, was written there.
+
+Changes from the plan:
+* Item 2: section A isn't byte-for-byte the old loop. Each bar now has its own random seed (so the song's last bar can repeat the
+  loop's last bar exactly), which changed the loop's melody notes; its chords, bass and drums are as before.
+* Item 2: the switch is scheduled on the audio clock (`PlayScheduled` / `SetScheduledEndTime`) rather than at "the next bar line":
+  the loop always hands over where it comes round to its start, at most one loop (25 s) after the long piece is ready.
+* Item 3: effects show as "Hype x7 60s" (no "·" between the multiplier and the seconds) so two fit beside any rate.
+* Load: three tour runs and one Firefox run started at load average 22–27, briefly above the ~24 guideline (the machine stayed
+  between 20 and 55 for most of the evening). The Firefox run that started below 24 and climbed to 55 failed only the pause menu's
+  FULLSCREEN check; the rerun at 17–20 passed everything. The final tours, web tests and benchmark all ran below 22.
+
+Deferred, and why:
+* **Whether the music sounds good**: measured, not listened to. `Tools/unity.sh exec AgentClicker.EditorTools.MusicExport.Run`
+  writes `Logs/music-loop.wav` and `Logs/music-long.wav` for someone to listen to.
+* **Real phones and tablets**, iOS Safari and Android Chrome: still emulation only (the tab title isn't visible on most phones anyway).
+* **Localization (#13)**: still large, not started. **WebKit**: unchanged (needs Ubuntu 24.04 libraries or a Mac).
+
+Owner decisions: unchanged. Redeploying `gh-pages` (it would bring rounds 5–9 to the hosted game), the offline-earnings cap (10% for
+1 hour), Windows Build Support, license, signing, releases and tags. New: whether the long music piece is a keeper once someone
+has listened to it (reverting is one commit, `648fe74`, plus `6f9e287`).
