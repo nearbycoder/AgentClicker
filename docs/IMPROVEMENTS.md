@@ -1,8 +1,8 @@
 # Agent Clicker: improvement plan
 
 Written on 2026-10-06, after v0.1.0 (published 2026-10-04). This document ranks what would most raise the
-game's quality for a real player, then records each round's scope and results. Rounds 1–4 (branches
-`improvements` to `improvements-4`) are merged into `main`; round 5 is on `improvements-5`.
+game's quality for a real player, then records each round's scope and results. Rounds 1–5 (branches
+`improvements` to `improvements-5`) are merged into `main`; round 6 is on `improvements-6`.
 
 ## Baseline (what was run, and what it showed)
 
@@ -766,3 +766,76 @@ Deferred, and why:
 Owner decisions: redeploying `gh-pages` (it would bring touch play and the day 1 email fix to the hosted game), whether
 to try the engine-level fix for the browser memory growth (option a above), plus the standing ones: Windows Build
 Support, the offline cap of 10% for 1 hour, license, signing, releases and tags.
+
+## Round 6 scope
+
+The hosted browser build is now how most people will meet the game, and the owner has played it on an iPhone. So this
+round finishes the browser work that round 5 left open, and works on phones, where the CorpOS monitor's text is about
+6 CSS pixels tall on a phone held sideways (14 pt at the 900-pixel reference, drawn on a 390-pixel-high screen). Baseline
+on `main` (`e55a932`): 129/129 EditMode tests, balance bot 2h 09m (day 27), and the tour passes all 34 checks at 1600×900
+(load average 17–19). Localization stays deferred (large). The owner's decisions are unchanged (Windows Build Support,
+the offline cap of 10% for 1 hour, license, signing, releases and tags, redeploying `gh-pages`).
+
+### 1. The browser tab stops growing: reuse WebGL object ids
+
+Round 5 traced the page's JS heap growth (about 15 MB an hour while visible) to Emscripten's `GL.getNewId`: one id
+counter shared by every GL object type, climbing about 60 a second because Unity makes a GL fence every frame, and every
+object table padded with empty slots up to it.
+
+* A jslib function, called once at startup in the browser, replaces `GL.getNewId` for the object types that are deleted
+  and recreated (buffers, textures, framebuffers, renderbuffers, fences, vertex arrays, queries, samplers, transform
+  feedbacks): each gets the lowest free id in its own table, as native GL drivers do. Programs, shaders and contexts keep
+  the engine's allocator (the glue compares program ids against the shared counter).
+* A test-only `?glids=engine` URL option keeps the engine's allocator, for an A/B in the same session; the soak report
+  adds the GL id counter and the largest table length.
+
+**Acceptance**: in headless Chrome, over 10 minutes, the engine's allocator's counter and tables keep climbing while
+with the fix the largest table stays flat after the first minute; a long detached soak (at least 90 minutes) shows the
+JS heap's low points flat (well under round 5's 15 MB an hour); the Chromium and Firefox web tests and the touch test
+still pass, and screenshots show nothing drawn wrong. **Verify**: `Tools/websoak.mjs detached` with and without the
+fix, the chart and CSV in `docs/media/improvements/round6/`, the web tests' output; load average noted.
+
+### 2. Save power in the browser when the page isn't in front
+
+The desktop build drops to 15 fps when its window loses focus (Settings → Graphics → "Save power when in background"),
+but the browser build always renders at the display's rate, even when another window is in front of a visible tab: an
+idle game left open beside your work keeps a laptop's GPU busy all day.
+
+* In the browser, the same setting (shown there now) caps the game at 15 fps while the page doesn't have focus, and
+  "Mute when in background" works the same way. Back to full speed as soon as the page is in front again.
+
+**Acceptance**: in headless Chromium, when the page loses focus the game runs at about 15 fps and goes back to the
+full rate when it gets focus back; with the setting off it stays at the full rate. Desktop behaviour unchanged.
+**Verify**: a check in `Tools/webtest.mjs` that reads the game's frame rate through a test hook before, during and after
+focus loss.
+
+### 3. Phones: zoom into the monitor
+
+* On a touch screen in the monitor view, two fingers pinch to zoom into the CorpOS screen (up to 3×) and move together to
+  pan; pinching back out returns to the whole screen. Taps keep working while zoomed, one finger still scrolls lists, and
+  leaving the monitor view resets the zoom. Mouse, keyboard and gamepad are unchanged.
+* A touch player gets a one-time tip about it, and How to Play, the Controls tab and the README mention it.
+* The page's floating Fullscreen button covers the store's info panel on a phone. It now shows only on the title screen,
+  and the pause menu gets a FULLSCREEN button in the browser.
+
+**Acceptance**: with simulated touches, pinching out in the monitor view zooms in (a CorpOS text's height on screen grows
+by the zoom factor), two fingers pan, a tap on SHIP CODE while zoomed ships one line, pinching in returns to the fitted
+view; the office pinch is unchanged. In headless Chromium at 844×390 @3×, a 14 pt monitor text goes from about 6 CSS px to
+at least 12 when zoomed; the Fullscreen button is hidden after the title. **Verify**: new checks in the tour's touch
+segment and in `Tools/webtouch.mjs`, screenshots of a phone before and after zooming.
+
+### 4. Play from the home screen
+
+On a phone held sideways the browser's own bars take a large part of a 390-pixel-high screen. iPhones can't make a page
+fullscreen, but a home-screen web app opens without them.
+
+* A web app manifest (name, landscape, fullscreen display, colours, icons) and the iOS home-screen tags, so "Add to Home
+  Screen" opens the game full-screen, landscape and with its own icon. The README says how.
+
+**Acceptance**: Chromium parses the manifest with no errors and its icons load; the page still passes the web tests.
+**Verify**: the manifest through the DevTools protocol (`Page.getAppManifest`) in the web test. Real iOS and Android
+home-screen launches can't be tried here and are reported as untested.
+
+Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes, the Chromium and Firefox web tests and the
+touch test pass, the benchmark is re-run, screenshots go to `docs/media/improvements/round6/`, and the real
+`~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and after (before: `prefs` unchanged since round 5).
