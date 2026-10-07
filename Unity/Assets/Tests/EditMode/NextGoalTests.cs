@@ -82,13 +82,14 @@ namespace AgentClicker.Tests
         [Test]
         public void AfterTheFactoryFrontierAgentsThenOptions()
         {
-            var m = Model(GameDatabase.FactoryCost, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5);
+            var m = Model(GameDatabase.FactoryCost, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60);
             m.State.office.Add("recliner");
             m.State.allTimeEarned = m.State.lifetimeEarned = 2e12;
             m.Load(m.State);
             m.ClockIn();
             Assert.IsTrue(m.BuildFactory());
 
+            // the first frontier agent (under an hour of production)
             var g = NextGoal.Pick(m);
             Assert.AreEqual(GoalKind.Agent, g.Kind);
             Assert.AreEqual(GameDatabase.CoreAgentCount, g.AgentIndex, "the first frontier agent");
@@ -107,6 +108,86 @@ namespace AgentClicker.Tests
             Assert.AreEqual(GameModel.EarningsForOptions(10), g.From, 1e-3);
             Assert.AreEqual(m.PendingOptions >= 10, g.Reached);
             Assert.That(g.Progress, Is.InRange(0.0, 1.0));
+        }
+
+        /// <summary>The tour's endless state: 22Qa in the bank, the Simulation Farm at 40Qi is over a year away.</summary>
+        static GameModel FarFromTheNextFrontierAgent(double optionsEarned)
+        {
+            var m = Model(2.2e16, 400, 300, 220, 160, 140, 120, 100, 80, 60, 40, 30, 22, 12, 6, 2, 1);
+            m.State.factoryBuilt = true;
+            m.State.allTimeEarned = m.State.lifetimeEarned = 4e16;
+            m.State.optionsEarned = optionsEarned;
+            m.Load(m.State);
+            m.ClockIn();
+            return m;
+        }
+
+        [Test]
+        public void AFrontierAgentFarAwayGivesWayToAReorgWorthTaking()
+        {
+            var m = FarFromTheNextFrontierAgent(0);
+            int next = GameDatabase.CoreAgentCount + 6;
+            Assert.Greater(GameDatabase.Agents[next].BaseCost / m.RawCps, NextGoal.FarAgentSeconds, "the next agent costs over an hour of production");
+            Assert.GreaterOrEqual(m.PendingOptions, 300);
+
+            var g = NextGoal.Pick(m);
+            Assert.AreEqual(GoalKind.Option, g.Kind);
+            StringAssert.Contains("first Stock Options", g.Title);
+            Assert.IsTrue(g.Reached);
+
+            // with options from earlier reorgs a reorg must double them; this one wouldn't, so the agent stays the goal
+            m = FarFromTheNextFrontierAgent(1000);
+            Assert.Less(m.PendingOptions, 1000);
+            g = NextGoal.Pick(m);
+            Assert.AreEqual(GoalKind.Agent, g.Kind);
+            Assert.AreEqual(next, g.AgentIndex);
+
+            // ...and it would double 100: the reorg
+            m = FarFromTheNextFrontierAgent(100);
+            Assert.AreEqual(GoalKind.Option, NextGoal.Pick(m).Kind);
+        }
+
+        [Test]
+        public void AFrontierAgentWithinAnHoursProductionStaysTheGoalEvenWithAReorgReady()
+        {
+            // right after the Factory the Agent Foundry is a few minutes of production away: it stays the goal
+            var m = Model(0, 400, 300, 220, 160, 140, 120, 100, 80, 60, 40);
+            m.State.factoryBuilt = true;
+            m.State.allTimeEarned = m.State.lifetimeEarned = 4e16;
+            m.Load(m.State);
+            m.ClockIn();
+            int next = GameDatabase.CoreAgentCount;
+            Assert.Less(GameDatabase.Agents[next].BaseCost / m.RawCps, NextGoal.FarAgentSeconds);
+            Assert.IsTrue(m.CanReorg);
+            var g = NextGoal.Pick(m);
+            Assert.AreEqual(GoalKind.Agent, g.Kind, "even with an empty bank");
+            Assert.AreEqual(next, g.AgentIndex);
+        }
+
+        /// <summary>
+        /// Two divisions of a bot career with hour-long laps after each Factory: an agent goal never costs more than an hour of
+        /// production while a reorg is worth taking, and the log shows when the card switches. (It goes back to an agent only
+        /// when income has grown enough to bring the next one within an hour's production.)
+        /// </summary>
+        [Test]
+        public void AlongACareerFarAgentGoalsNeverHideAReadyReorg()
+        {
+            var lines = new List<string>();
+            string lastKind = null;
+            int checkedLapSeconds = 0;
+            BalanceSimulator.RunCareer(2, postFactorySeconds: 3600, observeLap: (m, t) =>
+            {
+                var g = NextGoal.Pick(m);
+                Assert.That(g.Progress, Is.InRange(0.0, 1.0));
+                checkedLapSeconds++;
+                if (g.Kind == GoalKind.Agent && GameDatabase.Agents[g.AgentIndex].BaseCost > m.RawCps * NextGoal.FarAgentSeconds)
+                    Assert.IsFalse(m.CanReorg && m.PendingOptions >= System.Math.Max(1, m.State.optionsEarned),
+                                   $"{m.DivisionName} lap {t:0}s: \"{g.Title}\" while a reorg would pay off");
+                string kind = $"{g.Kind}{(g.Kind == GoalKind.Agent ? " " + GameDatabase.Agents[g.AgentIndex].Name : "")}";
+                if (kind != lastKind) { lines.Add($"{m.DivisionName,-12} lap {NumberFormat.Duration(t),7}  {g.Title}"); lastKind = kind; }
+            });
+            Assert.Greater(checkedLapSeconds, 3600);
+            Debug.Log("[Goals] next goal during the laps after each Factory (division, time into the lap, goal)\n" + string.Join("\n", lines));
         }
 
         [Test]

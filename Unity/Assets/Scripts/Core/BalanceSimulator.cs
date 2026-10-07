@@ -106,8 +106,10 @@ namespace AgentClicker.Core
         /// <summary>
         /// The endless game: plays several divisions in a row. In each one the bot builds the Factory, keeps playing
         /// for <paramref name="postFactorySeconds"/> (frontier agents), reorgs, and spends its options on perks.
+        /// <paramref name="observeLap"/> sees the model every second of those laps, with the time into the lap.
         /// </summary>
-        public static CareerResult RunCareer(int divisions, double postFactorySeconds = 1800, double maxSecondsPerDivision = 8 * 3600, int seed = 1)
+        public static CareerResult RunCareer(int divisions, double postFactorySeconds = 1800, double maxSecondsPerDivision = 8 * 3600, int seed = 1,
+                                             Action<GameModel, double> observeLap = null)
         {
             var model = new GameModel(new GameState(), seed);
             var career = new CareerResult();
@@ -146,6 +148,7 @@ namespace AgentClicker.Core
                         model.ClockIn();
                     }
                     if (((int)t % 3) == 0) BuyGreedy(model, 1);
+                    observeLap?.Invoke(model, t);
                 }
                 div.FinalCps = model.RawCps;
                 div.EarnedHere = model.State.lifetimeEarned;

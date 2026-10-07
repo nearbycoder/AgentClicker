@@ -35,10 +35,18 @@ namespace AgentClicker.Core
     /// <summary>
     /// Picks the next goal for the CorpOS desktop. Before this division's Factory: the cheapest story agent type you
     /// don't own yet, then the Orchestrator Clusters the Factory needs, then the recliner, then the Factory itself.
-    /// After it: the next frontier agent type, then a reorg that doubles your Stock Options. Display only; it never changes the economy.
+    /// After it: the next frontier agent type, then a reorg that doubles your Stock Options; if that agent costs more than
+    /// an hour of production and a reorg is already worth taking, the reorg. Display only; it never changes the economy.
     /// </summary>
     public static class NextGoal
     {
+        /// <summary>
+        /// A frontier agent that costs more than this many seconds of production (without buffs) gives way to a reorg that's worth
+        /// taking. Its list price, not the time left or a discounted price: savings rise and fall with every purchase and a sales
+        /// call's discount comes and goes, so the card would flip back and forth.
+        /// </summary>
+        public const double FarAgentSeconds = 3600;
+
         public static Goal Pick(GameModel m)
         {
             var s = m.State;
@@ -66,10 +74,22 @@ namespace AgentClicker.Core
                 return new Goal { Kind = GoalKind.Factory, Title = "Build the Software Factory", Have = s.credits, Need = m.FactoryCost };
             }
 
+            var reorg = ReorgGoal(m);
             for (int i = GameDatabase.CoreAgentCount; i < GameDatabase.Agents.Length; i++)
-                if (s.agentCounts[i] == 0) return AgentGoal(m, i, $"Hire your first {GameDatabase.Agents[i].Name}");
+                if (s.agentCounts[i] == 0)
+                {
+                    var agent = AgentGoal(m, i, $"Hire your first {GameDatabase.Agents[i].Name}");
+                    // a frontier agent hours (or years) away is no goal when a reorg would already pay off
+                    return reorg.Reached && !(GameDatabase.Agents[i].BaseCost <= m.RawCps * FarAgentSeconds) ? reorg : agent;
+                }
+            // every agent type is on the payroll
+            return reorg;
+        }
 
-            // every agent type is on the payroll: a reorg worth taking, one that at least doubles your Stock Options
+        /// <summary>A reorg worth taking: one that at least doubles your Stock Options (or vests your first).</summary>
+        static Goal ReorgGoal(GameModel m)
+        {
+            var s = m.State;
             double earned = s.optionsEarned, pending = m.PendingOptions;
             return new Goal
             {
