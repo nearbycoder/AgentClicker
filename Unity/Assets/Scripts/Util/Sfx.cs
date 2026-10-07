@@ -400,12 +400,14 @@ namespace AgentClicker.Util
                     if (bar.Index % 2 == 1) AddNote(buf, rate, barStart + 3.5 * beat, Midi(chord[2] - 12), 0.4, 0.12, Bass);
                 }
                 else AddNote(buf, rate, barStart, root, 2.2, 0.17, Bass);
+                if (Spent()) yield return null;
                 // sparse melody
                 for (int e = 0; e < 8; e++)
                 {
                     if (rng.NextDouble() > bar.Melody) continue;
                     double swing = e % 2 == 1 ? 0.12 : 0;
                     AddNote(buf, rate, barStart + (e * 0.5 + swing) * beat, Midi(Scale[rng.Next(Scale.Length)]), 0.9, 0.045, Pluck);
+                    if (Spent()) yield return null;
                 }
                 // drums; the breakdown keeps a soft hat on the beat, and its last bar brings the kick back in
                 for (int e = 0; e < 8; e++)
@@ -424,6 +426,7 @@ namespace AgentClicker.Util
                         if (bar.Style == Style.BreakdownTurn && (e == 4 || e == 6)) AddNote(buf, rate, at, 0, 0.35, 0.35, Kick);
                         if (bar.Style == Style.BreakdownTurn && e == 7) AddNote(buf, rate, at, 0, 0.3, 0.12, Snare);
                     }
+                    if (Spent()) yield return null;
                 }
                 if (Spent()) yield return null;
             }
