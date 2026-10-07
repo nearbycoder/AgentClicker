@@ -182,7 +182,7 @@ namespace AgentClicker.UI
             _nightTitle.text = $"NIGHT {m.State.day}";
             _nightBody.text = nightEarnings > 0
                 ? $"You went home. Your agents did not.\nNight shift earnings: <color=#4DD0E1>+{NumberFormat.Credits(nightEarnings)}</color>" +
-                  (m.HasBoardPerk("night_owl") ? "  <color=#8A97AD>(Night Owl x4)</color>" : m.NightBonus > 0 ? "  <color=#8A97AD>(Mini Fridge bonus)</color>" : "")
+                  (m.HasBoardPerk("night_owl") ? "  <color=#A4AFC2>(Night Owl x4)</color>" : m.NightBonus > 0 ? "  <color=#A4AFC2>(Mini Fridge bonus)</color>" : "")
                 : "You went home. Your agents did not.";
             Show(_night, true, instant);
         }

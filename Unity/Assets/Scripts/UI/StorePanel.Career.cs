@@ -179,7 +179,7 @@ namespace AgentClicker.UI
                 var r = reqs[i];
                 if (i > 0) _sb.Append('\n');
                 _sb.Append(r.met ? "<color=#3DDC97>✓</color> " : "<color=#FF5D5D>✗</color> ");
-                if (r.met) _sb.Append(r.label); else _sb.Append("<color=#8A97AD>").Append(r.label).Append("</color>");
+                if (r.met) _sb.Append(r.label); else _sb.Append("<color=#A4AFC2>").Append(r.label).Append("</color>");
             }
             UIKit.Set(_factoryReqs, _sb.ToString());
             double cost = m.FactoryCost;
@@ -205,8 +205,8 @@ namespace AgentClicker.UI
                 "<color=#3DDC97>Keeps</color>   options, perks, trophies, story, coworkers" + (desk ? ", office" : "") + "\n" +
                 "<color=#FF5D5D>Resets</color>   credits, agents, upgrades, " + (desk ? "" : "gadgets, ") + "day, title\n" +
                 (m.State.optionsEarned > 0
-                    ? $"<color=#8A97AD>Options</color>   ◆ {NumberFormat.Short(m.State.optionsEarned)} earned so far (+{NumberFormat.Percent(m.OptionValue * m.State.optionsEarned)} production)"
-                    : "<color=#8A97AD>Options</color>   none yet: this would be your first reorg"));
+                    ? $"<color=#A4AFC2>Options</color>   ◆ {NumberFormat.Short(m.State.optionsEarned)} earned so far (+{NumberFormat.Percent(m.OptionValue * m.State.optionsEarned)} production)"
+                    : "<color=#A4AFC2>Options</color>   none yet: this would be your first reorg"));
             // progress toward the next vested option
             double owned = m.State.optionsEarned + pending;
             double from = GameModel.EarningsForOptions(owned), to = GameModel.EarningsForOptions(owned + 1);
@@ -225,7 +225,7 @@ namespace AgentClicker.UI
             UIKit.Set(_boardHeader,
                 $"<color=#FFD166>◆ {NumberFormat.Short(m.State.options)}</color> to spend  ·  {NumberFormat.Short(m.State.optionsEarned)} earned " +
                 $"(+{NumberFormat.Percent(m.OptionValue * m.State.optionsEarned)} production)\n" +
-                "<size=90%><color=#56627A>Spending options never lowers your production bonus. Perks last forever.</color></size>");
+                "<size=90%><color=#828EA5>Spending options never lowers your production bonus. Perks last forever.</color></size>");
             foreach (var r in _perkRows)
             {
                 var p = r.Def;
@@ -233,7 +233,7 @@ namespace AgentClicker.UI
                 bool locked = p.Requires != null && !m.HasBoardPerk(p.Requires);
                 double cost = m.PerkCost(p);
                 bool afford = m.State.options >= cost;
-                if (p.Repeatable) UIKit.Set(r.Name, $"{p.Name} <color=#8A97AD>×{m.State.boardSeats}</color>");
+                if (p.Repeatable) UIKit.Set(r.Name, $"{p.Name} <color=#A4AFC2>×{m.State.boardSeats}</color>");
                 if (owned)
                 {
                     UIKit.Set(r.Cost, "OWNED");
@@ -305,7 +305,7 @@ namespace AgentClicker.UI
             bool got = _gm.Model.HasAchievement(a.Id);
             string cat = AchievementDatabase.CategoryNames[(int)a.Category];
             string col = AchievementDatabase.CategoryColors[(int)a.Category];
-            return (got ? $"<color={col}>★</color> {a.Name}" : $"<color=#56627A>○</color> {a.Name}",
+            return (got ? $"<color={col}>★</color> {a.Name}" : $"<color=#828EA5>○</color> {a.Name}",
                     a.Description, got ? $"{cat} · unlocked · +4% Clout" : $"{cat} · locked");
         }
 
@@ -334,11 +334,11 @@ namespace AgentClicker.UI
             {
                 int c = (int)cat;
                 label.text = $"<color={AchievementDatabase.CategoryColors[c]}>{AchievementDatabase.CategoryNames[c].ToUpperInvariant()}</color>  " +
-                             $"<color=#56627A>{got[c]} / {total[c]}</color>";
+                             $"<color=#828EA5>{got[c]} / {total[c]}</color>";
             }
             _sb.Clear();
-            _sb.Append("<size=125%><color=#E6EDF7>").Append(count).Append("</color><color=#56627A> / ").Append(all.Count).Append(" trophies</color></size>   ")
-               .Append("<color=#FFD166>Clout +").Append(NumberFormat.Percent(m.Clout)).Append("</color>\n<color=#56627A>")
+            _sb.Append("<size=125%><color=#E6EDF7>").Append(count).Append("</color><color=#828EA5> / ").Append(all.Count).Append(" trophies</color></size>   ")
+               .Append("<color=#FFD166>Clout +").Append(NumberFormat.Percent(m.Clout)).Append("</color>\n<color=#828EA5>")
                .Append("+4% Clout per trophy · influence upgrades turn it into ").Append(NumberFormat.Mult(m.CloutMultiplier)).Append(" production</color>");
             UIKit.Set(_trophyHeader, _sb.ToString());
         }
@@ -361,7 +361,7 @@ namespace AgentClicker.UI
                 var p = (Person)i;
                 int r = m.Rapport(p);
                 string dots = new string('●', Mathf.Max(0, r)) + new string('○', Mathf.Max(0, GameModel.RapportMax - Mathf.Max(0, r)));
-                string col = r >= GameModel.PerkThreshold ? "#3DDC97" : r < 0 ? "#FF5D5D" : "#8A97AD";
+                string col = r >= GameModel.PerkThreshold ? "#3DDC97" : r < 0 ? "#FF5D5D" : "#A4AFC2";
                 sb.Append($"{CallDatabase.PeopleNames[i]}  <color={col}>{dots} {(r > 0 ? "+" : "")}{r}</color>\n");
                 if (m.HasPerk(p)) sb.Append($"<size=85%><color=#3DDC97>   ✓ {CallDatabase.PerkNames[i]}</color></size>\n");
             }
@@ -373,9 +373,9 @@ namespace AgentClicker.UI
             var s = m.State;
             int types = 0;
             foreach (var c in s.agentCounts) if (c > 0) types++;
-            string Row(string label, string value) => $"<color=#8A97AD>{label}</color>   {value}\n";
+            string Row(string label, string value) => $"<color=#A4AFC2>{label}</color>   {value}\n";
             _sb.Clear();
-            _sb.Append("<color=#4DD0E1>THIS DIVISION</color>  <size=85%><color=#56627A>").Append(m.DivisionName).Append("</color></size>\n")
+            _sb.Append("<color=#4DD0E1>THIS DIVISION</color>  <size=85%><color=#828EA5>").Append(m.DivisionName).Append("</color></size>\n")
                .Append(Row("Credits in bank", NumberFormat.Grouped(s.credits)))
                .Append(Row("Earned here", NumberFormat.Short(s.lifetimeEarned)))
                .Append(Row("Credits/sec", $"{NumberFormat.Short(m.Cps)}  ({NumberFormat.Mult(m.GlobalMultiplier)} global)"))
@@ -388,7 +388,7 @@ namespace AgentClicker.UI
                .Append(Row("Automation", NumberFormat.Percent(m.Automation)))
                .Append('\n')
                .Append("<color=#FFD166>CAREER</color>\n")
-               .Append(Row("Division", $"{m.DivisionName} <color=#56627A>(#{s.reorgs + 1})</color>  ·  {s.reorgs} reorg{(s.reorgs == 1 ? "" : "s")}"))
+               .Append(Row("Division", $"{m.DivisionName} <color=#828EA5>(#{s.reorgs + 1})</color>  ·  {s.reorgs} reorg{(s.reorgs == 1 ? "" : "s")}"))
                .Append(Row("Stock Options", $"◆ {NumberFormat.Short(s.options)} to spend · {NumberFormat.Short(s.optionsEarned)} earned"))
                .Append(Row("Trophies", $"{m.AchievementCount} / {GameModel.AchievementTotal}  ·  Clout +{NumberFormat.Percent(m.Clout)}"))
                .Append(Row("All-time earned", NumberFormat.Short(s.allTimeEarned)))
@@ -396,16 +396,16 @@ namespace AgentClicker.UI
                .Append(Row("Days worked", $"{s.totalDays:N0}  ·  ★ {s.totalStars:N0} quotas met"))
                .Append(Row("Factories built", s.factoriesBuilt + (s.bestFactoryDay > 0 ? $"  ·  fastest on day {s.bestFactoryDay}" : "")))
                .Append(Row("Time at work", NumberFormat.Duration(s.playSeconds)))
-               .Append(Row("Calls", $"{s.callsAnswered} answered, {s.callsMissed} missed  ·  <color=#8A97AD>Asks done</color> {s.asksCompleted}"))
+               .Append(Row("Calls", $"{s.callsAnswered} answered, {s.callsMissed} missed  ·  <color=#A4AFC2>Asks done</color> {s.asksCompleted}"))
                .Append('\n')
                .Append("<color=#4DD0E1>MULTIPLIERS</color>\n")
                .Append(Row("Stock options", NumberFormat.Mult(m.PrestigeMultiplier)))
                .Append(Row("Board seats", NumberFormat.Mult(System.Math.Pow(1.1, s.boardSeats))))
                .Append(Row("Research", NumberFormat.Mult(m.ResearchMultiplier)))
                .Append(Row("Clout", NumberFormat.Mult(m.CloutMultiplier)))
-               .Append(Row("Factory", s.factoryBuilt ? "x2.00" : "<color=#56627A>not built</color>"))
+               .Append(Row("Factory", s.factoryBuilt ? "x2.00" : "<color=#828EA5>not built</color>"))
                .Append('\n')
-               .Append("<color=#FFD166>PEOPLE</color>  <size=85%><color=#56627A>(phone-call choices change how they feel; 3+ unlocks a perk)</color></size>\n")
+               .Append("<color=#FFD166>PEOPLE</color>  <size=85%><color=#828EA5>(phone-call choices change how they feel; 3+ unlocks a perk)</color></size>\n")
                .Append(People(m));
             UIKit.Set(_stats, _sb.ToString());
         }

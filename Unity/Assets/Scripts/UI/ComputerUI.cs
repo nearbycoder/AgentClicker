@@ -99,7 +99,7 @@ namespace AgentClicker.UI
             glow.sprite = UIKit.Circle;
             glow.rectTransform.Center(1200, 1200, -500, 300);
 
-            UIKit.Text(_login, "Brand", $"<color={UIKit.Hex(Theme.Accent)}>◆</color> CorpOS <size=50%><color=#56627A>11 Enterprise</color></size>",
+            UIKit.Text(_login, "Brand", $"<color={UIKit.Hex(Theme.Accent)}>◆</color> CorpOS <size=50%><color=#828EA5>11 Enterprise</color></size>",
                        34, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Bold).rectTransform.TopLeft(48, 40, 700, 50);
 
             var card = UIKit.Panel(_login, "Card", Theme.Panel, 22);
@@ -157,7 +157,7 @@ namespace AgentClicker.UI
             _locked = UIKit.Rect("Locked", _root);
             _locked.Fill();
             UIKit.Image(_locked, "Dark", Color.black).rectTransform.Fill();
-            UIKit.Text(_locked, "Text", $"<color={UIKit.Hex(Theme.Accent)}>◆</color> Locked\n<size=45%><color=#56627A>See you tomorrow, Sam.</color></size>",
+            UIKit.Text(_locked, "Text", $"<color={UIKit.Hex(Theme.Accent)}>◆</color> Locked\n<size=45%><color=#828EA5>See you tomorrow, Sam.</color></size>",
                        60, Theme.TextDim, TextAlignmentOptions.Center, UIFonts.Bold).rectTransform.Fill();
         }
 
@@ -396,7 +396,7 @@ namespace AgentClicker.UI
 
         public void ShowDrop(ModelDrop d)
         {
-            _dropText.text = $"{d.LabName} just released <color=#FFD166>{d.ModelName}</color>! <size=85%><color=#8A97AD>Click to try it.</color></size>";
+            _dropText.text = $"{d.LabName} just released <color=#FFD166>{d.ModelName}</color>! <size=85%><color=#A4AFC2>Click to try it.</color></size>";
             var pos = DropCardPosition(_dropRng);
             _dropCard.anchoredPosition = new Vector2(pos.x, -pos.y);
             _dropCard.gameObject.SetActive(true);
@@ -540,7 +540,7 @@ namespace AgentClicker.UI
             if (ids.Count == 0)
             {
                 UIKit.Set(subject, "No mail yet.");
-                UIKit.Set(body, "<color=#8A97AD>Your inbox is empty. Enjoy it while it lasts.</color>");
+                UIKit.Set(body, "<color=#A4AFC2>Your inbox is empty. Enjoy it while it lasts.</color>");
                 return;
             }
             var rows = new Dictionary<string, (Image bg, Image dot)>();
@@ -655,7 +655,7 @@ namespace AgentClicker.UI
                        TextAlignmentOptions.Top, UIFonts.Bold).rectTransform.TopLeft(0, 64, 760, 64);
 
             UIKit.Text(card, "Numbers",
-                $"Shipped today: <b>{NumberFormat.Short(r.Earned)}</b>  <color=#56627A>/</color>  quota {NumberFormat.Short(r.Quota)}" +
+                $"Shipped today: <b>{NumberFormat.Short(r.Earned)}</b>  <color=#828EA5>/</color>  quota {NumberFormat.Short(r.Quota)}" +
                 (r.Met ? $"\nPerformance bonus: <color=#3DDC97>+{NumberFormat.Credits(r.Bonus)}</color>   ·   ★ {r.Stars} total (+{r.Stars}% credits/sec)" : ""),
                 21, Theme.Text, TextAlignmentOptions.Top, UIFonts.Medium).rectTransform.TopLeft(40, 150, 680, 70);
 
@@ -666,7 +666,7 @@ namespace AgentClicker.UI
             face.sprite = UIKit.Circle;
             face.rectTransform.TopLeft(20, 25, 80, 80);
             UIKit.Text(face.transform, "Initials", boss.Initials, 26, Theme.Bg, TextAlignmentOptions.Center, UIFonts.Bold).rectTransform.Fill();
-            UIKit.Text(bubble.transform, "Quote", $"<color=#8A97AD>{r.ManagerName} says:</color>\n\"{r.ManagerSays}\"", 20, Theme.Text,
+            UIKit.Text(bubble.transform, "Quote", $"<color=#A4AFC2>{r.ManagerName} says:</color>\n\"{r.ManagerSays}\"", 20, Theme.Text,
                        TextAlignmentOptions.MidlineLeft).rectTransform.Fill().Insets(120, 10, 20, 10);
 
             var m = _gm.Model;
@@ -687,7 +687,7 @@ namespace AgentClicker.UI
             UIKit.Text(card, "Title", a.Days == 1 ? "Your agents ran a day without you" : $"Your agents ran {a.Days} days without you",
                        38, Theme.Accent, TextAlignmentOptions.Top, UIFonts.Bold).rectTransform.TopLeft(20, 66, 720, 50);
 
-            string Row(string label, string value) => $"<color=#8A97AD>{label}</color><pos=42%>{value}\n";
+            string Row(string label, string value) => $"<color=#A4AFC2>{label}</color><pos=42%>{value}\n";
             string days = a.FromDay == a.ToDay ? $"Day {a.ToDay}" : $"Day {a.FromDay} → Day {a.ToDay}";
             string quotas = a.QuotasMissed == 0 ? $"<color=#FFD166>{a.QuotasMet} met ★</color>"
                           : $"<color=#FFD166>{a.QuotasMet} met ★</color>  ·  <color=#FF5D5D>{a.QuotasMissed} missed</color>";

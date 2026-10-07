@@ -38,9 +38,11 @@ namespace AgentClicker
             _gm.Menu.OpenSettings(() => { });
             yield return new WaitForSeconds(0.6f);
             yield return Shot("00b_settings");
+            CheckHintsFit("graphics");
             _gm.Menu.SetSettingsTab(MenuUI.SettingsTab.Gameplay);
             yield return new WaitForSeconds(0.4f);
             yield return Shot("00b2_settings_gameplay");
+            CheckHintsFit("gameplay");
             _gm.Menu.SetSettingsTab(MenuUI.SettingsTab.Controls);
             yield return new WaitForSeconds(0.4f);
             yield return Shot("00b3_settings_controls");
@@ -297,6 +299,10 @@ namespace AgentClicker
 
             yield return GamepadSegment();
 
+            Debug.Log(_screenMinAll >= MinScreenText
+                ? $"[Tour] PASS menus and overlays never draw text below {MinScreenText} pt (smallest {_screenMinAll:0.#}: {_screenMinWhat})"
+                : $"[Tour] FAIL menus and overlays draw {_screenMinAll:0.#} pt text: {_screenMinWhat}");
+            Debug.Log($"[Tour] smallest text on the CorpOS monitor: {_monitorMinAll:0.#} pt ({_monitorMinWhat})");
             Debug.Log("[Tour] done");
             Application.Quit();
         }
@@ -583,12 +589,69 @@ namespace AgentClicker
             yield return null;
         }
 
+        const float MinScreenText = 15f;
+        static float _screenMinAll = float.MaxValue, _monitorMinAll = float.MaxValue;
+        static string _screenMinWhat = "", _monitorMinWhat = "";
+
+        /// <summary>Settings hints are one line each; only a long save-folder path may end in "…".</summary>
+        static void CheckHintsFit(string tab)
+        {
+            int n = 0;
+            var cut = new System.Collections.Generic.List<string>();
+            foreach (var t in FindObjectsByType<TMPro.TMP_Text>())
+            {
+                if (t.name != "Hint" || !t.isActiveAndEnabled || t.canvas == null || t.canvas.rootCanvas.name != "Menu Canvas") continue;
+                t.ForceMeshUpdate();
+                n++;
+                if (t.isTextTruncated && !t.text.Contains("agentclicker_save.json")) cut.Add(t.text);
+            }
+            Debug.Log(cut.Count == 0 ? $"[Tour] PASS {tab} settings hints fit on one line ({n})"
+                                     : $"[Tour] FAIL {tab} settings hints cut off: {string.Join(" | ", cut)}");
+        }
+
+        /// <summary>Smallest text drawn on screen (menus and overlays) and on the CorpOS monitor, in points at the 1600×900 reference.</summary>
+        static void LogSmallestText(string shot)
+        {
+            float screenMin = float.MaxValue, monitorMin = float.MaxValue;
+            string screenWhat = "", monitorWhat = "";
+            foreach (var t in FindObjectsByType<TMPro.TMP_Text>())
+            {
+                if (!t.isActiveAndEnabled || t.color.a < 0.05f || t.textInfo == null || t.textInfo.characterCount == 0) continue;
+                var root = t.canvas ? t.canvas.rootCanvas : null;
+                if (root == null) continue;
+                bool monitor = root.name == "CorpOS Canvas";
+                if (!monitor && root.renderMode == RenderMode.WorldSpace) continue; // the decorative side monitors
+                if (monitor && t.name == "Mono") continue; // two-letter agent badges in the fleet list are icons, not text
+                bool hidden = false;
+                foreach (var g in t.GetComponentsInParent<CanvasGroup>())
+                    if (g.alpha < 0.05f) { hidden = true; break; }
+                if (hidden) continue;
+                var info = t.textInfo;
+                for (int i = 0; i < info.characterCount; i++)
+                {
+                    var c = info.characterInfo[i];
+                    if (!c.isVisible) continue;
+                    if (monitor ? c.pointSize < monitorMin : c.pointSize < screenMin)
+                    {
+                        string what = $"{t.name} \"{t.GetParsedText().Replace("\n", " ").Substring(0, Mathf.Min(40, t.GetParsedText().Length))}\"";
+                        if (monitor) { monitorMin = c.pointSize; monitorWhat = what; }
+                        else { screenMin = c.pointSize; screenWhat = what; }
+                    }
+                }
+            }
+            if (screenMin < _screenMinAll) { _screenMinAll = screenMin; _screenMinWhat = $"{screenWhat} in {shot}"; }
+            if (monitorMin < _monitorMinAll) { _monitorMinAll = monitorMin; _monitorMinWhat = $"{monitorWhat} in {shot}"; }
+            string Fmt(float v, string w) => v == float.MaxValue ? "none" : $"{v:0.#} pt ({w})";
+            Debug.Log($"[Text] {shot}: screen {Fmt(screenMin, screenWhat)}, monitor {Fmt(monitorMin, monitorWhat)}");
+        }
+
         IEnumerator Shot(string name)
         {
             yield return new WaitForEndOfFrame();
             string path = Path.Combine(OutputDir, name + ".png");
             ScreenCapture.CaptureScreenshot(path);
             Debug.Log("[Tour] " + path);
+            LogSmallestText(name);
             yield return null;
             yield return null;
         }

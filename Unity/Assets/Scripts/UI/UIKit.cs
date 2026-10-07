@@ -16,8 +16,8 @@ namespace AgentClicker.UI
         public static readonly Color PanelHover = Hex("#253248");
         public static readonly Color Border = Hex("#2A3548");
         public static readonly Color Text = Hex("#E6EDF7");
-        public static readonly Color TextDim = Hex("#8A97AD");
-        public static readonly Color TextFaint = Hex("#56627A");
+        public static readonly Color TextDim = Hex("#A4AFC2");
+        public static readonly Color TextFaint = Hex("#828EA5");
         public static readonly Color Accent = Hex("#4DD0E1");
         public static readonly Color Accent2 = Hex("#7C4DFF");
         public static readonly Color Good = Hex("#3DDC97");

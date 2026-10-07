@@ -484,7 +484,7 @@ namespace AgentClicker
             double gain = Model.ApplyOffline(gap);
             if (gain > 0)
                 Computer.Toast($"While the game was paused for {NumberFormat.Duration(gap)}, your agents earned {NumberFormat.Credits(gain)} " +
-                               $"<color=#8A97AD>({NumberFormat.Percent(Model.OfflineEfficiency)} rate)</color>", Theme.Good, 6f);
+                               $"<color=#A4AFC2>({NumberFormat.Percent(Model.OfflineEfficiency)} rate)</color>", Theme.Good, 6f);
         }
 
         void HandleKeys()
@@ -549,7 +549,7 @@ namespace AgentClicker
             if (_offlineGain > 0)
             {
                 Computer.Toast($"While you were away, your agents earned {NumberFormat.Credits(_offlineGain)} " +
-                               $"<color=#8A97AD>({NumberFormat.Percent(Model.OfflineEfficiency)} rate, up to {NumberFormat.Duration(Model.OfflineCapSeconds)})</color>", Theme.Good, 6f);
+                               $"<color=#A4AFC2>({NumberFormat.Percent(Model.OfflineEfficiency)} rate, up to {NumberFormat.Duration(Model.OfflineCapSeconds)})</color>", Theme.Good, 6f);
                 _offlineGain = 0;
             }
         }
@@ -622,7 +622,7 @@ namespace AgentClicker
             }
             Debug.Log("[SaveFile] loaded file: " + Describe(state));
             string current = Model.State.introSeen ? $"\nIt replaces your current career ({Describe(Model.State)})." : "";
-            Menu.Confirm($"Load this career?\n<size=70%><color=#8A97AD>{Describe(state)}.{current}</color></size>", "LOAD", () => ImportCareer(state), Theme.Accent);
+            Menu.Confirm($"Load this career?\n<size=70%><color=#A4AFC2>{Describe(state)}.{current}</color></size>", "LOAD", () => ImportCareer(state), Theme.Accent);
         }
 
         void ImportCareer(GameState state)
@@ -800,10 +800,10 @@ namespace AgentClicker
             if (OnTitle) return;
             Sfx.Play(Sound.Trophy, 0.8f);
             if (list.Count == 1)
-                Computer.Toast($"<color=#FFD166>★ TROPHY</color>  <b>{list[0].Name}</b>  <color=#8A97AD>{list[0].Description}</color>", Theme.Gold, 5f);
+                Computer.Toast($"<color=#FFD166>★ TROPHY</color>  <b>{list[0].Name}</b>  <color=#A4AFC2>{list[0].Description}</color>", Theme.Gold, 5f);
             else
                 Computer.Toast($"<color=#FFD166>★ {list.Count} TROPHIES</color>  {list[0].Name}, {list[1].Name}{(list.Count > 2 ? "…" : "")}  " +
-                               $"<color=#8A97AD>Clout +{NumberFormat.Percent(Model.Clout)}</color>", Theme.Gold, 6f);
+                               $"<color=#A4AFC2>Clout +{NumberFormat.Percent(Model.Clout)}</color>", Theme.Gold, 6f);
         }
 
         // ------------------------------------------------------------------ reorg (prestige)
@@ -813,8 +813,8 @@ namespace AgentClicker
             if (Model.ActiveCall != null) { Computer.Toast("Finish your phone call first.", Theme.TextDim); return; }
             double pending = Model.PendingOptions;
             Menu.Confirm($"Reorg to <color=#FFD166>{Model.NextDivisionName}</color>?\n" +
-                         $"<size=70%><color=#8A97AD>Credits, agents, upgrades{(Model.HasBoardPerk("pack_your_desk") ? "" : ", gadgets")} and the day start over.\n" +
-                         $"You gain</color> <color=#FFD166>+{NumberFormat.Short(pending)} Stock Options</color><color=#8A97AD> (+{NumberFormat.Percent(Model.OptionValue * pending)} production, forever).</color></size>",
+                         $"<size=70%><color=#A4AFC2>Credits, agents, upgrades{(Model.HasBoardPerk("pack_your_desk") ? "" : ", gadgets")} and the day start over.\n" +
+                         $"You gain</color> <color=#FFD166>+{NumberFormat.Short(pending)} Stock Options</color><color=#A4AFC2> (+{NumberFormat.Percent(Model.OptionValue * pending)} production, forever).</color></size>",
                          "REORG", ReorgNow, Theme.Gold);
         }
 

@@ -69,11 +69,11 @@ namespace AgentClicker.UI
             _incomingAvatar.rectTransform.TopLeft(22, 22, 84, 84);
             _incomingInitials = UIKit.Text(_incomingAvatar.transform, "I", "", 28, Color.white, TextAlignmentOptions.Center, UIFonts.Bold);
             _incomingInitials.rectTransform.Fill();
-            UIKit.Text(card.transform, "Kicker", "☎ INCOMING CALL", 14, Theme.Good, TextAlignmentOptions.TopLeft, UIFonts.Bold)
+            UIKit.Text(card.transform, "Kicker", "☎ INCOMING CALL", 15, Theme.Good, TextAlignmentOptions.TopLeft, UIFonts.Bold)
                  .rectTransform.TopLeft(124, 20, 260, 18);
             _incomingName = UIKit.Text(card.transform, "Name", "", 24, Color.white, TextAlignmentOptions.TopLeft, UIFonts.Bold);
             _incomingName.rectTransform.TopLeft(124, 40, 290, 30);
-            _incomingRole = UIKit.Text(card.transform, "Role", "", 14, Theme.TextDim, TextAlignmentOptions.TopLeft);
+            _incomingRole = UIKit.Text(card.transform, "Role", "", 15, Theme.TextDim, TextAlignmentOptions.TopLeft);
             _incomingRole.rectTransform.TopLeft(124, 72, 290, 20);
             UIKit.Bar(card.transform, "Ring", Theme.PanelLight, Theme.Good, out _ringFill, 3).rectTransform.TopLeft(124, 100, 290, 6);
 
@@ -82,7 +82,7 @@ namespace AgentClicker.UI
             _answerLabel = answer.Label("ANSWER  [E]", 18, Theme.Bg);
             var decline = UIKit.Button(card.transform, "Decline", Theme.Bad, () => _gm.Model.DeclineCall(), 12);
             decline.GetComponent<RectTransform>().TopLeft(430, 72, 190, 36);
-            _declineLabel = decline.Label("DECLINE  [Q]", 14, Color.white);
+            _declineLabel = decline.Label("DECLINE  [Q]", 15, Color.white);
         }
 
         void BuildDialogue()
@@ -100,18 +100,18 @@ namespace AgentClicker.UI
             _portrait.rectTransform.TopLeft(30, 30, 120, 120);
             _portraitInitials = UIKit.Text(_portrait.transform, "I", "", 42, Color.white, TextAlignmentOptions.Center, UIFonts.Bold);
             _portraitInitials.rectTransform.Fill();
-            UIKit.Text(card.transform, "OnCall", "☎ ON CALL", 13, Theme.Good, TextAlignmentOptions.Top, UIFonts.Bold).rectTransform.TopLeft(30, 160, 120, 18);
+            UIKit.Text(card.transform, "OnCall", "☎ ON CALL", 15, Theme.Good, TextAlignmentOptions.Top, UIFonts.Bold).rectTransform.TopLeft(30, 158, 120, 22);
 
             _speaker = UIKit.Text(card.transform, "Speaker", "", 24, Color.white, TextAlignmentOptions.TopLeft, UIFonts.Bold);
             _speaker.rectTransform.TopLeft(176, 26, 640, 30);
-            _role = UIKit.Text(card.transform, "Role", "", 14, Theme.TextDim, TextAlignmentOptions.TopLeft);
+            _role = UIKit.Text(card.transform, "Role", "", 15, Theme.TextDim, TextAlignmentOptions.TopLeft);
             _role.rectTransform.TopLeft(176, 56, 640, 20);
             _line = UIKit.Text(card.transform, "Line", "", 22, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Medium);
             _line.rectTransform.TopLeft(176, 86, 600, 130);
             _line.lineSpacing = 6;
             _effect = UIKit.Text(card.transform, "Effect", "", 16, Theme.Gold, TextAlignmentOptions.TopLeft, UIFonts.Bold);
             _effect.rectTransform.TopLeft(176, 222, 620, 24);
-            _hint = UIKit.Text(card.transform, "Hint", "", 13, Theme.TextFaint, TextAlignmentOptions.BottomRight, UIFonts.Medium);
+            _hint = UIKit.Text(card.transform, "Hint", "", 15, Theme.TextFaint, TextAlignmentOptions.BottomRight, UIFonts.Medium);
             _hint.rectTransform.TopLeft(820, 238, 470, 20);
 
             for (int i = 0; i < _choices.Length; i++)
@@ -121,7 +121,7 @@ namespace AgentClicker.UI
                 b.GetComponent<RectTransform>().TopLeft(820, 24 + i * 72, 470, 64);
                 _choiceLabels[i] = UIKit.Text(b.transform, "Label", "", 19, Color.white, TextAlignmentOptions.TopLeft, UIFonts.Bold);
                 _choiceLabels[i].rectTransform.Fill().Insets(18, 26, 14, 8);
-                _choiceHints[i] = UIKit.Text(b.transform, "Hint", "", 13, Theme.TextDim, TextAlignmentOptions.BottomLeft, UIFonts.Medium);
+                _choiceHints[i] = UIKit.Text(b.transform, "Hint", "", 15, Theme.TextDim, TextAlignmentOptions.BottomLeft, UIFonts.Medium);
                 _choiceHints[i].rectTransform.Fill().Insets(18, 8, 14, 30);
                 PointerRelay.On(b).Enter = _ => _gm.Sfx.Play(Sound.UiClick, 0.2f, 1.4f);
                 _choices[i] = b;
@@ -165,7 +165,7 @@ namespace AgentClicker.UI
                 bool on = i < d.Choices.Length;
                 _choices[i].gameObject.SetActive(on);
                 if (!on) continue;
-                _choiceLabels[i].text = $"<color=#56627A>{i + 1}.</color> {d.Choices[i].Label}";
+                _choiceLabels[i].text = $"<color=#828EA5>{i + 1}.</color> {d.Choices[i].Label}";
                 _choiceHints[i].text = CallDatabase.Describe(d.Choices[i]);
             }
             _dialogue.gameObject.SetActive(true);
@@ -183,7 +183,7 @@ namespace AgentClicker.UI
             _choosing = false;
             _onClosed = onClosed;
             foreach (var b in _choices) b.gameObject.SetActive(false);
-            _line.text = $"<color=#8A97AD>You: \"{choice.Label}\"</color>\n{choice.Response}";
+            _line.text = $"<color=#A4AFC2>You: \"{choice.Label}\"</color>\n{choice.Response}";
             _line.maxVisibleCharacters = 0;
             _reveal = 0;
             _effect.text = string.IsNullOrEmpty(summary) ? "" : summary;

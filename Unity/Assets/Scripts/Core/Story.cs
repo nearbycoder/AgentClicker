@@ -45,7 +45,7 @@ namespace AgentClicker.Core
             new Character("priya", "Priya Raman", "Senior Engineer, desk 4472", "#3DDC97", "PR"),
             new Character("gary", "Gary Okonkwo", "IT Support", "#38B6F0", "GO"),
             new Character("brenda", "Brenda Lowe", "HR Business Partner", "#E040A0", "BL"),
-            new Character("facilities", "Facilities Bot", "Workplace Experience", "#8A97AD", "FB"),
+            new Character("facilities", "Facilities Bot", "Workplace Experience", "#A4AFC2", "FB"),
             new Character("heirloom", "Heirloom PM", "Product Manager (Agent)", "#9B6BDF", "HP"),
             new Character("omni", "Omni Conductor", "Orchestrator Cluster (Agent)", "#E5484D", "OC"),
             new Character("labs", "ModelMart Newsletter", "Frontier lab announcements", "#4DD0E1", "MM"),
@@ -408,7 +408,7 @@ namespace AgentClicker.Core
                     : new StoryCard("EPILOGUE · REX", "The CEO was an Orchestrator all along.", "So was the board. So, as it turns out, was the board's board. They never learned your name."),
                 new StoryCard("THE END?", "Sam never had to work again.",
                     "Sam still comes in every day.\n\n<color=#FFD166>For the snacks.</color>\n\n" +
-                    "<size=80%><color=#8A97AD>The board wants the Factory everywhere. Keep playing: there's always another division.</color></size>"),
+                    "<size=80%><color=#A4AFC2>The board wants the Factory everywhere. Keep playing: there's always another division.</color></size>"),
             };
         }
     }

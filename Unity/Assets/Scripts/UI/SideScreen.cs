@@ -103,7 +103,7 @@ namespace AgentClicker.UI
             _owned.Clear();
             for (int i = 0; i < GameDatabase.Agents.Length; i++) if (m.AgentCount(i) > 0) _owned.Add(i);
             var owned = _owned;
-            if (owned.Count == 0 || !m.IsWorking) line = "<color=#56627A>idle… waiting for agents</color>";
+            if (owned.Count == 0 || !m.IsWorking) line = "<color=#828EA5>idle… waiting for agents</color>";
             else
             {
                 int i = owned[_rng.Next(owned.Count)];
@@ -118,7 +118,7 @@ namespace AgentClicker.UI
         void UpdateGraph(GameModel m)
         {
             _big.text = NumberFormat.Rate(m.Cps);
-            _main.text = $"<color=#8A97AD>automation</color> {NumberFormat.Percent(m.Automation)}   <color=#8A97AD>today</color> {NumberFormat.Short(m.State.earnedToday)}";
+            _main.text = $"<color=#A4AFC2>automation</color> {NumberFormat.Percent(m.Automation)}   <color=#A4AFC2>today</color> {NumberFormat.Short(m.State.earnedToday)}";
             double max = 1e-9;
             foreach (var v in _samples) if (v > max) max = v;
             for (int i = 0; i < _bars.Count; i++)
@@ -138,7 +138,7 @@ namespace AgentClicker.UI
                 bool down = m.ActiveOutage != null && m.ActiveOutage.LabName == lab.Name;
                 int agents = m.LabAgentCount(lab.Id);
                 sb.Append(down ? "<color=#FF5D5D>●  DOWN</color>   " : "<color=#3DDC97>●  OK</color>       ");
-                sb.Append($"<color={lab.ColorHex}>{lab.Name}</color>  <color=#56627A>{agents} agents · {99.9 - (lab.Name.Length % 5) * 0.01:0.00}% uptime</color>\n");
+                sb.Append($"<color={lab.ColorHex}>{lab.Name}</color>  <color=#828EA5>{agents} agents · {99.9 - (lab.Name.Length % 5) * 0.01:0.00}% uptime</color>\n");
             }
             _main.text = sb.ToString();
         }
@@ -148,10 +148,10 @@ namespace AgentClicker.UI
             int done = (int)(m.State.earnedToday / Mathf.Max(1, (float)m.State.quotaToday) * 100);
             int doing = Mathf.Clamp(m.TotalAgents, 0, 99);
             _main.text =
-                $"<color=#8A97AD>TODO</color>      {Mathf.Max(0, 100 - done)}\n" +
+                $"<color=#A4AFC2>TODO</color>      {Mathf.Max(0, 100 - done)}\n" +
                 $"<color=#FFB020>DOING</color>     {doing}\n" +
                 $"<color=#3DDC97>DONE</color>      {done}\n\n" +
-                $"<size=70%><color=#56627A>Velocity: {NumberFormat.Rate(m.Cps)} · Sprint {1 + (m.State.day - 1) / 5} · Day {m.State.day}</color></size>";
+                $"<size=70%><color=#828EA5>Velocity: {NumberFormat.Rate(m.Cps)} · Sprint {1 + (m.State.day - 1) / 5} · Day {m.State.day}</color></size>";
         }
     }
 }

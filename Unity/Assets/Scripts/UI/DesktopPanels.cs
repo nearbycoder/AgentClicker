@@ -126,7 +126,7 @@ namespace AgentClicker.UI
             // terminal + focus + ship button
             var term = UIKit.Panel(col, "Terminal", Theme.Terminal, 14, true);
             term.rectTransform.TopLeft(0, 144, 420, 360);
-            UIKit.Text(term.transform, "Path", "~/synergex/monorepo <color=#56627A>(main)</color>", 14, Theme.TextDim,
+            UIKit.Text(term.transform, "Path", "~/synergex/monorepo <color=#828EA5>(main)</color>", 14, Theme.TextDim,
                        TextAlignmentOptions.TopLeft, UIFonts.Mono).rectTransform.TopLeft(18, 12, 384, 20);
             _terminal = UIKit.Text(term.transform, "Lines", "", 15, Theme.TerminalText, TextAlignmentOptions.BottomLeft, UIFonts.Mono);
             _terminal.rectTransform.TopLeft(18, 34, 384, 160);
@@ -238,7 +238,7 @@ namespace AgentClicker.UI
             if (_sb.Length > 0 || _buffs.text.Length > 0) UIKit.Set(_buffs, _sb.ToString());
             UIKit.Set(_clickInfo, $"+{NumberFormat.Short(m.ClickPower)} per click" + (m.CritChance > 0 ? $"  ·  {m.CritChance:P0} crit" : ""));
             UIKit.SetFill(_focusFill, m.Focus);
-            UIKit.Set(_focusLabel, m.Focus > 0.01f ? $"FOCUS <color=#FFD166>x{m.FocusMult:0.0}</color>" : "FOCUS <color=#56627A>keep clicking</color>");
+            UIKit.Set(_focusLabel, m.Focus > 0.01f ? $"FOCUS <color=#FFD166>x{m.FocusMult:0.0}</color>" : "FOCUS <color=#828EA5>keep clicking</color>");
 
             double a = m.Automation;
             _autoPct.text = NumberFormat.Percent(a);
@@ -246,7 +246,7 @@ namespace AgentClicker.UI
 
             double quota = m.State.quotaToday;
             bool met = m.State.earnedToday >= quota;
-            _today.text = $"{NumberFormat.Short(m.State.earnedToday)} <color=#8A97AD>/ {NumberFormat.Short(quota)}</color>" +
+            _today.text = $"{NumberFormat.Short(m.State.earnedToday)} <color=#A4AFC2>/ {NumberFormat.Short(quota)}</color>" +
                           (met ? "  <color=#3DDC97>✓ met</color>" : "");
             UIKit.SetFill(_quotaFill, (float)(m.State.earnedToday / quota));
             _quotaFill.color = met ? Theme.Good : Theme.Accent;
@@ -277,8 +277,8 @@ namespace AgentClicker.UI
                 var def = AskDatabase.ById(ask.id);
                 string text = def != null ? def.Text(ask.target) : ask.id;
                 UIKit.Set(_asks[i], ask.done
-                    ? $"<color=#3DDC97>✓</color> <color=#56627A><s>{text}</s></color>"
-                    : $"<color=#8A97AD>○</color> {text} <color=#8A97AD>· {NumberFormat.Percent(m.AskProgress(ask))}</color>");
+                    ? $"<color=#3DDC97>✓</color> <color=#828EA5><s>{text}</s></color>"
+                    : $"<color=#A4AFC2>○</color> {text} <color=#A4AFC2>· {NumberFormat.Percent(m.AskProgress(ask))}</color>");
             }
 
         }
@@ -348,7 +348,7 @@ namespace AgentClicker.UI
             _header.rectTransform.TopLeft(240, 14, 300, 20);
             _empty = UIKit.Text(card.transform, "Empty",
                 "No agents yet.\n\nShip some code, then hire your first agent from the <color=#4DD0E1>ModelMart</color> →\n\n" +
-                "<size=80%><color=#56627A>Agents earn credits every second, even when you're not clicking.</color></size>",
+                "<size=80%><color=#828EA5>Agents earn credits every second, even when you're not clicking.</color></size>",
                 20, Theme.TextDim, TextAlignmentOptions.Center);
             _empty.rectTransform.TopLeft(40, 120, 480, 260);
 
@@ -384,7 +384,7 @@ namespace AgentClicker.UI
             _activity.overflowMode = TextOverflowModes.Masking;
             _activity.textWrappingMode = TextWrappingModes.NoWrap;
             _activity.lineSpacing = 6;
-            Log("<color=#56627A>CorpOS agent bus connected.</color>");
+            Log("<color=#828EA5>CorpOS agent bus connected.</color>");
         }
 
         /// <summary>The next goal (see <see cref="NextGoal"/>): what to save up for, how far along, and roughly when. Click to shop.</summary>

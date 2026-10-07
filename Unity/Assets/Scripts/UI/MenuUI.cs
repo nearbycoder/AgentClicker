@@ -136,7 +136,7 @@ namespace AgentClicker.UI
             if (!Platform.IsWeb) MenuButton(_title.transform, "QUIT", () => Confirm("Quit to desktop?", "QUIT", _gm.QuitGame), 70, y);
 
             UIKit.Text(_title.transform, "Version", $"v{Application.version} · {Application.companyName} · all labs, models and companies are fictional",
-                       13, Theme.TextFaint, TextAlignmentOptions.BottomLeft).rectTransform.Anchor(0, 0, 0, 0).Insets(74, 22, -900, -40);
+                       15, Theme.TextFaint, TextAlignmentOptions.BottomLeft).rectTransform.Anchor(0, 0, 0, 0).Insets(74, 22, -900, -40);
         }
 
         public void ShowTitle()
@@ -278,7 +278,7 @@ namespace AgentClicker.UI
                             "Real time from 9:00 AM to 5:00 PM"); Next();
                     Toggle("Show off new gadgets (camera)", () => s.purchaseShowcase, v => s.purchaseShowcase = v, y); Next();
                     Toggle("Run the work day when I'm away", () => s.autopilotDay, v => s.autopilotDay = v, y,
-                           "Idle for a while after 5 PM: your agents clock you out, go home and log you back in"); Next();
+                           "Idle after 5 PM: your agents clock out, go home and log back in"); Next();
                     Toggle("Reduce motion", () => s.reduceMotion, v => s.reduceMotion = v, y,
                            "Camera cuts instead of flying; buttons and numbers hold still"); Next();
                     Toggle("Tutorial tips", () => s.tutorialTips, v => s.tutorialTips = v, y); Next();
@@ -290,7 +290,7 @@ namespace AgentClicker.UI
                     break;
                 default:
                     var t = UIKit.Text(_settingsBody, "Controls",
-                        Row("", "<color=#8A97AD><size=15>KEYBOARD & MOUSE</size></color>", "<color=#8A97AD><size=15>GAMEPAD</size></color>") +
+                        Row("", "<color=#A4AFC2><size=15>KEYBOARD & MOUSE</size></color>", "<color=#A4AFC2><size=15>GAMEPAD</size></color>") +
                         Row("Point and click", "Mouse", "Left stick · A") +
                         Row("Ship code", "SHIP CODE · Space · Enter", "RT · X") +
                         Row("Look around / sit down", "Tab · on-screen button", "View") +
@@ -309,7 +309,7 @@ namespace AgentClicker.UI
         }
 
         static string Pct(float v) => $"{v * 100:0}%";
-        static string Row(string a, string b, string c) => $"<color=#8A97AD>{a}</color><pos=35%>{b}<pos=74%>{c}\n";
+        static string Row(string a, string b, string c) => $"<color=#A4AFC2>{a}</color><pos=35%>{b}<pos=74%>{c}\n";
 
         RectTransform SettingRow(string label, float y, string hint = null)
         {
@@ -318,7 +318,13 @@ namespace AgentClicker.UI
             var t = UIKit.Text(row, "Label", label, 19, Theme.Text, TextAlignmentOptions.MidlineLeft, UIFonts.Medium);
             t.rectTransform.TopLeft(0, 0, 440, hint == null ? 50 : 32);
             if (hint != null)
-                UIKit.Text(row, "Hint", hint, 13, Theme.TextFaint, TextAlignmentOptions.TopLeft).rectTransform.TopLeft(0, 30, 520, 20);
+            {
+                // one line, never spilling into the next row (a long save-folder path ends in "…")
+                var h = UIKit.Text(row, "Hint", hint, 15, Theme.TextFaint, TextAlignmentOptions.TopLeft);
+                h.rectTransform.TopLeft(0, 30, 540, 20);
+                h.textWrappingMode = TextWrappingModes.NoWrap;
+                h.overflowMode = TextOverflowModes.Ellipsis;
+            }
             return row;
         }
 
@@ -329,12 +335,12 @@ namespace AgentClicker.UI
             {
                 var b = UIKit.Button(row, label, Theme.PanelLight, () => { _gm.Sfx.Play(Sound.UiClick, 0.6f); onClick(); }, 8);
                 b.GetComponent<RectTransform>().TopLeft(x, 8, w, 34);
-                b.Label(label, 14, Theme.Text, UIFonts.Bold);
+                b.Label(label, 15, Theme.Text, UIFonts.Bold);
                 return b;
             }
             if (Platform.IsWeb)
             {
-                var row = SettingRow("Save file", y, "Keep a copy, or move your career to another browser or the desktop game");
+                var row = SettingRow("Save file", y, "Keep a copy, or move your career to another browser or computer");
                 RowButton(row, "DOWNLOAD", 600, 140, _gm.DownloadSave);
                 RowButton(row, "LOAD FILE…", 750, 150, _gm.LoadSaveFile);
             }
@@ -362,10 +368,10 @@ namespace AgentClicker.UI
             }
             var left = UIKit.Button(row, "Prev", Theme.PanelLight, () => Step(-1), 8);
             left.GetComponent<RectTransform>().TopLeft(560, 8, 40, 34);
-            left.Label("◀", 14, Theme.Text, UIFonts.Mono);
+            left.Label("◀", 15, Theme.Text, UIFonts.Mono);
             var right = UIKit.Button(row, "Next", Theme.PanelLight, () => Step(1), 8);
             right.GetComponent<RectTransform>().TopLeft(860, 8, 40, 34);
-            right.Label("▶", 14, Theme.Text, UIFonts.Mono);
+            right.Label("▶", 15, Theme.Text, UIFonts.Mono);
             Refresh();
         }
 
@@ -599,16 +605,16 @@ namespace AgentClicker.UI
             _creditsDone = done;
             _creditsText.text =
                 "<size=200%><b>AGENT <color=#4DD0E1>CLICKER</color></b></size>\n\n" +
-                $"<color=#8A97AD>a {Application.companyName} game</color>\n\n\n" +
+                $"<color=#A4AFC2>a {Application.companyName} game</color>\n\n\n" +
                 "<color=#FFD166>STARRING</color>\n" + FlavorText.EmployeeName + " as themself\n" +
-                string.Join("\n", Array.ConvertAll(StoryDatabase.Cast, c => $"{c.Name} <color=#8A97AD>as {c.Role}</color>")) + "\n\n\n" +
+                string.Join("\n", Array.ConvertAll(StoryDatabase.Cast, c => $"{c.Name} <color=#A4AFC2>as {c.Role}</color>")) + "\n\n\n" +
                 "<color=#FFD166>FRONTIER LABS</color>\n" +
-                string.Join("\n", Array.ConvertAll(GameDatabase.Labs, l => $"{l.Name} <color=#8A97AD>· \"{l.Tagline}\"</color>")) + "\n\n\n" +
+                string.Join("\n", Array.ConvertAll(GameDatabase.Labs, l => $"{l.Name} <color=#A4AFC2>· \"{l.Tagline}\"</color>")) + "\n\n\n" +
                 "<color=#FFD166>BUILT WITH</color>\nUnity 6 · Universal Render Pipeline\nBlender (every model generated from Python)\n" +
                 "Procedurally synthesised sound and lo-fi music\nFira Sans & DejaVu Sans Mono\n\n\n" +
-                "<color=#8A97AD>Every lab, model, company and person in this game is fictional.\nAny resemblance to real frontier labs is " +
+                "<color=#A4AFC2>Every lab, model, company and person in this game is fictional.\nAny resemblance to real frontier labs is " +
                 "statistically inevitable.</color>\n\n\n" +
-                "<size=140%><b>Thanks for playing.</b></size>\n<color=#8A97AD>(Your agents say thanks too.)</color>";
+                "<size=140%><b>Thanks for playing.</b></size>\n<color=#A4AFC2>(Your agents say thanks too.)</color>";
             _creditsY = -40;
             Show(_credits, true);
         }

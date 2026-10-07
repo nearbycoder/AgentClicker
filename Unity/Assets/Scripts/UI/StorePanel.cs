@@ -230,8 +230,8 @@ namespace AgentClicker.UI
                 foot += $"  ·  {m.AgentCount(i)} producing {NumberFormat.Rate(m.AgentTypeCps(i))} ({NumberFormat.Percent(m.RawCps > 0 ? m.AgentTypeCps(i) / m.RawCps : 0)})";
             int n = _buyAmount == BuyMax ? Mathf.Max(1, m.MaxAffordable(i)) : _buyAmount;
             foot += AffordIn(m.AgentCost(i, n));
-            return ($"{a.Name}  <size=70%><color=#8A97AD>by {lab.Name}</color></size>",
-                    $"{a.Description}\n<i><color=#56627A>\"{lab.Tagline}\"</color></i>", foot);
+            return ($"{a.Name}  <size=70%><color=#A4AFC2>by {lab.Name}</color></size>",
+                    $"{a.Description}\n<i><color=#828EA5>\"{lab.Tagline}\"</color></i>", foot);
         }
 
         // ------------------------------------------------------------------ upgrades
@@ -411,7 +411,7 @@ namespace AgentClicker.UI
             double cps = m.Cps;
             if (m.State.credits >= cost || cps <= 0) return "";
             string eta = NumberFormat.Eta((cost - m.State.credits) / cps);
-            return eta.Length == 0 ? "" : $"  <color=#8A97AD>·  {eta}</color>";
+            return eta.Length == 0 ? "" : $"  <color=#A4AFC2>·  {eta}</color>";
         }
 
         // ------------------------------------------------------------------ refresh
@@ -514,7 +514,7 @@ namespace AgentClicker.UI
                     UIKit.Set(r.Sub, r.SubText);
                     r.Icon.color = Theme.Hex(lab.ColorHex);
                     UIKit.Set(r.Mono, a.Monogram);
-                    UIKit.Set(r.Cost, $"{NumberFormat.Short(cost)} credits" + (n > 1 || _buyAmount == BuyMax ? $"  <color=#8A97AD>(x{n})</color>" : ""));
+                    UIKit.Set(r.Cost, $"{NumberFormat.Short(cost)} credits" + (n > 1 || _buyAmount == BuyMax ? $"  <color=#A4AFC2>(x{n})</color>" : ""));
                     r.Cost.color = afford ? Theme.Good : Theme.Bad;
                     UIKit.Set(r.Owned, owned > 0 ? owned.ToString() : "");
                     r.Name.color = afford ? Theme.Text : Theme.TextDim;

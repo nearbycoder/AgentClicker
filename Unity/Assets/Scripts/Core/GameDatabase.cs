@@ -399,7 +399,7 @@ namespace AgentClicker.Core
                     {
                         Id = $"{a.Id}_t{t + 1}", Name = $"{a.Name}: {TierNames[t]}", Kind = UpgradeKind.AgentTier,
                         AgentIndex = i, Tier = t + 1, Cost = a.BaseCost * TierCostMult[t], Value = 2,
-                        Description = $"{a.Name} agents are twice as productive. <color=#56627A>(needs {need} owned)</color>",
+                        Description = $"{a.Name} agents are twice as productive. <color=#828EA5>(needs {need} owned)</color>",
                         Unlocked = m => m.State.agentCounts[idx] >= need,
                     });
                 }
@@ -461,7 +461,7 @@ namespace AgentClicker.Core
                 list.Add(new UpgradeDef
                 {
                     Id = "clout_" + c.name.ToLowerInvariant().Replace(' ', '_'), Name = c.name, Kind = UpgradeKind.Clout, Cost = c.cost, Value = c.factor,
-                    Description = $"{c.flavor} Production x(1 + {c.factor * 100:0.#}% of your Clout). <color=#56627A>(needs {need} trophies)</color>",
+                    Description = $"{c.flavor} Production x(1 + {c.factor * 100:0.#}% of your Clout). <color=#828EA5>(needs {need} trophies)</color>",
                     Unlocked = m => m.AchievementCount >= need,
                 });
             }
