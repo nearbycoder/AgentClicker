@@ -256,8 +256,7 @@ namespace AgentClicker.UI
             CloseModal();
             HideDrop();
             HideOutage();
-            foreach (var (rt, _, _, _) in _activeToasts) if (rt) Destroy(rt.gameObject);
-            _activeToasts.Clear();
+            ClearToasts();
             _mailCountSeen = -1;
             _store.SelectTab(0);
         }
@@ -266,6 +265,9 @@ namespace AgentClicker.UI
         /// <summary>The CorpOS canvas on the monitor.</summary>
         public RectTransform ScreenRoot => _root;
         public RectTransform GoalCard => _fleet.GoalCard;
+        public System.Collections.Generic.IReadOnlyList<TextMeshProUGUI> FeedLines => _fleet.FeedLines;
+        /// <summary>Adds a line to the activity feed (the tour logs a long one).</summary>
+        public void LogActivity(string line) => _fleet.Log(line);
         public Goal Goal => _fleet.Goal;
         public int StoreTab => _store.CurrentTab;
         public StorePanel Store => _store;
@@ -374,6 +376,14 @@ namespace AgentClicker.UI
                 if (!Mathf.Approximately(cg.alpha, a)) cg.alpha = a;
                 y += rt.sizeDelta.y + 8;
             }
+            // the activity feed under the stack hides whole lines up to its top (where the cards will be once they've eased in)
+            _fleet?.CoverFeedBelow(_toasts, _activeToasts.Count > 0 ? _toasts.rect.yMin + y - 8 : float.NegativeInfinity);
+        }
+
+        public void ClearToasts()
+        {
+            foreach (var (rt, _, _, _) in _activeToasts) if (rt) Destroy(rt.gameObject);
+            _activeToasts.Clear();
         }
 
         /// <summary>Toasts on screen with their card and text (the tour checks every text fits its card).</summary>

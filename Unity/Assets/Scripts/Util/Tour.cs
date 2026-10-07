@@ -192,9 +192,11 @@ namespace AgentClicker
             _gm.Menu.ClosePause();
             _gm.Cam.SetMode(CamMode.Monitor, 0.2f);
             M.StartOutage();
+            _gm.Computer.Toast("☎ Missed call from Gary Okonkwo.", Theme.TextDim, 6f); // at least one toast on the feed
             yield return new WaitForSeconds(1.0f);
             yield return Shot("07_desktop_lategame_outage");
             LogGoal("late game");
+            CheckFeedUnderToasts("late game");
 
             // ---- review & night ----------------------------------------------
             M.ClockOut();
@@ -249,7 +251,11 @@ namespace AgentClicker
             yield return Shot("15_frontier_agents");
             LogGoal("after the Factory");
             CheckCreditsLabel("after the Factory", "22.0 quadrillion");
-            // three toasts, two of them two lines long, stacked on a full activity feed
+            // a feed line too long for the panel, then three toasts, two of them two lines long, stacked on the full feed
+            _gm.Computer.ClearToasts();
+            _gm.Computer.LogActivity("<color=#E040FB>●</color> Fib-Mini #400: opened PR #4382: 'small refactor' (+4,812 lines, -3 lines, 212 files)");
+            yield return null;
+            CheckFeedFits();
             _gm.Computer.Toast("Promoted to Board Member! You get a parking spot. You don't drive. The agents park there now.", Theme.Accent2, 8f);
             _gm.Computer.Toast("★ TROPHY  Millionaire  Earn 1 million credits, across every division.", Theme.Gold, 8f);
             _gm.Computer.Toast("✉ New email from Brenda Lowe: <b>PTO requests from your \"team\"</b>", Theme.Accent, 8f);
@@ -1061,6 +1067,50 @@ namespace AgentClicker
             Debug.Log(n >= 3 && bad.Count == 0
                 ? $"[Tour] PASS toasts: {n} opaque cards over the activity feed, {lines} lines of text, all inside their cards"
                 : $"[Tour] FAIL toasts ({n} cards): {(bad.Count == 0 ? "fewer than 3 on screen" : string.Join(" | ", bad))}");
+            CheckFeedUnderToasts("three toasts");
+        }
+
+        /// <summary>No activity feed line shows below the top of the toast stack: lines under it are hidden whole.</summary>
+        void CheckFeedUnderToasts(string when)
+        {
+            var feed = _gm.Computer.FeedLines;
+            var space = (RectTransform)feed[0].transform.parent;
+            float Y(RectTransform rt, float y) => space.InverseTransformPoint(rt.TransformPoint(new Vector3(0, y, 0))).y;
+            float stackTop = float.NegativeInfinity;
+            foreach (var (card, _) in _gm.Computer.ToastCards()) stackTop = Mathf.Max(stackTop, Y(card, card.rect.yMax));
+            int shown = 0, hidden = 0;
+            var under = new System.Collections.Generic.List<string>();
+            foreach (var t in feed)
+            {
+                if (!t.gameObject.activeInHierarchy) { hidden++; continue; }
+                if (string.IsNullOrEmpty(t.text)) continue;
+                shown++;
+                var r = t.rectTransform;
+                if (Y(r, r.rect.yMin) < stackTop - 0.5f) under.Add(t.GetParsedText());
+            }
+            Debug.Log(hidden > 0 && under.Count == 0
+                ? $"[Tour] PASS activity feed under {when}: {hidden} lines hidden whole, {shown} shown above the stack"
+                : $"[Tour] FAIL activity feed under {when}: {hidden} hidden, {shown} shown, showing under a toast: {string.Join(" | ", under)}");
+        }
+
+        /// <summary>Every activity feed line ends inside the panel; one too long for it ends in "…".</summary>
+        void CheckFeedFits()
+        {
+            int shown = 0, shortened = 0;
+            var bad = new System.Collections.Generic.List<string>();
+            foreach (var t in _gm.Computer.FeedLines)
+            {
+                if (!t.gameObject.activeInHierarchy || string.IsNullOrEmpty(t.text)) continue;
+                t.ForceMeshUpdate();
+                shown++;
+                if (t.isTextTruncated) shortened++;
+                var r = t.rectTransform;
+                if (t.textBounds.max.x > r.rect.xMax + 0.5f) bad.Add($"\"{t.GetParsedText()}\" runs {t.textBounds.max.x - r.rect.xMax:0} px past the panel");
+                if (t.textInfo.lineCount != 1) bad.Add($"\"{t.GetParsedText()}\" takes {t.textInfo.lineCount} lines");
+            }
+            Debug.Log(shown >= 5 && shortened > 0 && bad.Count == 0
+                ? $"[Tour] PASS activity feed: {shown} lines, all inside the panel, {shortened} too long ending in \"…\""
+                : $"[Tour] FAIL activity feed: {shown} lines, {shortened} shortened; {string.Join(" | ", bad)}");
         }
 
         IEnumerator Shot(string name)

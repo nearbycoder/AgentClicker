@@ -96,7 +96,8 @@ namespace AgentClicker.Core
                 Kind = GoalKind.Option,
                 Title = earned < 1
                     ? pending >= 1 ? $"Reorg for your first Stock Options (+{NumberFormat.Short(pending)})" : "Vest your first Stock Option"
-                    : $"Double your Stock Options (+{NumberFormat.Short(pending)} of +{NumberFormat.Short(earned)} vested)",
+                    : pending >= earned ? $"Reorg for +{NumberFormat.Short(pending)} Stock Options (you have {NumberFormat.Short(earned)})"
+                    : $"Double your Stock Options: +{NumberFormat.Short(pending)} of the {NumberFormat.Short(earned)} you have",
                 From = GameModel.EarningsForOptions(earned), Have = s.allTimeEarned,
                 Need = GameModel.EarningsForOptions(Math.Max(1, 2 * earned)),
             };

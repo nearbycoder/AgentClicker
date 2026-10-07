@@ -108,6 +108,15 @@ namespace AgentClicker.Tests
             Assert.AreEqual(GameModel.EarningsForOptions(10), g.From, 1e-3);
             Assert.AreEqual(m.PendingOptions >= 10, g.Reached);
             Assert.That(g.Progress, Is.InRange(0.0, 1.0));
+            // the title says what a reorg gives and what you have, or how far towards doubling you are
+            string pending = NumberFormat.Short(m.PendingOptions);
+            Assert.AreEqual(g.Reached ? $"Reorg for +{pending} Stock Options (you have 10)"
+                                      : $"Double your Stock Options: +{pending} of the 10 you have", g.Title);
+            double vested = m.PendingOptions + m.State.optionsEarned;
+            m.State.optionsEarned = System.Math.Ceiling(vested * 0.6); // this reorg would add only two thirds as many
+            g = NextGoal.Pick(m);
+            Assert.IsFalse(g.Reached);
+            StringAssert.StartsWith("Double your Stock Options: +", g.Title);
         }
 
         /// <summary>The tour's endless state: 22Qa in the bank, the Simulation Farm at 40Qi is over a year away.</summary>

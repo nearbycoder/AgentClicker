@@ -354,9 +354,11 @@ namespace AgentClicker.UI
         TextMeshProUGUI _goalTitle, _goalStatus, _goalEta;
         Image _goalFill;
         Goal _goal;
-        readonly TextMeshProUGUI _header, _empty, _activity;
+        readonly TextMeshProUGUI _header, _empty;
+        // one text per line: a long line ends in "…" inside the panel, and a line under a toast can be hidden whole
+        readonly TextMeshProUGUI[] _feed = new TextMeshProUGUI[MaxLogLines];
         readonly List<string> _log = new List<string>();
-        readonly StringBuilder _logSb = new StringBuilder();
+        float _coveredBelow = float.NegativeInfinity;
         // older lines fade out: precomputed <alpha> tags for each age
         static readonly string[] AlphaTags = BuildAlphaTags();
 
@@ -414,11 +416,16 @@ namespace AgentClicker.UI
             UIKit.Image(act.transform, "Divider", Theme.Border).rectTransform.TopLeft(20, 104, 520, 1);
             UIKit.Text(act.transform, "Title", "ACTIVITY", 14, Theme.TextDim, TextAlignmentOptions.TopLeft, UIFonts.Medium)
                  .rectTransform.TopLeft(20, 114, 300, 20);
-            _activity = UIKit.Text(act.transform, "Feed", "", 14, Theme.TextDim, TextAlignmentOptions.BottomLeft, UIFonts.Mono);
-            _activity.rectTransform.TopLeft(20, 138, 520, 168);
-            _activity.overflowMode = TextOverflowModes.Masking;
-            _activity.textWrappingMode = TextWrappingModes.NoWrap;
-            _activity.lineSpacing = 6;
+            var feed = UIKit.Rect("Feed", act.transform).TopLeft(20, 138, 520, 168);
+            const float lineHeight = 168f / MaxLogLines;
+            for (int i = 0; i < _feed.Length; i++)
+            {
+                var t = UIKit.Text(feed, "Line" + i, "", 14, Theme.TextDim, TextAlignmentOptions.MidlineLeft, UIFonts.Mono);
+                t.rectTransform.TopLeft(0, i * lineHeight, 520, lineHeight);
+                t.textWrappingMode = TextWrappingModes.NoWrap;
+                t.overflowMode = TextOverflowModes.Ellipsis;
+                _feed[i] = t;
+            }
             Log("<color=#828EA5>CorpOS agent bus connected.</color>");
         }
 
@@ -476,14 +483,33 @@ namespace AgentClicker.UI
         {
             _log.Add(line);
             while (_log.Count > MaxLogLines) _log.RemoveAt(0);
-            _logSb.Clear();
-            for (int i = 0; i < _log.Count; i++)
+            // the newest line at the bottom, older ones fading towards the top
+            for (int slot = 0; slot < _feed.Length; slot++)
             {
-                if (i > 0) _logSb.Append('\n');
-                _logSb.Append(AlphaTags[_log.Count - 1 - i]).Append(_log[i]);
+                int age = _feed.Length - 1 - slot, i = _log.Count - 1 - age;
+                _feed[slot].SetText(i >= 0 ? AlphaTags[age] + _log[i] : "");
             }
-            _activity.SetText(_logSb);
         }
+
+        /// <summary>
+        /// Toasts stack up from the bottom of the activity panel. Feed lines that reach below <paramref name="y"/> (the top
+        /// of the stack, in <paramref name="space"/>) are hidden whole, so no slice of one shows between or above the cards.
+        /// -∞: no toasts.
+        /// </summary>
+        public void CoverFeedBelow(RectTransform space, float y)
+        {
+            if (y == _coveredBelow) return;
+            _coveredBelow = y;
+            foreach (var t in _feed)
+            {
+                var r = t.rectTransform;
+                float bottom = space.InverseTransformPoint(r.TransformPoint(new Vector3(0, r.rect.yMin, 0))).y;
+                UIKit.SetActive(t, bottom >= y);
+            }
+        }
+
+        /// <summary>The feed's lines (the tour checks none shows under a toast or past the panel).</summary>
+        public IReadOnlyList<TextMeshProUGUI> FeedLines => _feed;
 
         public void Tick(float dt)
         {
