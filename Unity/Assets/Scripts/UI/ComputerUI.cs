@@ -223,7 +223,7 @@ namespace AgentClicker.UI
             {
                 _fleet.Tick(dt);
                 _refresh -= dt;
-                if (_refresh <= 0) RefreshAll(dt);
+                if (_refresh <= 0) { RefreshAll(dt); RefreshDayEndPrompt(); }
                 UpdateDrop();
                 UpdateOutage();
                 UpdateAutoOpenMail();
@@ -261,6 +261,9 @@ namespace AgentClicker.UI
             _store.SelectTab(0);
         }
         public RectTransform ShipButton => _ship.Button;
+        public TextMeshProUGUI EffectsText => _ship.EffectsText;
+        public TextMeshProUGUI ClickInfoText => _ship.ClickInfoText;
+        public TextMeshProUGUI RateText => _ship.RateText;
         public TMPro.TextMeshProUGUI CreditsLabel => _ship.CreditsLabel;
         /// <summary>The CorpOS canvas on the monitor.</summary>
         public RectTransform ScreenRoot => _root;
@@ -667,16 +670,20 @@ namespace AgentClicker.UI
             InboxOpen = false;
         }
 
+        TextMeshProUGUI _dayEndQuota;
+        string _dayEndShown;
+
         public void ShowDayEndPrompt()
         {
             var card = OpenModal(640, 330, out _);
             UIKit.Text(card, "Title", "It's 5:00 PM.", 40, Theme.Warn, TextAlignmentOptions.Top, UIFonts.Bold).rectTransform.TopLeft(0, 36, 640, 50);
-            var m = _gm.Model;
-            bool met = m.State.earnedToday >= m.State.quotaToday;
-            UIKit.Text(card, "Body",
-                (met ? "<color=#3DDC97>Quota met.</color> " : "<color=#FF5D5D>Quota not met yet.</color> ") +
-                "Clock out for your performance review, or stay late. Overtime counts toward today's quota.",
-                19, Theme.TextDim, TextAlignmentOptions.Top).rectTransform.TopLeft(50, 100, 540, 90);
+            // the quota line follows the day while the card is up: overtime can meet the quota before you choose
+            _dayEndQuota = UIKit.Text(card, "Quota", "", 19, Theme.TextDim, TextAlignmentOptions.Top);
+            _dayEndQuota.rectTransform.TopLeft(50, 100, 540, 30);
+            _dayEndShown = null;
+            RefreshDayEndPrompt();
+            UIKit.Text(card, "Body", "Clock out for your performance review, or stay late. Overtime counts toward today's quota.",
+                19, Theme.TextDim, TextAlignmentOptions.Top).rectTransform.TopLeft(50, 132, 540, 60);
             var stay = UIKit.Button(card, "Stay", Theme.PanelLight, () => { CloseModal(); _gm.WorkLate(); }, 12);
             stay.GetComponent<RectTransform>().TopLeft(50, 220, 260, 64);
             stay.Label("WORK LATE", 22, Theme.Text);
@@ -684,6 +691,23 @@ namespace AgentClicker.UI
             go.GetComponent<RectTransform>().TopLeft(330, 220, 260, 64);
             go.Label("CLOCK OUT", 22, Theme.Bg);
         }
+
+        /// <summary>The 5 PM card's quota line, if the card is up: "Quota met: 1.19B of 2.00M."</summary>
+        void RefreshDayEndPrompt()
+        {
+            if (_dayEndQuota == null) return;
+            var m = _gm.Model;
+            double earned = m.State.earnedToday, quota = m.State.quotaToday;
+            string shown = NumberFormat.Short(earned) + (earned >= quota ? "+" : "-");
+            if (shown == _dayEndShown) return;
+            _dayEndShown = shown;
+            string amounts = $"<color=#E6EDF7>{NumberFormat.Short(earned)}</color> of {NumberFormat.Short(quota)}";
+            _dayEndQuota.text = earned >= quota ? $"<color=#3DDC97>Quota met:</color> {amounts}." : $"<color=#FF5D5D>Quota not met yet:</color> {amounts}.";
+        }
+
+        /// <summary>The 5 PM card's quota line, while it's up (the tour checks it).</summary>
+        public TextMeshProUGUI DayEndQuota => _dayEndQuota;
+        public bool DayEndPromptOpen => _dayEndQuota != null;
 
         public void ShowReview(DayReview r)
         {

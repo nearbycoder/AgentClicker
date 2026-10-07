@@ -198,6 +198,7 @@ namespace AgentClicker
             yield return Shot("07_desktop_lategame_outage");
             LogGoal("late game");
             CheckFeedUnderToasts("late game");
+            yield return TimedEffectsSegment();
 
             // ---- review & night ----------------------------------------------
             M.ClockOut();
@@ -944,6 +945,61 @@ namespace AgentClicker
                                         : "[Tour] FAIL touch: still in touch mode after the mouse moved");
             InputSystem.RemoveDevice(ts);
             M.RandomEventsEnabled = true;
+        }
+
+        /// <summary>
+        /// Benchmark Hype, Caffeine Rush and an outage at once: every effect is on screen with its multiplier and seconds
+        /// left, none cut off or overlapping the rate. Then the 5 PM card's quota line follows overtime past the quota.
+        /// </summary>
+        IEnumerator TimedEffectsSegment()
+        {
+            _gm.Computer.CloseModal();
+            for (int i = 0; i < 300 && !(M.Buffs.Exists(b => b.Kind == BuffKind.Hype) && M.Buffs.Exists(b => b.Kind == BuffKind.Caffeine)); i++)
+            {
+                if (M.ActiveDrop == null) M.SpawnDrop();
+                M.ClaimDrop();
+            }
+            if (M.ActiveOutage == null) M.StartOutage();
+            yield return new WaitForSeconds(0.4f);
+            var bad = new System.Collections.Generic.List<string>();
+            var fx = _gm.Computer.EffectsText;
+            var click = _gm.Computer.ClickInfoText;
+            var rate = _gm.Computer.RateText;
+            foreach (var (t, wants) in new[] { (fx, new[] { "Hype x", "Outage x0.5" }), (click, new[] { "Caffeine x77" }) })
+            {
+                t.ForceMeshUpdate();
+                string text = t.GetParsedText();
+                foreach (var w in wants)
+                    if (!System.Text.RegularExpressions.Regex.IsMatch(text, System.Text.RegularExpressions.Regex.Escape(w) + @"\d* \d+s")) bad.Add($"\"{text}\" lacks \"{w} … Ns\"");
+                if (t.isTextTruncated || t.textInfo.lineCount != 1) bad.Add($"\"{text}\" is cut off or wraps ({t.textInfo.lineCount} lines)");
+                var r = t.rectTransform.rect;
+                if (t.textBounds.min.x < r.xMin - 0.5f || t.textBounds.max.x > r.xMax + 0.5f) bad.Add($"\"{text}\" runs outside its box");
+            }
+            rate.ForceMeshUpdate();
+            float rateRight = fx.rectTransform.InverseTransformPoint(rate.transform.TransformPoint(rate.textBounds.max)).x;
+            if (fx.textBounds.min.x < rateRight + 4) bad.Add($"the effects start {fx.textBounds.min.x - rateRight:0} px from the rate");
+            Debug.Log(bad.Count == 0
+                ? $"[Tour] PASS timed effects: \"{fx.GetParsedText()}\" beside \"{rate.GetParsedText()}\", \"{click.GetParsedText()}\" on SHIP CODE, all on one line inside their boxes"
+                : $"[Tour] FAIL timed effects: {string.Join(" | ", bad)}");
+            yield return Shot("07b_timed_effects");
+
+            var s = M.State;
+            double quota = s.quotaToday, earned = s.earnedToday;
+            s.quotaToday = 1e15;
+            s.earnedToday = 4e14;
+            _gm.Computer.ShowDayEndPrompt();
+            yield return new WaitForSeconds(0.3f);
+            string before = _gm.Computer.DayEndQuota.GetParsedText();
+            s.earnedToday = 1.2e15; // overtime passes the quota while the card is up
+            yield return new WaitForSeconds(0.4f);
+            string after = _gm.Computer.DayEndQuota.GetParsedText();
+            Debug.Log(before.StartsWith("Quota not met yet: 400T of 1.00Qa") && after.StartsWith("Quota met: 1.20Qa of 1.00Qa")
+                ? $"[Tour] PASS the 5 PM card follows the day: \"{before}\" became \"{after}\""
+                : $"[Tour] FAIL the 5 PM card's quota line: \"{before}\", then \"{after}\"");
+            yield return Shot("07c_five_pm_quota_met");
+            _gm.Computer.CloseModal();
+            s.quotaToday = quota;
+            s.earnedToday = earned;
         }
 
         /// <summary>The visible scroll list whose parent (or first row) has this name.</summary>

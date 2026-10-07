@@ -253,6 +253,25 @@ namespace AgentClicker.UI
 
         /// <summary>The credits card's label (the tour checks it names the number and fits).</summary>
         public TextMeshProUGUI CreditsLabel => _creditsLabel;
+        /// <summary>Timed production effects on the credits card, and the SHIP CODE button's line (the tour checks they fit).</summary>
+        public TextMeshProUGUI EffectsText => _buffs;
+        public TextMeshProUGUI ClickInfoText => _clickInfo;
+        public TextMeshProUGUI RateText => _rate;
+
+        /// <summary>Appends "Hype x7 · 49s" to the line being built, after a gap if it isn't the first thing on it.</summary>
+        void Effect(string name, string mult, float seconds, string close = "")
+        {
+            if (_sb.Length > 0) _sb.Append("  ·  ");
+            _sb.Append(name).Append(' ').Append(mult).Append(' ').Append(Mathf.CeilToInt(Mathf.Max(0, seconds))).Append('s').Append(close);
+        }
+
+        /// <summary>The effects' names, short enough for two of them to share the credits card.</summary>
+        static string ShortName(Buff b) => b.Name switch
+        {
+            "Benchmark Hype" => "Hype",
+            "Caffeine Rush" => "Caffeine",
+            _ => b.Name,
+        };
 
         public void Refresh()
         {
@@ -267,11 +286,26 @@ namespace AgentClicker.UI
                 UIKit.Set(_creditsLabel, words.Length == 0 ? "COMPUTE CREDITS" : "COMPUTE CREDITS  <color=#828EA5>·</color>  " + words);
             }
             _rate.text = $"+{NumberFormat.Rate(m.Cps)}";
+            // production effects beside the rate (in the room it leaves), click effects on SHIP CODE, each with its time left
             _sb.Clear();
-            foreach (var b in m.Buffs) _sb.Append(b.Name).Append(" x").Append((int)b.Mult).Append(" · ").Append((int)b.Remaining).Append("s  ");
-            if (m.ActiveOutage != null) _sb.Append("<color=#FF5D5D>OUTAGE x0.5</color>");
-            if (_sb.Length > 0 || _buffs.text.Length > 0) UIKit.Set(_buffs, _sb.ToString());
-            UIKit.Set(_clickInfo, $"+{NumberFormat.Short(m.ClickPower)} per click" + (m.CritChance > 0 ? $"  ·  {m.CritChance:P0} crit" : ""));
+            foreach (var b in m.Buffs)
+                if (b.Kind != BuffKind.Caffeine) Effect(ShortName(b), "x" + (int)b.Mult, b.Remaining);
+            if (m.ActiveOutage != null) Effect("<color=#FF5D5D>Outage", "x0.5", m.ActiveOutage.Remaining, "</color>");
+            if (_sb.Length > 0 || _buffs.text.Length > 0)
+            {
+                if (_sb.Length > 0)
+                {
+                    float left = 20 + _rate.GetPreferredValues(_rate.text).x + 14;
+                    _buffs.rectTransform.TopLeft(left, 98, 402 - left, 24);
+                }
+                UIKit.Set(_buffs, _sb.ToString());
+            }
+            _sb.Clear();
+            _sb.Append('+').Append(NumberFormat.Short(m.ClickPower)).Append(" per click");
+            if (m.CritChance > 0) _sb.Append("  ·  ").Append(m.CritChance.ToString("P0")).Append(" crit");
+            foreach (var b in m.Buffs)
+                if (b.Kind == BuffKind.Caffeine) Effect("<b>" + ShortName(b), "x" + (int)b.Mult, b.Remaining, "</b>");
+            UIKit.Set(_clickInfo, _sb.ToString());
             UIKit.SetFill(_focusFill, m.Focus);
             UIKit.Set(_focusLabel, m.Focus > 0.01f ? $"FOCUS <color=#FFD166>x{m.FocusMult:0.0}</color>" : "FOCUS <color=#828EA5>keep clicking</color>");
 
