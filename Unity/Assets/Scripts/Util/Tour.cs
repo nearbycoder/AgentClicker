@@ -84,6 +84,7 @@ namespace AgentClicker
             yield return Shot("02_desktop_day1");
             LogGoal("day 1");
             CheckCreditsLabel("day 1", null);
+            CheckScrollbar("day 1 agent list", _gm.Computer.Store.AgentRowRect(0).GetComponentInParent<UnityEngine.UI.ScrollRect>(), false);
             yield return MuteSegment();
             M.DeliverNextMail();
             M.DeliverNextMail();
@@ -251,6 +252,7 @@ namespace AgentClicker
             yield return Shot("15_frontier_agents");
             LogGoal("after the Factory");
             CheckCreditsLabel("after the Factory", "22.0 quadrillion");
+            CheckScrollbar("late-game agent list", _gm.Computer.Store.AgentRowRect(0).GetComponentInParent<UnityEngine.UI.ScrollRect>(), true);
             // a feed line too long for the panel, then three toasts, two of them two lines long, stacked on the full feed
             _gm.Computer.ClearToasts();
             _gm.Computer.LogActivity("<color=#E040FB>●</color> Fib-Mini #400: opened PR #4382: 'small refactor' (+4,812 lines, -3 lines, 212 files)");
@@ -271,6 +273,7 @@ namespace AgentClicker
             _gm.Computer.SelectStoreTab(StorePanel.StatsTabIndex);
             yield return new WaitForSeconds(0.6f);
             yield return Shot("17_stats");
+            CheckScrollbar("Stats tab", ActiveList("Stats"), true);
             _gm.Computer.ShowCareer(false);
             yield return new WaitForSeconds(0.6f);
             yield return Shot("18_reorg_tab");
@@ -292,6 +295,7 @@ namespace AgentClicker
             _gm.Computer.ShowCareer(true);
             yield return new WaitForSeconds(0.8f);
             yield return Shot("22_board_room");
+            yield return ScrollbarDragSegment(ActiveList("BoardView"));
 
             // ---- hundreds of hours in: enormous numbers ---------------------------
             s.factoryBuilt = true;
@@ -940,6 +944,77 @@ namespace AgentClicker
                                         : "[Tour] FAIL touch: still in touch mode after the mouse moved");
             InputSystem.RemoveDevice(ts);
             M.RandomEventsEnabled = true;
+        }
+
+        /// <summary>The visible scroll list whose parent (or first row) has this name.</summary>
+        static UnityEngine.UI.ScrollRect ActiveList(string name)
+        {
+            foreach (var sr in FindObjectsByType<UnityEngine.UI.ScrollRect>())
+                if (sr.isActiveAndEnabled && (sr.transform.parent.name == name || sr.content.Find(name) != null)) return sr;
+            return null;
+        }
+
+        /// <summary>
+        /// A list shows a scrollbar exactly when its rows don't fit, and the thumb's share of the track is the share of the
+        /// list in view; the bar sits in its own lane, so no row runs under it.
+        /// </summary>
+        static bool CheckScrollbar(string what, UnityEngine.UI.ScrollRect sr, bool expectBar)
+        {
+            if (sr == null) { Debug.Log($"[Tour] FAIL scrollbar, {what}: no list found"); return false; }
+            Canvas.ForceUpdateCanvases();
+            var bar = sr.verticalScrollbar;
+            float view = sr.viewport.rect.height, content = sr.content.rect.height;
+            bool shown = bar != null && bar.gameObject.activeInHierarchy;
+            if (!expectBar)
+            {
+                Debug.Log(!shown && content <= view + 0.5f
+                    ? $"[Tour] PASS scrollbar, {what}: none while the rows fit ({content:0} of {view:0} px)"
+                    : $"[Tour] FAIL scrollbar, {what}: shown {shown}, rows {content:0} px in {view:0} px");
+                return !shown;
+            }
+            var track = (RectTransform)bar.handleRect.parent;
+            float thumb = bar.handleRect.rect.height / track.rect.height, visible = view / content;
+            var barRt = (RectTransform)bar.transform;
+            float lane = sr.viewport.InverseTransformPoint(barRt.TransformPoint(barRt.rect.min)).x, rowsEnd = float.NegativeInfinity;
+            foreach (RectTransform row in sr.content)
+                if (row.gameObject.activeSelf) rowsEnd = Mathf.Max(rowsEnd, sr.viewport.InverseTransformPoint(row.TransformPoint(row.rect.max)).x);
+            bool ok = shown && content > view && Mathf.Abs(thumb - visible) < 0.02f && rowsEnd <= lane + 0.5f;
+            Debug.Log(ok
+                ? $"[Tour] PASS scrollbar, {what}: shown, thumb {thumb:P0} of the track for {visible:P0} of the list in view, rows end {lane - rowsEnd:0} px left of it"
+                : $"[Tour] FAIL scrollbar, {what}: shown {shown}, thumb {thumb:P0} for {visible:P0} in view ({content:0} px in {view:0}), rows end at {rowsEnd:0}, bar at {lane:0}");
+            return ok;
+        }
+
+        /// <summary>Real mouse events grab the scrollbar's thumb and drag it to the bottom: the list follows to its end.</summary>
+        IEnumerator ScrollbarDragSegment(UnityEngine.UI.ScrollRect sr)
+        {
+            if (!CheckScrollbar("Board Room", sr, true)) yield break;
+            sr.verticalNormalizedPosition = 1;
+            Canvas.ForceUpdateCanvases();
+            var cam = _gm.Refs.MainCamera;
+            var handle = sr.verticalScrollbar.handleRect;
+            var track = (RectTransform)handle.parent;
+            Vector2 from = cam.WorldToScreenPoint(handle.TransformPoint(handle.rect.center));
+            Vector2 to = cam.WorldToScreenPoint(track.TransformPoint(new Vector2(track.rect.center.x, track.rect.yMin - 40)));
+            var mouse = Mouse.current ?? InputSystem.AddDevice<Mouse>();
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = from });
+            yield return null;
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = from }.WithButton(MouseButton.Left, true));
+            yield return null;
+            for (int i = 1; i <= 12; i++)
+            {
+                InputSystem.QueueStateEvent(mouse, new MouseState { position = Vector2.Lerp(from, to, i / 12f) }.WithButton(MouseButton.Left, true));
+                yield return null;
+            }
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = to });
+            yield return null;
+            yield return null;
+            float pos = sr.verticalNormalizedPosition;
+            Debug.Log(pos < 0.01f
+                ? $"[Tour] PASS scrollbar, Board Room: a real mouse drag of the thumb scrolled the list to its end ({pos:0.00})"
+                : $"[Tour] FAIL scrollbar, Board Room: after dragging the thumb down the list is at {pos:0.00} (1 = top, 0 = end)");
+            yield return Shot("22b_board_room_scrolled");
+            sr.verticalNormalizedPosition = 1;
         }
 
         static IEnumerator WaitFor(System.Func<bool> done, float timeout)

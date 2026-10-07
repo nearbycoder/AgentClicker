@@ -306,10 +306,40 @@ namespace AgentClicker.UI
             content.anchorMax = new Vector2(1, 1);
             content.pivot = new Vector2(0.5f, 1);
             content.offsetMin = content.offsetMax = Vector2.zero;
-            VList(content, spacing, new RectOffset(0, 6, 0, 8), fitHeight: true);
+            // rows stop short of the scrollbar's lane on the right
+            VList(content, spacing, new RectOffset(0, ScrollbarLane + 2, 0, 8), fitHeight: true);
             scroll.content = content;
             scroll.viewport = root;
+            scroll.verticalScrollbar = Scrollbar(root);
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide; // only while the content doesn't fit
             return content;
+        }
+
+        /// <summary>Width of the strip on a list's right edge that takes the scrollbar (and catches its drags).</summary>
+        public const int ScrollbarLane = 10;
+
+        /// <summary>A slim scrollbar on the right edge of a scroll list: it shows there's more, and its thumb can be dragged.</summary>
+        static Scrollbar Scrollbar(RectTransform list)
+        {
+            var track = Panel(list, "Scrollbar", Color.white.WithAlpha(0.05f), 4, true);
+            track.rectTransform.Anchor(1, 0, 1, 1).Insets(-ScrollbarLane, 4, 0, 4);
+            var area = Rect("Sliding Area", track.transform).Fill();
+            var handle = Panel(area, "Handle", Theme.TextFaint.WithAlpha(0.7f), 3, true);
+            handle.rectTransform.Fill().Insets(2, 0, 2, 0);
+            var sb = track.gameObject.AddComponent<Scrollbar>();
+            sb.handleRect = handle.rectTransform;
+            sb.targetGraphic = handle;
+            sb.direction = UnityEngine.UI.Scrollbar.Direction.BottomToTop;
+            var cb = sb.colors;
+            cb.highlightedColor = new Color(1.35f, 1.35f, 1.35f, 1f);
+            cb.pressedColor = new Color(1.5f, 1.5f, 1.5f, 1f);
+            cb.selectedColor = Color.white;
+            cb.fadeDuration = 0.08f;
+            sb.colors = cb;
+            var nav = sb.navigation;
+            nav.mode = Navigation.Mode.None;
+            sb.navigation = nav;
+            return sb;
         }
 
         public static Image Bar(Transform parent, string name, Color back, Color fill, out Image fillImage, float radius = 6)
