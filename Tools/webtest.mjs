@@ -237,6 +237,27 @@ async function main() {
     if (mailOpen) { await page.keyboard.press("Escape"); await sleep(600); }
     check(mailOpen && !(await modalOpen()), "the CEO's email opened when the clicking paused, and Esc closed it");
 
+    // M mutes everything (music and ambience keep playing without clicks) and turns it back on
+    const loudest = async (ms) => {
+      let peak = 0;
+      for (let t = 0; t < ms; t += 150) {
+        const a = await page.evaluate(() => window.__audio ? window.__audio() : null);
+        if (a) peak = Math.max(peak, a.peak);
+        await sleep(150);
+      }
+      return peak;
+    };
+    const playing = await loudest(1500);
+    await page.keyboard.press("m");
+    await sleep(400);
+    const muted = await loudest(2000);
+    await page.keyboard.press("m");
+    await sleep(400);
+    const unmuted = await loudest(2000);
+    console.log(`[Web] mute: peak ${playing.toFixed(4)} playing, ${muted.toFixed(5)} muted, ${unmuted.toFixed(4)} after M again`);
+    check(playing > 0.001 && muted < 0.0005 && unmuted > 0.001 && log.some((l) => l.includes("[Audio] muted")),
+          `M mutes all sound and M again brings it back (peak ${playing.toFixed(4)} → ${muted.toFixed(5)} → ${unmuted.toFixed(4)})`);
+
     // hire an Autocomplete (top row of the store)
     await page.mouse.click(1290, 235);
     await sleep(600);

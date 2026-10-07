@@ -234,7 +234,8 @@ New games start with three intro cards, and the ending has five epilogue cards f
 
 The title screen has Continue, New Game, Settings, How to Play, Credits and Quit, over a slow cinematic
 camera at golden hour. The pause menu (Esc) pauses time. The settings categories are Graphics, Audio,
-Gameplay and Controls. Settings are saved in PlayerPrefs, separately from the save file. Gameplay → Save file
+Gameplay and Controls. `M`, or the ♪ button on the CorpOS top bar, mutes all sound in one go (Audio → Mute all sound) and
+leaves the volume sliders as they are. Settings are saved in PlayerPrefs, separately from the save file. Gameplay → Save file
 downloads and loads the save in the browser (checked by `SaveSystem.Validate`, confirmed before it replaces a career)
 and opens the save folder on the desktop; the file is the same on every platform.
 
