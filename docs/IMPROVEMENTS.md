@@ -1,8 +1,8 @@
 # Agent Clicker: improvement plan
 
 Written on 2026-10-06, after v0.1.0 (published 2026-10-04). This document ranks what would most raise the
-game's quality for a real player, then records each round's scope and results. Rounds 1–3 (branches
-`improvements`, `improvements-2`, `improvements-3`) are merged into `main`; round 4 is on `improvements-4`.
+game's quality for a real player, then records each round's scope and results. Rounds 1–4 (branches
+`improvements` to `improvements-4`) are merged into `main`; round 5 is on `improvements-5`.
 
 ## Baseline (what was run, and what it showed)
 
