@@ -157,6 +157,7 @@ async function main() {
     }));
     await shot("01_title");
     check(pageErrors.length === 0, "loaded to the title screen without page errors");
+    const titleScreen = await page.title();
 
     // home-screen play: the web app manifest parses and its icons load (Chromium can read the parsed manifest)
     if (engine === "chromium") {
@@ -263,6 +264,28 @@ async function main() {
     await sleep(600);
     await shot("05_hired");
 
+    // ---- the tab's title: the credits, and an alert in front while a model drop is up or the phone rings ----------
+    const titleWhen = async (test, ms = 4000) => {
+      let t = await page.title();
+      for (let waited = 0; waited < ms && !test(t); waited += 250) { await sleep(250); t = await page.title(); }
+      return t;
+    };
+    const event = (what) => page.evaluate((w) => window.unityInstance.SendMessage("Game", "ForceEvent", w), what);
+    const plain = await titleWhen((t) => / credits · Agent Clicker$/.test(t));
+    await event("drop");
+    const dropTitle = await titleWhen((t) => t.startsWith("★ Model drop! · "));
+    await event("claim");
+    const afterDrop = await titleWhen((t) => !t.startsWith("★"));
+    await event("ring");
+    const ringTitle = await titleWhen((t) => t.startsWith("☎ Phone ringing · "));
+    await event("decline");
+    const afterRing = await titleWhen((t) => !t.startsWith("☎"));
+    console.log(`[Web] tab titles: "${titleScreen}" · "${plain}" · "${dropTitle}" · "${afterDrop}" · "${ringTitle}" · "${afterRing}"`);
+    check(titleScreen === "Agent Clicker" && /^[\d.]+\S* credits · Agent Clicker$/.test(plain) &&
+          dropTitle.startsWith("★ Model drop! · ") && /^[\d.]+\S* credits · /.test(afterDrop) &&
+          ringTitle.startsWith("☎ Phone ringing · ") && /^[\d.]+\S* credits · /.test(afterRing),
+          `the tab's title shows the credits and puts a model drop and a ringing phone in front ("${plain}", "${dropTitle}", "${ringTitle}")`);
+
     // ---- a page behind another window saves power, and the WebGL id tables don't grow with every frame ----------
     // The game's own frame rate (the page's animation frames keep their pace when the game caps its own). Focus is
     // moved with the window's blur and focus events, which is what the engine listens to.
@@ -293,6 +316,13 @@ async function main() {
     check(!!gl0 && !!gl1 && gl1.reuse && gl1.counter - gl0.counter < 3 * glSecs,
           `WebGL ids are reused: the shared id counter went ${gl0?.counter} → ${gl1?.counter} in ${glSecs.toFixed(0)} s ` +
           `(the engine's own allocator adds about one a frame), largest table ${gl0?.largest} → ${gl1?.largest}`);
+
+    // ---- the long music piece takes over from the 25 s loop, and the music keeps playing ----------------------
+    const songLine = await waitLog("[Sfx] the long piece is playing", 240000);
+    const songPeak = songLine ? await loudest(2000) : 0;
+    console.log("[Web] music: " + log.filter((l) => l.includes("[Sfx]")).map((l) => l.replace(/^.*\[Sfx\] /, "")).join(" · "));
+    check(songLine && log.some((l) => l.includes("[Sfx] the long piece is playing (playing")) && songPeak > 0.001,
+          `the long music piece took over from the loop and plays (peak ${songPeak.toFixed(4)} after the switch)`);
 
     // ---- hiding the tab saves at once -------------------------------------------------------------------
     // wait for an autosave, then ship more code: only a save on hide can include those clicks
@@ -411,6 +441,8 @@ async function main() {
     await sleep(4000);
     check(await readSave(page2) === null, "a fresh browser profile starts without a career");
     await openGameplaySettings(page2);
+    // a zero-length click: it only reaches the button if no frame is long (the music is still being synthesised on the
+    // page's only thread for the first half minute, in slices that must stay short)
     const pick = async (f) => {
       const [chooser] = await Promise.all([page2.waitForEvent("filechooser", { timeout: 15000 }), page2.mouse.click(1165, 661)]);
       await chooser.setFiles(f);

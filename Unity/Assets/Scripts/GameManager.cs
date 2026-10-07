@@ -396,11 +396,45 @@ namespace AgentClicker
                 _fullscreenButton = OnTitle;
                 Platform.ShowFullscreenButton(OnTitle);
             }
+            UpdateTabTitle();
             HandleKeys();
             bool input = PlayerInput();
             UpdateAutopilot(input);
             UpdateAway(input);
             UpdateChapterBanner();
+        }
+
+        float _tabTitleTimer;
+        string _tabTitle;
+
+        /// <summary>In the browser, the tab's title shows the credits and puts a model drop, a ringing phone, an outage or the 5 PM card in front.</summary>
+        void UpdateTabTitle()
+        {
+            if (!Platform.IsWeb) return;
+            _tabTitleTimer -= Time.unscaledDeltaTime;
+            if (_tabTitleTimer > 0) return;
+            _tabTitleTimer = 1f;
+            string title = TabTitle.Compose(!OnTitle, Model.State.credits, Model.ActiveDrop != null, Calls.Ringing,
+                                            Model.ActiveOutage != null, Computer.DayEndPromptOpen);
+            if (title == _tabTitle) return;
+            _tabTitle = title;
+            Platform.SetTitle(title);
+        }
+
+        /// <summary>
+        /// Test hook for the browser tests (<c>unityInstance.SendMessage("Game", "ForceEvent", "drop")</c>): "drop" spawns a
+        /// model drop and "claim" catches it, "ring" rings the phone and "decline" declines it.
+        /// </summary>
+        public void ForceEvent(string what)
+        {
+            switch (what)
+            {
+                case "drop": if (Model.ActiveDrop == null) Model.SpawnDrop(); break;
+                case "claim": Model.ClaimDrop(); break;
+                case "ring": if (Model.ActiveCall == null) Model.RingPhone(CallDatabase.ById("wrong_number")); break;
+                case "decline": Model.DeclineCall(); break;
+            }
+            Debug.Log($"[Probe] event {what}: drop {Model.ActiveDrop != null}, call {Model.ActiveCall != null}");
         }
 
         void UpdateAway(bool input)

@@ -16,6 +16,10 @@ namespace AgentClicker.Util
         [DllImport("__Internal")] static extern void AgentClicker_ShowFullscreenButton(bool show);
         [DllImport("__Internal")] static extern int AgentClicker_CanFullscreen();
         [DllImport("__Internal")] static extern void AgentClicker_RequestFullscreen(bool on);
+        [DllImport("__Internal")] static extern void AgentClicker_SetTitle(string title);
+
+        /// <summary>Sets the browser tab's title.</summary>
+        public static void SetTitle(string title) => AgentClicker_SetTitle(title);
 
         /// <summary>Shows or hides the page's own Fullscreen button.</summary>
         public static void ShowFullscreenButton(bool show) => AgentClicker_ShowFullscreenButton(show);
@@ -55,6 +59,8 @@ namespace AgentClicker.Util
         public static bool CanFullscreen => false;
 
         public static void RequestFullscreen(bool on) { }
+
+        public static void SetTitle(string title) { }
 
         public static void SaveWhenHidden(string objectName, string methodName) { }
 

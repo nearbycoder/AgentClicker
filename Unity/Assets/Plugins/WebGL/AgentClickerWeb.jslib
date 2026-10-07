@@ -60,6 +60,11 @@ mergeInto(LibraryManager.library, {
     window.addEventListener('pagehide', save);
   },
 
+  // The tab's title: the credits, and an alert while something needs the player (Core/TabTitle.cs).
+  AgentClicker_SetTitle: function (title) {
+    document.title = UTF8ToString(title);
+  },
+
   // The page's own Fullscreen button (index.html) shows on the title screen only: in the game it sat on CorpOS's store.
   AgentClicker_ShowFullscreenButton: function (show) {
     if (window.agentClickerFullscreenButton) window.agentClickerFullscreenButton(!!show);
