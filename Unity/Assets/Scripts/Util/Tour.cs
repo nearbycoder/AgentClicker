@@ -245,6 +245,13 @@ namespace AgentClicker
             yield return new WaitForSeconds(1.2f);
             yield return Shot("15_frontier_agents");
             LogGoal("after the Factory");
+            // three toasts, two of them two lines long, stacked on a full activity feed
+            _gm.Computer.Toast("Promoted to Board Member! You get a parking spot. You don't drive. The agents park there now.", Theme.Accent2, 8f);
+            _gm.Computer.Toast("★ TROPHY  Millionaire  Earn 1 million credits, across every division.", Theme.Gold, 8f);
+            _gm.Computer.Toast("✉ New email from Brenda Lowe: <b>PTO requests from your \"team\"</b>", Theme.Accent, 8f);
+            yield return new WaitForSeconds(1.0f);
+            yield return Shot("15c_toasts_over_feed");
+            CheckToasts();
             _gm.Computer.SelectStoreTab(1);
             yield return new WaitForSeconds(0.6f);
             yield return Shot("15b_upgrades_endless");
@@ -875,6 +882,30 @@ namespace AgentClicker
             if (monitorMin < _monitorMinAll) { _monitorMinAll = monitorMin; _monitorMinWhat = $"{monitorWhat} in {shot}"; }
             string Fmt(float v, string w) => v == float.MaxValue ? "none" : $"{v:0.#} pt ({w})";
             Debug.Log($"[Text] {shot}: screen {Fmt(screenMin, screenWhat)}, monitor {Fmt(monitorMin, monitorWhat)}");
+        }
+
+        /// <summary>Every toast's text lies inside its card, and the cards hide the activity feed under them.</summary>
+        void CheckToasts()
+        {
+            int n = 0, lines = 0;
+            var bad = new System.Collections.Generic.List<string>();
+            foreach (var (card, text) in _gm.Computer.ToastCards())
+            {
+                text.ForceMeshUpdate();
+                n++;
+                lines += text.textInfo.lineCount;
+                // the text's laid-out lines, in the card's space
+                var b = text.textBounds;
+                Vector3 lo = card.InverseTransformPoint(text.transform.TransformPoint(b.min));
+                Vector3 hi = card.InverseTransformPoint(text.transform.TransformPoint(b.max));
+                var r = card.rect;
+                if (lo.y < r.yMin + 2 || hi.y > r.yMax - 2)
+                    bad.Add($"\"{text.GetParsedText()}\" spans {lo.y:0}..{hi.y:0} in a card {r.yMin:0}..{r.yMax:0}");
+                if (card.GetComponent<UnityEngine.UI.Image>().color.a < 1f) bad.Add($"\"{text.GetParsedText()}\" has a see-through card");
+            }
+            Debug.Log(n >= 3 && bad.Count == 0
+                ? $"[Tour] PASS toasts: {n} opaque cards over the activity feed, {lines} lines of text, all inside their cards"
+                : $"[Tour] FAIL toasts ({n} cards): {(bad.Count == 0 ? "fewer than 3 on screen" : string.Join(" | ", bad))}");
         }
 
         IEnumerator Shot(string name)

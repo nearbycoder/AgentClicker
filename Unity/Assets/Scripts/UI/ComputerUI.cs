@@ -36,7 +36,8 @@ namespace AgentClicker.UI
         Image _dropTimer;
         RectTransform _outage;
         TextMeshProUGUI _outageText;
-        readonly List<(RectTransform rt, float until, CanvasGroup group)> _activeToasts = new List<(RectTransform, float, CanvasGroup)>();
+        readonly List<(RectTransform rt, float until, CanvasGroup group, TextMeshProUGUI text)> _activeToasts =
+            new List<(RectTransform, float, CanvasGroup, TextMeshProUGUI)>();
 
         GameObject _modal;
         readonly Stack<FloatingText> _floatPool = new Stack<FloatingText>();
@@ -254,7 +255,7 @@ namespace AgentClicker.UI
             CloseModal();
             HideDrop();
             HideOutage();
-            foreach (var (rt, _, _) in _activeToasts) if (rt) Destroy(rt.gameObject);
+            foreach (var (rt, _, _, _) in _activeToasts) if (rt) Destroy(rt.gameObject);
             _activeToasts.Clear();
             _mailCountSeen = -1;
             _store.SelectTab(0);
@@ -322,7 +323,8 @@ namespace AgentClicker.UI
         public void Toast(string message, Color accent, float seconds = 4.5f)
         {
             if (_toasts == null) return;
-            var card = UIKit.Panel(_toasts, "Toast", Theme.Hex("#0B111B").WithAlpha(0.96f), 12);
+            // opaque: toasts stack on the activity feed, and blending in linear colour makes 4% of its light text plainly visible
+            var card = UIKit.Panel(_toasts, "Toast", Theme.Hex("#0B111B"), 12);
             var rt = card.rectTransform;
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0);
             rt.pivot = new Vector2(0.5f, 0);
@@ -339,7 +341,7 @@ namespace AgentClicker.UI
             var cg = card.gameObject.AddComponent<CanvasGroup>();
             cg.blocksRaycasts = false;
             rt.anchoredPosition = new Vector2(ToastX, -40);
-            _activeToasts.Add((rt, Time.unscaledTime + seconds, cg));
+            _activeToasts.Add((rt, Time.unscaledTime + seconds, cg, t));
             while (_activeToasts.Count > 3)
             {
                 Destroy(_activeToasts[0].rt.gameObject);
@@ -352,7 +354,7 @@ namespace AgentClicker.UI
             float y = 26;
             for (int i = _activeToasts.Count - 1; i >= 0; i--)
             {
-                var (rt, until, cg) = _activeToasts[i];
+                var (rt, until, cg, _) = _activeToasts[i];
                 float left = until - Time.unscaledTime;
                 if (left <= 0)
                 {
@@ -370,6 +372,12 @@ namespace AgentClicker.UI
                 if (!Mathf.Approximately(cg.alpha, a)) cg.alpha = a;
                 y += rt.sizeDelta.y + 8;
             }
+        }
+
+        /// <summary>Toasts on screen with their card and text (the tour checks every text fits its card).</summary>
+        public IEnumerable<(RectTransform card, TextMeshProUGUI text)> ToastCards()
+        {
+            foreach (var (rt, _, _, text) in _activeToasts) if (rt) yield return (rt, text);
         }
 
         // the fleet column spans x 452..1012 of the 1600-wide desktop
