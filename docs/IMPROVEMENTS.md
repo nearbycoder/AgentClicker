@@ -2,7 +2,7 @@
 
 Written on 2026-10-06, after v0.1.0 (published 2026-10-04). This document ranks what would most raise the
 game's quality for a real player, then records each round's scope and results. Rounds 1 and 2 (branches
-`improvements` and `improvements-2`) are merged into `main`; round 3 is on `improvements-3`.
+`improvements` and `improvements-2`) are merged into `main`; round 3 is on `improvements-3`. Round 4 is on `improvements-4`.
 
 ## Baseline (what was run, and what it showed)
 
@@ -470,3 +470,79 @@ Deferred, and why:
 
 Owner decisions: unchanged (Windows Build Support, browser hosting, the offline cap of 10% for 1 hour, license,
 signing, releases and tags), plus whether WebKit testing is worth an Ubuntu container or a Mac.
+
+## Round 4 scope
+
+Rounds 1–3 closed the ranked list except gamepad (#10), localization (#13) and the owner's decisions. Before
+picking, the tour was run at 1024×768 (4:3) to see whether other window shapes needed work: everything fits (the
+CorpOS camera already fits the monitor to the window's aspect and the overlays scale with it), but small text on the
+monitor gets hard to read, and the faintest text colour is only 2.8:1 against the panels. Localization stays deferred
+(every string is a C# literal; still large). The owner's decisions are unchanged.
+
+Supporting work: `Tools/tour.sh` passes extra player arguments through (for example `-screen-width 1280
+-screen-height 800`), so the tour can run at other window sizes.
+
+### 1. Play with a gamepad
+
+Rounds 1–3 judged full gamepad navigation too large: every screen is built from code with navigation turned off,
+and CorpOS lives on a 3D monitor. A virtual cursor gets a controller (or a Steam Deck in desktop mode) to every
+button without rebuilding the UI:
+
+* The left stick moves an on-screen cursor (speed scales with the window, faster the further it's pushed); **A**
+  clicks whatever is under it (held: drag sliders). It drives a virtual mouse, so every button, the store,
+  sliders and the 3D monitor work exactly as with a mouse.
+* Shortcuts: **RT** or **X** ships code (like Space), **Y** answers and **B** declines a ringing phone, the d-pad
+  picks replies 1/2/3 (left/up/right), **B** also backs out of menus like `Esc`, **Start** opens the pause menu,
+  **View/Select** switches between the monitor and the office (like `Tab`), the right stick looks around the office
+  and scrolls lists.
+* The cursor shows when the gamepad is used and hides when the real mouse moves. Gamepad input counts as "at the
+  keyboard" for the day autopilot. The Controls tab, How to Play (one line) and the README list the buttons.
+
+**Acceptance**: with a (virtual) gamepad and no mouse or keyboard input, a player can start a new game, log in,
+ship code with A on SHIP CODE and with RT, hire an agent, answer a call and pick a reply, open and close the pause
+menu, and switch views; the autopilot doesn't act while the gamepad is in use. Mouse and keyboard play is unchanged.
+**Verify**: a tour segment that adds an Input System `Gamepad` device and drives it with state events, logging
+PASS/FAIL for each step, run at 1600×900 and at 1280×800 (Steam Deck), with screenshots. A real controller isn't
+connected to this machine, so that part is reported as untested.
+
+### 2. Long sessions: memory and stability over an hour
+
+An idle game is left running for hours, but the longest automated run so far is the five-minute tour.
+
+* A `-soak <dir> <minutes>` mode: a fresh career with a throwaway save, a late-game office (every gadget), no
+  input, so the day autopilot runs day after day at a short day length, with a model drop, calls and a purchase
+  burst now and then. Every 30 s it logs managed heap, Mono and Unity native memory, GameObject / texture / material
+  counts and frame time.
+* Desktop: one hour of the release build. Browser: 30 minutes of the WebGL build in headless Chromium, sampling the
+  wasm heap and JS heap.
+* Fix any leak found.
+
+**Acceptance**: after the first ten minutes, memory and object counts stay flat (no steady growth that would add
+up over a day), no exceptions in the log, every in-game day produces. **Verify**: the samples, plotted in
+`docs/media/improvements/round4/`, with the load average noted.
+
+### 3. Readable small text
+
+* Raise the faint text colour to at least 4.5:1 against every panel colour it's drawn on (it's 2.8:1), keeping it
+  dimmer than the secondary text so the hierarchy survives.
+* Raise the smallest text sizes (settings descriptions, hints, card footers) so nothing on the menus and overlays
+  is drawn below a minimum size at the 1600×900 reference.
+
+**Acceptance**: an EditMode test checks the theme's text/panel contrast ratios (≥ 4.5:1 for body, dim and faint
+text on Bg, Panel and PanelLight); the tour logs the smallest TMP font size on screen in the menus and finds none
+below the minimum. **Verify**: that test, the tour log, and before/after screenshots at 1024×768.
+
+### 4. The browser build in Firefox
+
+Round 3 couldn't test Firefox because no Playwright Firefox build is cached. Playwright 1.63 can drive the system
+Firefox (157 here) over WebDriver BiDi (`channel: "moz-firefox"`), and it gets hardware WebGL 2 in headless mode.
+
+* `Tools/webtest.mjs firefox` runs the same flow as Chromium (load, new game, autopilot login, SHIP CODE, audio,
+  hire, save on hide, reload and CONTINUE, settings, DOWNLOAD and LOAD FILE in a fresh profile), with Firefox's
+  temporary profile under `Logs/`. Fix whatever breaks in the game or page.
+
+**Acceptance**: every check passes in Firefox, or a check that BiDi can't drive yet is reported as untested with
+the reason. **Verify**: the script's output and screenshots in `docs/media/improvements/round4/`.
+
+Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes at 1600×900, the Chromium web test
+still passes, and the real `~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and after.
