@@ -196,9 +196,11 @@ build made on Linux. It is unsigned and hasn't been tested on a Mac. If macOS re
 `Unity/Assets/WebGLTemplates/AgentClicker`) fills the browser window, shows a progress bar while loading, has a
 fullscreen button, and tells touch-only devices up front that the game needs a mouse and keyboard. The save goes to the
 browser's storage (IndexedDB), is written the moment you hide or close the tab, and survives a reload. Browsers pause
-a tab you aren't looking at, so time in a hidden tab counts like time with the game closed. It has only been tried in
-headless Chrome on Linux; see the known issues below. `Tools/webtest.mjs` repeats that check (load, new game,
-autopilot login, SHIP CODE, audio level, hire, save on hide, settings and CONTINUE after a reload).
+a tab you aren't looking at, so time in a hidden tab counts like time with the game closed. It has been tried in
+headless Chrome and Firefox on Linux; see the known issues below. `Tools/webtest.mjs chromium|firefox` repeats that
+check (load, new game, autopilot login, SHIP CODE, audio level, hire, save on hide, settings, CONTINUE after a reload,
+and moving a save file into a fresh browser profile). Firefox is driven over WebDriver BiDi, so the system Firefox
+works without a Playwright browser download.
 
 Saves live in `~/.config/unity3d/Nearby Games/Agent Clicker/` on Linux (Unity's `persistentDataPath`), and
 settings are stored separately in PlayerPrefs. **Settings → Gameplay → Save file** moves a career around: the browser
@@ -322,9 +324,9 @@ release (v0.1.0).
   It hasn't been reproduced or explained: the other four runs that session and 15 runs since (release and
   development builds, at load averages from 15 to 73) were all clean.
 * **macOS is experimental**: the build is made on Linux, isn't signed or notarised, and hasn't been run on a Mac.
-* **The browser build is new and lightly tested**: it was checked in headless Chrome on Linux only (start a game,
-  autopilot login, audio playing, save, reload, continue). Firefox, Safari, phones and tablets (there's no touch
-  support) and long sessions haven't been tried, and it isn't hosted anywhere yet. Playwright's WebKit (Safari's
+* **The browser build is new and lightly tested**: it was checked in headless Chrome and Firefox 157 on Linux (start
+  a game, autopilot login, audio playing, save, reload, continue, save files) and soaked for 30 minutes in Chrome.
+  Safari, phones and tablets (there's no touch support) haven't been tried, and it isn't hosted anywhere yet. Playwright's WebKit (Safari's
   engine) doesn't start on this CachyOS machine: it is built against Ubuntu 24.04 libraries (ICU 74, flite, libjxl
   0.8). Music starts a few seconds after loading because it's synthesised on the page's only thread.
 * **No Windows build yet.** The build script has a Windows target, but it hasn't been built or tested.

@@ -1,8 +1,12 @@
-// Drives the browser build (Builds/WebGL) in headless Chromium or WebKit and checks the things a browser player
+// Drives the browser build (Builds/WebGL) in headless Chromium, Firefox or WebKit and checks the things a browser player
 // depends on: it loads, a new game starts and logs in, SHIP CODE and hiring work, audio is actually produced, the
 // save reaches IndexedDB when the tab is hidden, and CONTINUE restores it after a reload.
 //
-//   PLAYWRIGHT_CORE=/path/to/node_modules/playwright-core node Tools/webtest.mjs chromium|webkit [out dir]
+//   PLAYWRIGHT_CORE=/path/to/node_modules/playwright-core node Tools/webtest.mjs chromium|firefox|webkit [out dir]
+//
+// Firefox is the system Firefox (FIREFOX_PATH, default /usr/bin/firefox) driven over WebDriver BiDi, which
+// playwright-core 1.63 supports with channel "moz-firefox"; no Playwright Firefox build is needed. Its temporary
+// profile goes under Logs/tmp instead of the shared /tmp.
 //
 // Needs a playwright-core whose browsers are in ~/.cache/ms-playwright (1.63 matches webkit-2359). For Chromium,
 // CHROMIUM_PATH may point at a cached headless shell of another revision. Coordinates assume the 1600x900 viewport.
@@ -17,6 +21,10 @@ const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..")
 const engine = process.argv[2] || "chromium";
 const out = path.resolve(process.argv[3] || path.join(root, "Logs", "web-" + engine));
 mkdirSync(out, { recursive: true });
+if (engine === "firefox") {
+  process.env.TMPDIR = path.join(root, "Logs", "tmp");
+  mkdirSync(process.env.TMPDIR, { recursive: true });
+}
 const pw = require(process.env.PLAYWRIGHT_CORE || "playwright-core");
 
 const results = [];
@@ -98,6 +106,11 @@ async function main() {
     // the real GPU through ANGLE/Vulkan instead of SwiftShader, which is far too slow for a 3D game
     launch.args = ["--use-angle=vulkan", "--enable-features=Vulkan", "--ignore-gpu-blocklist"];
   }
+  if (engine === "firefox") {
+    launch.channel = "moz-firefox";
+    launch.executablePath = process.env.FIREFOX_PATH || "/usr/bin/firefox";
+    launch.firefoxUserPrefs = { "media.autoplay.default": 0, "media.autoplay.blocking_policy": 0 };
+  }
   const log = [];
   let browser;
   try {
@@ -157,6 +170,12 @@ async function main() {
     if (!auto) await page.mouse.click(868, 360); // the monitor
     await sleep(3000); // the camera dollies in
     await shot("03_logged_in");
+    const fps = await page.evaluate(() => new Promise((resolve) => {
+      let n = 0; const t0 = performance.now();
+      const step = () => { n++; if (performance.now() - t0 < 5000) requestAnimationFrame(step); else resolve(n / ((performance.now() - t0) / 1000)); };
+      requestAnimationFrame(step);
+    }));
+    console.log(`[Web] frame rate in the monitor view: ${fps.toFixed(0)} fps (browser frames over 5 s)`);
 
     // ---- SHIP CODE and audio ------------------------------------------------------------------------------
     for (let i = 0; i < 30; i++) { await page.mouse.click(234, 492); await sleep(70); }
