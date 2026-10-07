@@ -440,12 +440,11 @@ namespace AgentClicker
             _gm.Computer.CloseModal();
             yield return new WaitForSeconds(0.4f);
 
-            before = M.State.credits;
-            _gm.CreditOffline(30, paused: false);
+            gain = _gm.CreditOffline(30, paused: false);
             yield return new WaitForSeconds(1.5f);
-            Debug.Log(!_gm.Computer.ModalOpen && M.State.credits > before
-                ? "[Tour] PASS offline: thirty seconds is credited without a card"
-                : $"[Tour] FAIL offline: thirty seconds (modal {_gm.Computer.ModalOpen}, credits +{M.State.credits - before})");
+            Debug.Log(!_gm.Computer.ModalOpen && gain == 0
+                ? "[Tour] PASS offline: thirty seconds shows no card (gaps under a minute earn nothing offline)"
+                : $"[Tour] FAIL offline: thirty seconds (modal {_gm.Computer.ModalOpen}, credited {gain})");
             if (_gm.Computer.ModalOpen) _gm.Computer.CloseModal();
 
             // idle days and closed time in one card (the real thresholds are too long to reach in the tour)
