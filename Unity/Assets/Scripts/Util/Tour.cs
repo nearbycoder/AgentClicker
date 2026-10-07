@@ -295,6 +295,8 @@ namespace AgentClicker
             yield return new WaitForSeconds(0.6f);
             yield return Shot("24_endgame_trophies");
 
+            yield return GamepadSegment();
+
             Debug.Log("[Tour] done");
             Application.Quit();
         }
@@ -410,6 +412,149 @@ namespace AgentClicker
                 ? "[Tour] PASS clicking the next goal card opens the Factory tab"
                 : $"[Tour] FAIL clicking the next goal card left the store on tab {_gm.Computer.StoreTab}");
             if (_gm.Computer.StoreTab != StorePanel.FactoryTabIndex) _gm.Computer.SelectStoreTab(StorePanel.FactoryTabIndex);
+        }
+
+        /// <summary>
+        /// A gamepad alone plays the game: a virtual Input System Gamepad (state events, as a real one would send) moves
+        /// the cursor, ships code, hires, takes a call, opens and closes the pause menu, switches views and holds off the
+        /// day autopilot; moving the real mouse hands control back.
+        /// </summary>
+        IEnumerator GamepadSegment()
+        {
+            M.RandomEventsEnabled = false;
+            _gm.SuppressShowcase = true;
+            if (M.Phase != GamePhase.Working) _gm.Login();
+            _gm.Computer.CloseModal();
+            _gm.Computer.SelectStoreTab(0);
+            _gm.Cam.SetMode(CamMode.Monitor, 0.01f);
+            M.State.credits = 1e300;
+            yield return new WaitForSecondsRealtime(1.0f);
+
+            var pad = InputSystem.AddDevice<Gamepad>("TourGamepad");
+            var cam = _gm.Refs.MainCamera;
+            System.Func<RectTransform, Vector2> screenOf = r => cam.WorldToScreenPoint(r.TransformPoint(r.rect.center));
+            void Send(GamepadState st) => InputSystem.QueueStateEvent(pad, st);
+            IEnumerator Button(GamepadButton b)
+            {
+                Send(new GamepadState().WithButton(b, true));
+                yield return null; yield return null;
+                Send(new GamepadState());
+                yield return null; yield return null;
+            }
+            IEnumerator StickTo(Vector2 target)
+            {
+                for (float t = 0; t < 8f; t += Time.unscaledDeltaTime)
+                {
+                    Vector2 d = target - _gm.Pad.Position;
+                    if (_gm.Pad.Active && d.magnitude < 6f) break;
+                    // push harder the further away, like a thumb would
+                    Send(new GamepadState { leftStick = d.normalized * Mathf.Clamp(d.magnitude / (Screen.height * 0.25f), 0.3f, 1f) });
+                    yield return null;
+                }
+                Send(new GamepadState());
+                yield return null; yield return null;
+            }
+
+            var ship = screenOf(_gm.Computer.ShipButton);
+            yield return StickTo(ship);
+            float off = Vector2.Distance(_gm.Pad.Position, ship);
+            Debug.Log(_gm.Pad.Active && off < 10f ? $"[Tour] PASS gamepad: the left stick moved the cursor onto SHIP CODE ({off:0} px off)"
+                                                  : $"[Tour] FAIL gamepad: cursor active {_gm.Pad.Active}, {off:0} px from SHIP CODE");
+            long clicks = M.State.clicks;
+            for (int i = 0; i < 5; i++) yield return Button(GamepadButton.South);
+            Debug.Log(M.State.clicks >= clicks + 5 ? $"[Tour] PASS gamepad: A on SHIP CODE shipped code ({M.State.clicks - clicks})"
+                                                   : $"[Tour] FAIL gamepad: A on SHIP CODE ({M.State.clicks - clicks}/5)");
+            clicks = M.State.clicks;
+            for (int i = 0; i < 5; i++)
+            {
+                Send(new GamepadState { rightTrigger = 1f });
+                yield return null; yield return null;
+                Send(new GamepadState());
+                yield return null; yield return null;
+            }
+            Debug.Log(M.State.clicks >= clicks + 5 ? $"[Tour] PASS gamepad: RT shipped code ({M.State.clicks - clicks})"
+                                                   : $"[Tour] FAIL gamepad: RT ({M.State.clicks - clicks}/5)");
+
+            int owned = M.State.agentCounts[0];
+            yield return StickTo(screenOf(_gm.Computer.Store.AgentRowRect(0)));
+            yield return new WaitForSecondsRealtime(0.3f);
+            yield return Shot("25_gamepad_cursor");
+            yield return Button(GamepadButton.South);
+            Debug.Log(M.State.agentCounts[0] > owned ? $"[Tour] PASS gamepad: A on the store hired ({owned} → {M.State.agentCounts[0]} Autocomplete)"
+                                                     : "[Tour] FAIL gamepad: A on the store hired nothing");
+
+            M.RingPhone(CallDatabase.ById("dana_demo"));
+            yield return new WaitForSecondsRealtime(1.2f);
+            yield return Shot("26a_gamepad_call_incoming");
+            int answered = M.State.callsAnswered;
+            yield return Button(GamepadButton.North);
+            yield return WaitFor(() => false, 3f); // the line types out before the replies take input
+            yield return Shot("26_gamepad_call");
+            yield return Button(GamepadButton.DpadUp);
+            yield return new WaitForSecondsRealtime(0.3f);
+            Debug.Log(M.State.callsAnswered == answered + 1 && M.ActiveCall == null
+                ? "[Tour] PASS gamepad: Y answered the phone and the d-pad picked a reply"
+                : $"[Tour] FAIL gamepad: call answered {M.State.callsAnswered - answered}, still active {M.ActiveCall != null}");
+            yield return WaitFor(() => !_gm.Calls.Busy, 8f);
+            yield return new WaitForSecondsRealtime(1.0f);
+
+            yield return Button(GamepadButton.Start);
+            yield return new WaitForSecondsRealtime(0.3f);
+            bool paused = _gm.Menu.PauseOpen;
+            yield return Shot("27_gamepad_pause");
+            yield return Button(GamepadButton.East);
+            yield return new WaitForSecondsRealtime(0.3f);
+            Debug.Log(paused && !_gm.Menu.PauseOpen ? "[Tour] PASS gamepad: Start opened the pause menu and B closed it"
+                                                    : $"[Tour] FAIL gamepad: pause opened {paused}, still open {_gm.Menu.PauseOpen}");
+
+            yield return Button(GamepadButton.Select);
+            yield return new WaitForSecondsRealtime(1.5f);
+            bool office = _gm.Cam.Mode == CamMode.Office;
+            var rot = cam.transform.rotation;
+            Send(new GamepadState { rightStick = new Vector2(1f, 0f) });
+            yield return new WaitForSecondsRealtime(0.6f);
+            Send(new GamepadState());
+            yield return new WaitForSecondsRealtime(0.6f);
+            float turned = Quaternion.Angle(rot, cam.transform.rotation);
+            yield return Shot("28_gamepad_office");
+            yield return Button(GamepadButton.Select);
+            yield return new WaitForSecondsRealtime(1.5f);
+            Debug.Log(office && turned > 5f && _gm.Cam.Mode == CamMode.Monitor
+                ? $"[Tour] PASS gamepad: View switched to the office and back, the right stick turned the camera {turned:0}°"
+                : $"[Tour] FAIL gamepad: office {office}, turned {turned:0}°, back to {_gm.Cam.Mode}");
+
+            // the day autopilot leaves a gamepad player alone, then takes over once they stop
+            var ap = _gm.Autopilot;
+            _gm.Settings.autopilotDay = true;
+            _gm.AutopilotAllowed = true;
+            ap.ClockOutAfter = 1.5f;
+            M.State.dayMinutes = GameDatabase.WorkdayMinutes + 1f;
+            _gm.Computer.CloseModal();
+            for (float t = 0; t < 3f; t += Time.unscaledDeltaTime)
+            {
+                Send(new GamepadState { leftStick = new Vector2(Mathf.Sin(t * 6f), Mathf.Cos(t * 6f)) * 0.4f });
+                yield return null;
+            }
+            Send(new GamepadState());
+            bool held = M.Phase == GamePhase.Working;
+            yield return WaitFor(() => M.Phase == GamePhase.Review, 6f);
+            Debug.Log(held && M.Phase == GamePhase.Review
+                ? "[Tour] PASS gamepad: the autopilot waited while the stick moved, then clocked out"
+                : $"[Tour] FAIL gamepad: held {held}, then {M.Phase}");
+            ap.ClockOutAfter = new DayAutopilot().ClockOutAfter;
+            _gm.AutopilotAllowed = false;
+
+            // the real mouse takes over again
+            Mouse real = null;
+            foreach (var d in InputSystem.devices)
+                if (d is Mouse m && m.name != "GamepadCursor") { real = m; break; }
+            real ??= InputSystem.AddDevice<Mouse>();
+            InputSystem.QueueStateEvent(real, new MouseState { position = new Vector2(200, 200), delta = new Vector2(40, 30) });
+            yield return null; yield return null; yield return null;
+            Debug.Log(!_gm.Pad.Active && Mouse.current == real ? "[Tour] PASS gamepad: moving the mouse hid the cursor and gave the mouse back"
+                                                               : $"[Tour] FAIL gamepad: cursor still active {_gm.Pad.Active}, current mouse {Mouse.current?.name}");
+            InputSystem.RemoveDevice(pad);
+            M.RandomEventsEnabled = true;
         }
 
         static IEnumerator WaitFor(System.Func<bool> done, float timeout)

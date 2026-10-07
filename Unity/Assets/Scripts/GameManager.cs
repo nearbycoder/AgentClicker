@@ -33,6 +33,7 @@ namespace AgentClicker
         public Overlay Overlay { get; private set; }
         public MenuUI Menu { get; private set; }
         public CallUI Calls { get; private set; }
+        public GamepadCursor Pad { get; private set; }
         public Sfx Sfx { get; private set; }
 
         public bool SavingEnabled { get; set; } = true;
@@ -140,6 +141,7 @@ namespace AgentClicker
             Overlay = gameObject.AddComponent<Overlay>();
             Menu = gameObject.AddComponent<MenuUI>();
             Calls = gameObject.AddComponent<CallUI>();
+            Pad = gameObject.AddComponent<GamepadCursor>();
 
             if (trailerDir != null)
             {
@@ -179,6 +181,7 @@ namespace AgentClicker
             Overlay.Init(this);
             Menu.Init(this);
             Calls.Init(this);
+            Pad.Init(this);
             foreach (var side in FindObjectsByType<SideScreen>(FindObjectsInactive.Include))
                 side.Init(this);
             _probe = FindAnyObjectByType<ProbeRefresher>();
@@ -455,9 +458,10 @@ namespace AgentClicker
             }
         }
 
-        /// <summary>Any key, click, wheel or deliberate mouse movement this frame.</summary>
-        static bool PlayerInput()
+        /// <summary>Any key, click, wheel, deliberate mouse movement or gamepad input this frame.</summary>
+        bool PlayerInput()
         {
+            if (Pad.InputThisFrame) return true;
             var kb = Keyboard.current;
             if (kb != null && kb.anyKey.wasPressedThisFrame) return true;
             var mouse = Mouse.current;
@@ -485,8 +489,17 @@ namespace AgentClicker
 
         void HandleKeys()
         {
+            if (InEnding || Menu.Blocking || Calls.Busy) return;
+            var pad = Gamepad.current;
+            if (pad != null)
+            {
+                // View/Select is Tab; RT or X is Space
+                if (pad.selectButton.wasPressedThisFrame) Cam.Toggle();
+                if (Model.IsWorking && (pad.rightTrigger.wasPressedThisFrame || pad.buttonWest.wasPressedThisFrame))
+                    Computer.ShipFromKeyboard();
+            }
             var kb = Keyboard.current;
-            if (kb == null || InEnding || Menu.Blocking || Calls.Busy) return;
+            if (kb == null) return;
             if (kb.tabKey.wasPressedThisFrame) Cam.Toggle();
             if (Model.IsWorking && (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame))
                 Computer.ShipFromKeyboard();

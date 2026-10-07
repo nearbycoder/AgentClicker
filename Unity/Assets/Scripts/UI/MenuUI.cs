@@ -290,23 +290,26 @@ namespace AgentClicker.UI
                     break;
                 default:
                     var t = UIKit.Text(_settingsBody, "Controls",
-                        Row("Ship code", "Click SHIP CODE · Space · Enter") +
-                        Row("Look around / sit down", "Tab · on-screen button") +
-                        Row("Orbit the office", "Right mouse drag") +
-                        Row("Zoom", "Mouse wheel (office view)") +
-                        Row("Answer / decline the phone", "E · Q") +
-                        Row("Pick a reply on a call", "1 · 2 · 3") +
-                        Row("Pause menu", "Esc · ⚙ button") +
-                        Row("Inbox", "✉ button in CorpOS") +
-                        (Platform.IsWeb ? "" : Row("Screenshot", "F12")), 20, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Medium);
-                    t.rectTransform.TopLeft(0, 0, 920, 500);
+                        Row("", "<color=#8A97AD><size=15>KEYBOARD & MOUSE</size></color>", "<color=#8A97AD><size=15>GAMEPAD</size></color>") +
+                        Row("Point and click", "Mouse", "Left stick · A") +
+                        Row("Ship code", "SHIP CODE · Space · Enter", "RT · X") +
+                        Row("Look around / sit down", "Tab · on-screen button", "View") +
+                        Row("Orbit the office", "Right mouse drag", "Right stick") +
+                        Row("Zoom", "Mouse wheel (office view)", "LB · RB") +
+                        Row("Scroll a list", "Mouse wheel", "Right stick") +
+                        Row("Answer / decline the phone", "E · Q", "Y · B") +
+                        Row("Pick a reply on a call", "1 · 2 · 3", "D-pad ← ↑ →") +
+                        Row("Pause menu", "Esc · ⚙ button", "Start") +
+                        Row("Back / close", "Esc", "B") +
+                        (Platform.IsWeb ? "" : Row("Screenshot", "F12", "")), 19, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Medium);
+                    t.rectTransform.TopLeft(0, 0, 920, 520);
                     t.lineSpacing = 18;
                     break;
             }
         }
 
         static string Pct(float v) => $"{v * 100:0}%";
-        static string Row(string a, string b) => $"<color=#8A97AD>{a}</color><pos=46%>{b}\n";
+        static string Row(string a, string b, string c) => $"<color=#8A97AD>{a}</color><pos=35%>{b}<pos=74%>{c}\n";
 
         RectTransform SettingRow(string label, float y, string hint = null)
         {
@@ -435,7 +438,8 @@ namespace AgentClicker.UI
             "<b>Build the <color=#FFD166>Software Factory</color>.</b> Every agent type, five Orchestrator Clusters and the recliner. " +
             "It doubles everything and unlocks frontier agents. There is no last agent.\n\n" +
             "<b>Reorg, forever.</b> Roll the Factory out to the next division and start over with <color=#FFD166>Stock Options</color>: " +
-            "+1% production each, permanently. Spend them on Board Room perks. <b>Trophies</b> add Clout, which influence upgrades turn into production.";
+            "+1% production each, permanently. Spend them on Board Room perks. <b>Trophies</b> add Clout, which influence upgrades turn into production.\n\n" +
+            "<b>Gamepad.</b> The left stick moves a cursor and A clicks; RT ships code. Settings → Controls lists the rest.";
 
         void BuildInfo()
         {
@@ -636,6 +640,14 @@ namespace AgentClicker.UI
                 if (_creditsY > _creditsText.preferredHeight + 950) FinishCredits();
             }
 
+            var pad = Gamepad.current;
+            if (pad != null)
+            {
+                // Start is Esc; B backs out of whatever is open but never opens the pause menu (and declines a ringing
+                // phone instead, in CallUI)
+                if (pad.startButton.wasPressedThisFrame) OnEscape();
+                else if (pad.buttonEast.wasPressedThisFrame && !_gm.Calls.Ringing) Back();
+            }
             var kb = Keyboard.current;
             if (kb == null) return;
             if (CardsOpen && (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame)) AdvanceCard();
@@ -644,15 +656,20 @@ namespace AgentClicker.UI
 
         void OnEscape()
         {
-            if (_confirm.gameObject.activeSelf) { _confirm.gameObject.SetActive(false); return; }
-            if (_info.gameObject.activeSelf) { _info.gameObject.SetActive(false); return; }
-            if (_settings.gameObject.activeSelf) { CloseSettings(); return; }
-            if (_credits.gameObject.activeSelf) { FinishCredits(); return; }
-            if (CardsOpen) { FinishCards(); return; }
-            if (PauseOpen) { ClosePause(); return; }
-            if (TitleOpen) return;
-            if (_gm.Computer.CloseDismissableModal()) return;
-            OpenPause();
+            if (!Back() && !TitleOpen) OpenPause();
+        }
+
+        /// <summary>Closes the topmost menu, card or dismissable window; false if there was nothing to close.</summary>
+        bool Back()
+        {
+            if (_confirm.gameObject.activeSelf) { _confirm.gameObject.SetActive(false); return true; }
+            if (_info.gameObject.activeSelf) { _info.gameObject.SetActive(false); return true; }
+            if (_settings.gameObject.activeSelf) { CloseSettings(); return true; }
+            if (_credits.gameObject.activeSelf) { FinishCredits(); return true; }
+            if (CardsOpen) { FinishCards(); return true; }
+            if (PauseOpen) { ClosePause(); return true; }
+            if (TitleOpen) return false;
+            return _gm.Computer.CloseDismissableModal();
         }
     }
 }

@@ -243,9 +243,13 @@ namespace AgentClicker.UI
             bool office = _gm.Cam.Mode == Office.CamMode.Office && !_gm.InEnding && !_night.gameObject.activeSelf && !_gm.Menu.Blocking && !_gm.Calls.Busy;
             Fader.Set(_hint, office ? 1 : 0);
             if (office)
-                UIKit.Set(_hintText, _gm.Model.Phase == GamePhase.Login
-                    ? "Click the monitor to log in  ·  Right-drag to look around"
-                    : "[Tab] or scroll up to sit down at the computer  ·  Right-drag to look around");
+                UIKit.Set(_hintText, _gm.Pad.Active
+                    ? (_gm.Model.Phase == GamePhase.Login
+                        ? "A on the monitor to log in  ·  Right stick to look around"
+                        : "View or RB to sit down at the computer  ·  Right stick to look around")
+                    : _gm.Model.Phase == GamePhase.Login
+                        ? "Click the monitor to log in  ·  Right-drag to look around"
+                        : "[Tab] or scroll up to sit down at the computer  ·  Right-drag to look around");
         }
     }
 

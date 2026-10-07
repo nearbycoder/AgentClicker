@@ -27,6 +27,8 @@ namespace AgentClicker.UI
         bool _choosing;
 
         public bool Busy => _incoming.gameObject.activeSelf || _dialogue.gameObject.activeSelf;
+        public bool Ringing => _incoming.gameObject.activeSelf;
+        TextMeshProUGUI _answerLabel, _declineLabel;
 
         public void Init(GameManager gm)
         {
@@ -77,10 +79,10 @@ namespace AgentClicker.UI
 
             var answer = UIKit.Button(card.transform, "Answer", Theme.Good, () => _gm.Model.AnswerCall(), 12);
             answer.GetComponent<RectTransform>().TopLeft(430, 20, 190, 46);
-            answer.Label("ANSWER  [E]", 18, Theme.Bg);
+            _answerLabel = answer.Label("ANSWER  [E]", 18, Theme.Bg);
             var decline = UIKit.Button(card.transform, "Decline", Theme.Bad, () => _gm.Model.DeclineCall(), 12);
             decline.GetComponent<RectTransform>().TopLeft(430, 72, 190, 36);
-            decline.Label("DECLINE  [Q]", 14, Color.white);
+            _declineLabel = decline.Label("DECLINE  [Q]", 14, Color.white);
         }
 
         void BuildDialogue()
@@ -135,6 +137,10 @@ namespace AgentClicker.UI
             _incomingInitials.text = d.Monogram;
             _incomingName.text = d.Name;
             _incomingRole.text = d.RoleText + (d.Story ? "  <color=#FFD166>· important</color>" : "");
+            // the button prompts follow whatever the player is holding
+            bool pad = _gm.Pad.Active;
+            _answerLabel.text = pad ? "ANSWER  [Y]" : "ANSWER  [E]";
+            _declineLabel.text = pad ? "DECLINE  [B]" : "DECLINE  [Q]";
             _incoming.gameObject.SetActive(true);
         }
 
@@ -151,7 +157,7 @@ namespace AgentClicker.UI
             _line.maxVisibleCharacters = 0;
             _reveal = 0;
             _effect.text = "";
-            _hint.text = "Pick a reply  ·  1 / 2 / 3";
+            _hint.text = _gm.Pad.Active ? "Pick a reply  ·  D-pad ← ↑ →" : "Pick a reply  ·  1 / 2 / 3";
             _choosing = true;
             _closeAt = -1;
             for (int i = 0; i < _choices.Length; i++)
@@ -223,8 +229,25 @@ namespace AgentClicker.UI
                 if (_closeAt > 0 && Time.unscaledTime > _closeAt) Close();
             }
 
+            if (_gm.Menu.Blocking) return;
+            var pad = Gamepad.current;
+            if (pad != null)
+            {
+                // Y answers, B declines; the d-pad picks replies left to right
+                if (_incoming.gameObject.activeSelf)
+                {
+                    if (pad.buttonNorth.wasPressedThisFrame) _gm.Model.AnswerCall();
+                    else if (pad.buttonEast.wasPressedThisFrame) _gm.Model.DeclineCall();
+                }
+                else if (_dialogue.gameObject.activeSelf && _choosing)
+                {
+                    if (pad.dpad.left.wasPressedThisFrame) Choose(0);
+                    else if (pad.dpad.up.wasPressedThisFrame) Choose(1);
+                    else if (pad.dpad.right.wasPressedThisFrame && _call != null && _call.Def.Choices.Length > 2) Choose(2);
+                }
+            }
             var kb = Keyboard.current;
-            if (kb == null || _gm.Menu.Blocking) return;
+            if (kb == null) return;
             if (_incoming.gameObject.activeSelf)
             {
                 if (kb.eKey.wasPressedThisFrame) _gm.Model.AnswerCall();

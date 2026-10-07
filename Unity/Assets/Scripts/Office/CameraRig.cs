@@ -114,6 +114,7 @@ namespace AgentClicker.Office
 
         void HandleInput()
         {
+            HandleGamepad();
             var mouse = Mouse.current;
             if (mouse == null) return;
             float scroll = mouse.scroll.ReadValue().y;
@@ -135,6 +136,26 @@ namespace AgentClicker.Office
                     _dist = Mathf.Clamp(_dist - step, DistanceLimits.x, DistanceLimits.y);
                 }
             }
+        }
+
+        /// <summary>Office view on a gamepad: the right stick looks around, the shoulder buttons zoom (RB sits back down).</summary>
+        void HandleGamepad()
+        {
+            var pad = Gamepad.current;
+            if (pad == null || Mode != CamMode.Office) return;
+            Vector2 r = pad.rightStick.ReadValue();
+            if (r.sqrMagnitude > 0.04f)
+            {
+                float dt = Mathf.Min(Time.unscaledDeltaTime, 0.1f);
+                _yaw = Mathf.Clamp(_yaw + r.x * 80f * dt * MouseSensitivity, YawLimits.x, YawLimits.y);
+                _pitch = Mathf.Clamp(_pitch - r.y * 50f * dt * MouseSensitivity, PitchLimits.x, PitchLimits.y);
+            }
+            if (pad.rightShoulder.wasPressedThisFrame)
+            {
+                if (_dist <= DistanceLimits.x + 0.01f) SetMode(CamMode.Monitor);
+                _dist = Mathf.Clamp(_dist - 0.3f, DistanceLimits.x, DistanceLimits.y);
+            }
+            if (pad.leftShoulder.wasPressedThisFrame) _dist = Mathf.Clamp(_dist + 0.3f, DistanceLimits.x, DistanceLimits.y);
         }
 
         /// <summary>How far the camera is from where its mode wants it (metres), for checks.</summary>

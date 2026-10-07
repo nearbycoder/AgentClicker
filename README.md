@@ -52,21 +52,24 @@ stalls on a dialog. Choosing **WORK LATE** keeps that day's overtime, and Settin
 you come back after at least one end of day, a **While you were away** card sums up the days, the earnings,
 the quotas and the calls and model drops you missed.
 
-| Input | Action |
-|---|---|
-| Click **SHIP CODE**, or `Space` / `Enter` | Ship code by hand |
-| Click the monitor | Log in each morning |
-| Click agents, upgrades, gadgets | Buy them (x1, x10, x100 or MAX at a time; **BUY ALL** for upgrades) |
-| `Tab` or the on-screen button | Switch between the monitor and the office |
-| Right-drag (office view) | Look around the office |
-| Mouse wheel (office view) | Zoom, and scroll in to sit back down |
-| `E` / `Q` | Answer or decline a ringing phone |
-| `1` `2` `3` | Pick a reply during a call |
-| ✉ **Inbox** (CorpOS top bar) | Read the story emails |
-| `Esc` or ⚙ | Pause menu: settings, how to play, save and exit |
-| `F12` | Save a screenshot |
+| Keyboard and mouse | Gamepad | Action |
+|---|---|---|
+| Mouse | Left stick moves a cursor, **A** clicks | Point and click anything |
+| Click **SHIP CODE**, or `Space` / `Enter` | **RT** or **X** | Ship code by hand |
+| Click the monitor | **A** on the monitor | Log in each morning |
+| Click agents, upgrades, gadgets | **A** on them | Buy them (x1, x10, x100 or MAX at a time; **BUY ALL** for upgrades) |
+| `Tab` or the on-screen button | **View** | Switch between the monitor and the office |
+| Right-drag (office view) | Right stick | Look around the office |
+| Mouse wheel (office view) | **LB** / **RB** | Zoom, and zoom in to sit back down |
+| Mouse wheel | Right stick | Scroll a list |
+| `E` / `Q` | **Y** / **B** | Answer or decline a ringing phone |
+| `1` `2` `3` | D-pad left, up, right | Pick a reply during a call |
+| ✉ **Inbox** (CorpOS top bar) | **A** on it | Read the story emails |
+| `Esc` or ⚙ | **Start** (**B** closes menus) | Pause menu: settings, how to play, save and exit |
+| `F12` | | Save a screenshot |
 
-Agent Clicker is played with a mouse and keyboard. There is no gamepad or touch support.
+A gamepad drives an on-screen cursor, so everything a mouse can do works with a controller too; the cursor appears when
+you touch the gamepad and steps aside when you move the mouse. There is no touch support.
 
 ## Features
 
@@ -325,7 +328,8 @@ release (v0.1.0).
   engine) doesn't start on this CachyOS machine: it is built against Ubuntu 24.04 libraries (ICU 74, flite, libjxl
   0.8). Music starts a few seconds after loading because it's synthesised on the page's only thread.
 * **No Windows build yet.** The build script has a Windows target, but it hasn't been built or tested.
-* **Mouse and keyboard only**, English only.
+* **Gamepad support is new and only tested with a simulated controller**: the tour drives an Input System gamepad
+  device with the same events a real one sends, but no physical controller or Steam Deck has been tried. English only.
 * **Pacing is tuned by a bot.** The balance tests keep the first Factory between 1.5 and 5 hours for a greedy
   bot; real players will vary.
 * **The trailer and screenshots** come from the scripted `-trailer` mode, which jumps between prepared save
