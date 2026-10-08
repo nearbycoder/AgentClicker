@@ -186,7 +186,7 @@ async function main() {
     await sleep(1000);
     await page.mouse.click(735, 182); // GAMEPLAY
     await sleep(800);
-    await page.mouse.click(1220, 609); // Number format ▶
+    await page.mouse.click(1220, 661); // Number format ▶
     await sleep(500);
     await page.mouse.click(1160, 784); // DONE
     await sleep(2000);
@@ -299,18 +299,31 @@ async function main() {
       }
       return { fps: -1, line: "no answer" };
     };
+    const capOf = (r) => { const m = /cap (-?\d+)/.exec(r.line); return m ? parseInt(m[1], 10) : NaN; };
     const glStats = () => page.evaluate(() => window.agentClickerGL ? window.agentClickerGL() : null);
     const gl0 = await glStats(), glT0 = Date.now();
-    const front = await gameFps(3);
-    await page.evaluate(() => window.dispatchEvent(new FocusEvent("blur")));
-    await sleep(500);
-    const behind = await gameFps(3);
-    await page.evaluate(() => window.dispatchEvent(new FocusEvent("focus")));
-    await sleep(500);
-    const back = await gameFps(3);
-    console.log(`[Web] game frame rate: in front ${front.line} · behind another window ${behind.line} · in front again ${back.line}`);
-    check(behind.fps > 0 && behind.fps <= 17 && back.fps >= Math.max(20, behind.fps * 1.5),
-          `the game drops to about 15 fps behind another window and comes back (${front.fps} → ${behind.fps} → ${back.fps} fps)`);
+    // The game's own cap (15 behind another window, none in front) is the setting at work; the measured rate confirms it.
+    // On an overloaded machine the page can render under 30 fps even in front (4 fps at load 27 in round 10), so the rates
+    // can't show a drop: then it measures again, up to three times, and says so.
+    let front, behind, back, rateOk = false, capsOk = false;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      front = await gameFps(3);
+      await page.evaluate(() => window.dispatchEvent(new FocusEvent("blur")));
+      await sleep(500);
+      behind = await gameFps(3);
+      await page.evaluate(() => window.dispatchEvent(new FocusEvent("focus")));
+      await sleep(500);
+      back = await gameFps(3);
+      console.log(`[Web] game frame rate (try ${attempt}): in front ${front.line} · behind another window ${behind.line} · in front again ${back.line}`);
+      capsOk = capOf(behind) === 15 && capOf(front) !== 15 && capOf(back) !== 15;
+      rateOk = behind.fps > 0 && behind.fps <= 17 && back.fps >= Math.max(20, behind.fps * 1.5);
+      if (rateOk || !capsOk) break;
+      if (front.fps >= 30 && back.fps >= 30) break; // a fast page that didn't slow down: a real failure, no retry
+      console.log(`[Web] the page renders under 30 fps in front (${front.fps}, ${back.fps}): the machine is busy, measuring again`);
+    }
+    check(capsOk && rateOk,
+          `the game drops to about 15 fps behind another window and comes back (${front.fps} → ${behind.fps} → ${back.fps} fps, ` +
+          `cap ${capOf(front)} → ${capOf(behind)} → ${capOf(back)})`);
     const gl1 = await glStats(), glSecs = (Date.now() - glT0) / 1000;
     console.log(`[Web] WebGL ids: ${JSON.stringify(gl0)} → ${JSON.stringify(gl1)}`);
     check(!!gl0 && !!gl1 && gl1.reuse && gl1.counter - gl0.counter < 3 * glSecs,
@@ -423,7 +436,7 @@ async function main() {
     await loaded();
     await openGameplaySettings(page);
     await shot("08_settings_save_file");
-    const [download] = await Promise.all([page.waitForEvent("download", { timeout: 15000 }), page.mouse.click(1010, 661)]);
+    const [download] = await Promise.all([page.waitForEvent("download", { timeout: 15000 }), page.mouse.click(1010, 713)]);
     const file = path.join(out, "agentclicker_save.json");
     await download.saveAs(file);
     const downloaded = JSON.parse((await import("node:fs")).readFileSync(file, "utf8"));
@@ -444,7 +457,7 @@ async function main() {
     // a zero-length click: it only reaches the button if no frame is long (the music is still being synthesised on the
     // page's only thread for the first half minute, in slices that must stay short)
     const pick = async (f) => {
-      const [chooser] = await Promise.all([page2.waitForEvent("filechooser", { timeout: 15000 }), page2.mouse.click(1165, 661)]);
+      const [chooser] = await Promise.all([page2.waitForEvent("filechooser", { timeout: 15000 }), page2.mouse.click(1165, 713)]);
       await chooser.setFiles(f);
       await sleep(2000);
     };

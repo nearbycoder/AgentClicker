@@ -49,7 +49,22 @@ dbus-run-session -- bash -c '
 ' nested "$@"
 code=$?
 set -e
-left=$(pgrep -f "$AC_NESTED_SOCK" || true)
-[ -z "$left" ] || echo "[nested] warning: still running with this session's socket: $left" >&2
+# Helpers the session's D-Bus started on demand (ksecretd, portals...) outlive it: round 10's runs left about 80 ksecretd.
+# They inherit this run's marker (AC_NESTED_SOCK) in their environment, so stop exactly those, by PID.
+mine() {
+  for p in $(pgrep -u "$(id -u)"); do
+    if [ "$p" = "$$" ] || [ "$p" = "$BASHPID" ]; then continue; fi
+    if { tr '\0' '\n' < "/proc/$p/environ"; } 2>/dev/null | grep -qx "AC_NESTED_SOCK=$AC_NESTED_SOCK"; then echo "$p"; fi
+  done
+  return 0
+}
+left=$(mine)
+if [ -n "$left" ]; then
+  echo "[nested] stopping what this session left running: $(ps -o pid=,comm= -p $(echo $left | tr ' ' ',') | tr -s ' \n' ' ')"
+  kill $left 2>/dev/null; sleep 1
+  left=$(mine); [ -z "$left" ] || kill -9 $left 2>/dev/null
+fi
+left=$(mine)
+[ -z "$left" ] || echo "[nested] warning: still running with this session's marker: $left" >&2
 [ "$KEEP" = 1 ] || rm -rf "$SCRATCH"
 exit $code
