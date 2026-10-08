@@ -80,47 +80,51 @@ def ease_in_out(k):
 # Transitions: ("fade" | "slideleft" | "fadeblack" | "cut", seconds) into the NEXT segment.
 SEGMENTS = [
     # cold open: the payoff first. Boot screen, the camera pulls back, feet on the desk.
-    dict(id="cold", clip="factory", ss=7.3, t=6.8, out=("fadeblack", 0.5)),
+    dict(id="cold", clip="factory", ss=7.8, t=5.5, out=("fadeblack", 0.5)),
     dict(id="title", card="title", t=5.0, out=("fade", 0.45)),
 
-    dict(id="story", clip="story_intro", ss=0.2, t=2.6, out=("fade", 0.3),
+    dict(id="story", clip="story_intro", ss=0.2, t=2.5, out=("fade", 0.3),
          cap=("CHAPTER 1 · THE MANDATE", "Your CEO wants 10x output.", "Synergex just went AI-First. Sam has an idea."), pos="bl"),
-    dict(id="clockin", clip="clockin", ss=1.2, t=4.6, out=("fade", 0.3),
+    dict(id="clockin", clip="clockin", ss=1.2, t=4.3, out=("fade", 0.3),
          cap=("EVERY MORNING", "Clock in at a real 3D desk", "Log in to CorpOS, a whole game running on your monitor."), pos="bl"),
-    dict(id="ship", clip="ship", ss=0.4, t=4.4, out=("slideleft", 0.35),
+    dict(id="ship", clip="ship", ss=0.4, t=4.2, out=("slideleft", 0.35),
          cap=("THE CORE LOOP", "Ship code by hand", "Keep a rhythm to build Focus, up to x3 click power."), pos="br"),
-    dict(id="hire", clip="hire", ss=0.2, t=5.0, out=("slideleft", 0.35),
+    dict(id="hire", clip="hire", ss=0.2, t=4.6, out=("slideleft", 0.35),
          cap=("MODELMART", "Hire AI agents", "20 agents from 8 fictional frontier labs. They work while you don't."), pos="bl"),
-    dict(id="upgrades", clip="upgrades", ss=0.4, t=3.4, out=("fade", 0.3),
+    dict(id="upgrades", clip="upgrades", ss=0.4, t=2.6, out=("fade", 0.3),
          cap=("UPGRADES", "Stack the multipliers", "15 tiers per agent, 40 research upgrades, lab contracts."), pos="bl"),
     dict(id="gadget", clip="gadget", ss=0.5, t=4.0, out=("fade", 0.3),
          cap=("THE OFFICE", "Upgrade your desk", "18 gadgets show up in the 3D office, and every one has a real bonus."), pos="bl"),
-    dict(id="drop", clip="drop", ss=0.2, t=3.6, out=("cut", 0),
+    dict(id="drop", clip="drop", ss=0.2, t=3.4, out=("cut", 0),
          cap=("RANDOM EVENTS", "Catch the model drop", "Benchmark hype, funding rounds, caffeine rushes."), pos="tr"),
-    dict(id="outage", clip="outage", ss=0.5, t=3.3, out=("fade", 0.3),
+    dict(id="outage", clip="outage", ss=0.5, t=3.2, out=("fade", 0.3),
          cap=("RANDOM EVENTS", "Survive the outage", "Click the banner to fail over before production halves."), pos="bl"),
-    dict(id="call", clip="call", ss=1.6, t=3.9, out=("fade", 0.25),
+    dict(id="call", clip="call", ss=1.6, t=4.2, out=("fade", 0.3),
          cap=("INTERRUPTIONS", "The phone rings", "Every reply has consequences. Rapport unlocks perks."), pos="tl"),
-    dict(id="call2", clip="call", ss=7.1, t=2.7, out=("fade", 0.3), cap_from="call"),
-    dict(id="inbox", clip="inbox", ss=0.3, t=2.8, out=("fade", 0.3),
-         cap=("THE STORY", "Six chapters, 26 emails", "A workplace comedy about automating your own job."), pos="bl"),
-    dict(id="review", clip="review", ss=1.3, t=3.6, out=("fade", 0.25),
-         cap=("5:00 PM", "Hit your quota", "Daily asks, performance reviews, stars and a night shift for your agents."), pos="bl"),
-    dict(id="review2", clip="review", ss=6.8, t=2.4, out=("fadeblack", 0.4), cap_from="review"),
-    dict(id="day1", clip="office_day1", ss=0.3, t=2.6, out=("fade", 0.9),
+    dict(id="review", clip="review", ss=1.3, t=3.3, out=("fade", 0.3),
+         cap=("5:00 PM", "Hit your quota", "A performance review against yesterday, and your last 14 days."), pos="bl"),
+    dict(id="stats", clip="stats", ss=0.3, t=2.6, out=("fadeblack", 0.4), cap_from="review"),
+    dict(id="day1", clip="office_day1", ss=0.3, t=2.4, out=("fade", 0.9),
          cap=("DAY 1 → DAY 31", "Watch the office grow", "Promotions knock the cubicle down. Gadgets pile up."), pos="bl"),
-    dict(id="late", clip="office_late", ss=1.2, t=3.0, out=("fade", 0.3), cap_from="day1"),
-    dict(id="promotion", clip="promotion", ss=0.4, t=3.8, out=("fadeblack", 0.4),
+    dict(id="late", clip="office_late", ss=1.2, t=2.8, out=("fade", 0.4), cap_from="day1"),
+    dict(id="timelapse", clip="timelapse", ss=0.3, t=6.0, out=("fade", 0.3),
+         cap=("LIGHT THROUGH THE WINDOW", "The sky follows your work day", "Morning sun and drifting dust, a sunset at five, city lights at night."),
+         pos="br"),
+    dict(id="promotion", clip="promotion", ss=0.4, t=3.6, out=("fadeblack", 0.4),
          cap=("PROMOTIONS", "From Junior Developer to Chief Agent Officer", "…and on to Employee of Every Month."), pos="bl"),
-    dict(id="factory", clip="factory", ss=0.3, t=6.6, out=("fade", 0.3),
+    # the title by keyboard, then Settings: the caption leaves before the Settings card arrives
+    dict(id="menus", clip="menus", ss=0.1, t=7.2, out=("fade", 0.3), cap_end=3.2,
+         cap=("EVERY MENU", "Mouse, keyboard or gamepad", "Arrow keys and the D-pad move a focus ring."), pos="br"),
+    dict(id="fidelity", clip="fidelity", ss=0.0, t=6.0, out=("fadeblack", 0.4),
+         labels=[(0.0, 1.5, "LOW"), (1.5, 3.0, "MEDIUM"), (3.0, 4.5, "HIGH · DEFAULT"), (4.5, 6.0, "ULTRA")],
+         cap=("GRAPHICS FIDELITY", "Four steps, Low to Ultra", "Ultra: 8x MSAA, 125% resolution, 4K shadows, depth of field."), pos="bl"),
+    dict(id="factory", clip="factory", ss=0.3, t=5.8, out=("fade", 0.3),
          cap=("THE GOAL", "Build the Software Factory", "Every agent in one pipeline. 100% automated."), pos="bl"),
-    dict(id="frontier", clip="frontier", ss=0.3, t=4.2, out=("slideleft", 0.35),
+    dict(id="frontier", clip="frontier", ss=0.3, t=4.0, out=("slideleft", 0.35),
          cap=("THE FACTORY IS NOT THE END", "Frontier agents", "Agent Foundry, Dyson Swarm… all the way to The Singularity."), pos="br"),
-    dict(id="trophies", clip="trophies", ss=0.3, t=2.7, out=("fade", 0.3),
-         cap=("512 TROPHIES", "Earn Clout", "Every trophy feeds the influence upgrades."), pos="bl"),
-    dict(id="reorg", clip="reorg", ss=0.3, t=4.6, out=("fade", 0.3),
+    dict(id="reorg", clip="reorg", ss=0.3, t=4.4, out=("fade", 0.3),
          cap=("PRESTIGE", "Reorg to the next division", "Marketing, Sales, Legal… The Board, Orbital, the multiverse."), pos="br"),
-    dict(id="board", clip="boardroom", ss=0.2, t=3.4, out=("fade", 0.3),
+    dict(id="board", clip="boardroom", ss=0.2, t=3.2, out=("fade", 0.3),
          cap=("THE BOARD ROOM", "Spend your Stock Options", "Permanent perks that survive every reorg."), pos="bl"),
     dict(id="big", clip="bignumbers", ss=0.3, t=3.0, out=("fadeblack", 0.35),
          cap=("HUNDREDS OF HOURS IN", "Numbers to a centillion", "1e303. Nothing ever overflows."), pos="br"),
@@ -194,6 +198,34 @@ def caption_filter(size, shadow, pos, start, end):
 
 
 # ============================================================================ segments
+def label_png(text, path):
+    """A step label for a comparison shot: big white text on a dark CorpOS chip."""
+    f = font("bold", 54)
+    layer = text_layer(text, f, (255, 255, 255, 255), spacing=3)
+    pad_x, pad_y, shadow = 34, 16, 30
+    w, h = layer.width + pad_x * 2, layer.height + pad_y * 2
+    img = Image.new("RGBA", (w + shadow * 2, h + shadow * 2), (0, 0, 0, 0))
+    sh = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    ImageDraw.Draw(sh).rounded_rectangle([shadow, shadow + 6, shadow + w, shadow + h + 6], 14, fill=(0, 0, 0, 140))
+    img = Image.alpha_composite(img, sh.filter(ImageFilter.GaussianBlur(12)))
+    dr = ImageDraw.Draw(img)
+    dr.rounded_rectangle([shadow, shadow, shadow + w, shadow + h], 14, fill=PANEL + (230,), outline=ACCENT + (255,), width=3)
+    img.alpha_composite(layer, (shadow + pad_x, shadow + pad_y - 4))
+    img.save(path)
+    return shadow
+
+
+def labels_filter(seg, first_input, src_label):
+    """Overlays each label PNG (inputs from first_input on) from its start to its end, at the top left."""
+    chain, last = [], src_label
+    for k, (a, b, _) in enumerate(seg["labels"]):
+        shadow = 30
+        nxt = f"lb{k}"
+        chain.append(f"[{last}][{first_input + k}:v]overlay=x={84 - shadow}:y={70 - shadow}:enable='between(t,{a:.3f},{b - 0.001:.3f})'[{nxt}]")
+        last = nxt
+    return ";".join(chain), last
+
+
 def render_clip_segment(i, seg, cap_info):
     out = BUILD / f"seg_{i:02d}.mkv"
     src = CLIPS / f"{seg['clip']}.mp4"
@@ -203,13 +235,24 @@ def render_clip_segment(i, seg, cap_info):
         print(f"  ! {seg['clip']}: wanted {t:.2f}s from {seg['ss']}, clip only has {have:.2f}s")
         t = have
     args = ["-ss", f"{seg['ss']:.3f}", "-t", f"{t:.3f}", "-i", src]
+    labels = []
+    for k, (_, _, text) in enumerate(seg.get("labels", [])):
+        png = BUILD / f"label_{seg['id']}_{k}.png"
+        label_png(text, png)
+        labels.append(png)
     if cap_info:
         png, size, shadow, start, end = cap_info
-        args += ["-loop", "1", "-framerate", str(FPS), "-t", f"{t:.3f}", "-i", png,
-                 "-filter_complex", caption_filter(size, shadow, seg.get("pos", "bl"), start, end) + ",format=yuv420p[v]",
-                 "-map", "[v]", "-map", "0:a?"]
+        args += ["-loop", "1", "-framerate", str(FPS), "-t", f"{t:.3f}", "-i", png]
+        graph = caption_filter(size, shadow, seg.get("pos", "bl"), start, end) + "[c]"
+        last, first = "c", 2
     else:
-        args += ["-vf", "format=yuv420p", "-map", "0:v", "-map", "0:a?"]
+        graph, last, first = "[0:v]null[c]", "c", 1
+    for png in labels:
+        args += ["-loop", "1", "-framerate", str(FPS), "-t", f"{t:.3f}", "-i", png]
+    if labels:
+        extra, last = labels_filter(seg, first, last)
+        graph += ";" + extra
+    args += ["-filter_complex", graph + f";[{last}]format=yuv420p[v]", "-map", "[v]", "-map", "0:a?"]
     ffmpeg(*args, "-r", FPS, "-c:v", "libx264", "-preset", "medium", "-crf", "14",
            "-c:a", "pcm_s16le", "-ar", "48000", "-ac", "2", out)
     return out, t
@@ -343,7 +386,7 @@ def render_end(i, seg):
     url = "github.com/nearbycoder/AgentClicker"
     fm = font("monobold", 44)
     url_full = text_layer(url, fm, TERMINAL + (255,))
-    foot = text_layer("Free download for Linux on GitHub Releases  ·  Made with Unity 6 and Blender", font("medium", 28), DIM + (255,))
+    foot = text_layer("Free on GitHub for Linux  ·  Made with Unity 6 and Blender", font("medium", 28), DIM + (255,))
 
     def frames():
         for k in range(n):
@@ -459,7 +502,7 @@ def build_segments():
                 caps[seg["id"]] = (png, size, shadow)
                 # a caption spanning two shots stays up across the cut: in on the first, out on the second
                 spans = any(s.get("cap_from") == seg["id"] for s in SEGMENTS)
-                cap_info = (png, size, shadow, 0.25, 999 if spans else seg["t"] - 0.55)
+                cap_info = (png, size, shadow, 0.25, 999 if spans else seg.get("cap_end", seg["t"] - 0.55))
             elif "cap_from" in seg:
                 png, size, shadow = caps[seg["cap_from"]]
                 cap_info = (png, size, shadow, -1.0, seg["t"] - 0.55)
@@ -592,7 +635,7 @@ def poster():
     print(f"[poster] {OUT / 'trailer-poster.jpg'} ({(OUT / 'trailer-poster.jpg').stat().st_size / 1e3:.0f} KB)")
 
 
-TEASER = [("ship", 1.4, 1.8), ("gadget", 1.0, 2.2), ("promotion", 1.0, 2.0), ("factory", 9.0, 2.6)]
+TEASER = [("ship", 1.4, 1.8), ("gadget", 1.0, 2.2), ("timelapse", 3.6, 2.2), ("promotion", 1.0, 2.0), ("factory", 9.0, 2.6)]
 
 
 def teaser():
@@ -623,7 +666,7 @@ STILLS = [
     ("title", "01-title"), ("ship_code", "02-ship-code"), ("gadget_showcase", "03-gadget-showcase"),
     ("phone_call", "04-phone-call"), ("corpos_late", "05-corpos-late-game"), ("office_late", "06-office-late-game"),
     ("review", "07-performance-review"), ("automated", "08-software-factory"), ("frontier_agents", "09-frontier-agents"),
-    ("board_room", "10-board-room"),
+    ("board_room", "10-board-room"), ("settings_fidelity", "11-graphics-fidelity"), ("stats", "12-last-14-days"),
 ]
 
 

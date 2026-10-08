@@ -6,6 +6,8 @@ using AgentClicker.Office;
 using AgentClicker.UI;
 using AgentClicker.Util;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.UI;
 
 namespace AgentClicker
@@ -53,6 +55,46 @@ namespace AgentClicker
             yield return Wait(7f);
             Cut();
 
+            // --- the menus by keyboard: the title arrives, the focus ring walks to SETTINGS, fidelity goes up to Ultra ----
+            // the Settings card shows what a player sees: the defaults, not the recording's own V-Sync, frame cap and power settings
+            var defaults = new GameSettings();
+            var rec = _gm.Settings;
+            bool vsync = rec.vsync, throttle = rec.throttleInBackground;
+            int fpsCap = rec.fpsCap;
+            rec.vsync = defaults.vsync;
+            rec.fpsCap = defaults.fpsCap;
+            rec.throttleInBackground = defaults.throttleInBackground;
+            SetStep(1);                                         // start at Medium so the shot shows the slider's last two steps
+            yield return Wait(0.8f);
+            var kb = Keyboard.current ?? InputSystem.AddDevice<Keyboard>();
+            yield return Rec("menus");
+            _gm.Menu.ShowTitle();                               // the logo, tagline and buttons arrive in their stagger
+            yield return Wait(1.7f);
+            yield return PressKey(kb, Key.DownArrow);           // the first arrow shows the ring on NEW GAME
+            yield return Wait(0.5f);
+            for (int i = 0; i < 6 && _gm.Focus.FocusedLabel != "SETTINGS"; i++)
+            {
+                yield return PressKey(kb, Key.DownArrow);
+                yield return Wait(0.35f);
+            }
+            yield return Wait(0.4f);
+            yield return PressKey(kb, Key.Enter);               // Settings eases in with Graphics fidelity focused
+            yield return Wait(1.3f);
+            yield return PressKey(kb, Key.RightArrow);          // High
+            yield return Wait(1.1f);
+            yield return PressKey(kb, Key.RightArrow);          // Ultra
+            yield return Wait(1.0f);
+            yield return Still("settings_fidelity");
+            yield return Wait(0.8f);
+            Cut();
+            Debug.Log($"[Trailer] fidelity after the menus: {Fidelity.Step(_gm.Settings.quality).Name}");
+            yield return PressKey(kb, Key.Escape);
+            _gm.Menu.HideAll();
+            rec.vsync = vsync;
+            rec.fpsCap = fpsCap;
+            rec.throttleInBackground = throttle;
+            SetStep(Fidelity.Steps.Length - 1);                 // the rest of the trailer is Ultra
+
             // --- story: the CEO's memo ------------------------------------------------------------
             _gm.Menu.ShowStoryCards(StoryDatabase.Intro(), null);
             yield return Wait(0.3f);
@@ -78,7 +120,7 @@ namespace AgentClicker
             // --- the core loop: ship code by hand -----------------------------------------------------
             EarlyGame();
             yield return ToDesktop();
-            yield return Wait(4.8f);                            // chapter 2 banner comes and goes off camera
+            yield return ChapterBannerOffCamera();
             yield return MoveToName("ShipButton", 0.01f);
             yield return Zoom(new Vector2(0.31f, 0.52f), 1.6f, 0.01f);
             yield return Wait(0.6f);
@@ -112,7 +154,7 @@ namespace AgentClicker
             // --- upgrades -------------------------------------------------------------------------------
             MidGameUpgrades();
             yield return MonitorView();
-            yield return Wait(4.8f);                            // chapter 3 banner
+            yield return ChapterBannerOffCamera();
             yield return ClickName("TabUPGRADES");
             yield return Zoom(new Vector2(0.69f, 0.5f), 1.6f, 0.01f);
             yield return Rec("upgrades");
@@ -151,6 +193,7 @@ namespace AgentClicker
             Cut();
 
             // --- API outage -------------------------------------------------------------------------------
+            yield return MonitorView();                         // the whole monitor, so the banner at its top is in view
             yield return Wait(0.5f);
             yield return Rec("outage");
             yield return Wait(0.3f);
@@ -190,6 +233,7 @@ namespace AgentClicker
             // --- 5 PM: review, night shift ----------------------------------------------------------------
             var s = M.State;
             s.earnedToday = s.quotaToday * 1.4 + 1000;
+            SeedDayHistory(s.earnedToday);                      // the review says how the day went against yesterday
             s.dayMinutes = GameDatabase.WorkdayMinutes - 2.5f;
             yield return Rec("review");
             yield return Wait(2.6f);
@@ -215,10 +259,69 @@ namespace AgentClicker
             yield return Wait(1.5f);
             yield return OfficeMove("office_late", 4.5f, still: "office_late");
 
+            // --- Graphics fidelity, Low to Ultra: the same live view, one step every 1.5 s ---------------------
+            yield return ToDesktop();                           // logged in, so the monitors show CorpOS
+            _gm.Cam.SetMode(CamMode.Office, 0.01f);
+            yield return ChapterBannerOffCamera();
+            _gm.Computer.CloseModal();
+            M.State.dayMinutes = 30;                            // 9:30, the sunbeam is in the air (Low has none)
+            _gm.Cam.SetFixed(new Vector3(1.55f, 1.75f, -2.75f), new Vector3(-1.6f, 1.05f, -0.35f));
+            SetStep(0);
+            yield return Wait(1.2f);
+            yield return Rec("fidelity");
+            for (int i = 0; i < Fidelity.Steps.Length; i++)
+            {
+                if (i > 0) SetStep(i);
+                Debug.Log($"[Trailer] fidelity step {Fidelity.Steps[i].Name}");
+                yield return Frames(45);
+            }
+            Cut();
+
+            // --- light through the window: one day, morning to night, in seven seconds ---------------------------
+            M.State.dayMinutes = 0;
+            _gm.Computer.CloseModal();
+            yield return Wait(0.8f);
+            _camMove = StartCoroutine(Dolly(new Vector3(1.65f, 1.7f, -2.85f), new Vector3(1.35f, 1.62f, -2.55f),
+                                            new Vector3(-1.6f, 1.15f, -0.45f), new Vector3(-1.6f, 1.05f, -0.3f), 7.4f));
+            yield return Wait(0.6f);
+            yield return Rec("timelapse");
+            for (int f = 0; f < 210; f++)
+            {
+                // 9:00 to 20:15; Sam stops typing just before five (the clock stops on its own outside working hours)
+                float minutes = Mathf.SmoothStep(0, 675, f / 209f);
+                if (minutes > 470 && M.State.Phase == GamePhase.Working) M.State.Phase = GamePhase.Login;
+                M.State.dayMinutes = minutes;
+                yield return null;
+            }
+            yield return Frames(12);
+            Cut();
+            StopCam();
+
+            // --- the Stats tab: the last 14 days ------------------------------------------------------------------
+            M.State.Phase = GamePhase.Working;
+            M.State.dayMinutes = 5 * 60;
+            M.State.earnedToday = M.Cps * 60 * 5;
+            SeedDayHistory(M.State.earnedToday * 1.15);
+            yield return ToDesktop();
+            CursorVisible = true;
+            yield return ClickName("TabSTATS");                 // the tab row is out of view once zoomed in
+            yield return Zoom(new Vector2(0.70f, 0.5f), 1.3f, 0.01f);
+            yield return Wait(0.8f);
+            yield return Rec("stats");
+            yield return MoveTo(new Vector2(Screen.width * 0.62f, Screen.height * 0.62f), 1.2f);
+            yield return Wait(0.8f);
+            yield return Still("stats", keepCursor: false);
+            yield return Wait(1.4f);
+            Cut();
+            yield return MonitorView();
+            yield return ClickName("TabAGENTS");
+            CursorVisible = false;
+            _gm.Cam.SetMode(CamMode.Office, 0.01f);
+
             // --- promotion: the sofa arrives ------------------------------------------------------------
             s = M.State;
             s.Phase = GamePhase.Working;                       // agents only earn while Sam is clocked in
-            yield return Wait(5f);                              // chapter 5 banner comes and goes off camera
+            yield return ChapterBannerOffCamera();
             s.titleIndex = 3;
             // production pushes lifetime earnings over the Principal Engineer line about 1.4 s into the clip
             s.lifetimeEarned = GameDatabase.Titles[4].Threshold - M.Cps * 2.0;
@@ -244,7 +347,7 @@ namespace AgentClicker
             _gm.Computer.CloseModal();
             yield return ToDesktop();
             CursorVisible = true;
-            yield return Wait(4.8f);                            // chapter 5 banner
+            yield return ChapterBannerOffCamera();
             yield return Still("corpos_late");
             yield return Rec("factory");
             yield return ClickName("TabFACTORY");
@@ -453,42 +556,92 @@ namespace AgentClicker
                 _gm.Login();
             }
             _gm.Computer.ShowDesktop();
+            _gm.Cam.ResetMonitorZoom();
             _gm.Cam.SetMode(CamMode.Monitor, 0.01f);
             yield return Wait(0.8f);
+        }
+
+        /// <summary>
+        /// Two weeks of earlier days for the review and the Stats chart (the trailer jumps between saved states, so it has no
+        /// real history): each day about a third up on the one before, yesterday = today over 1.62, one missed quota.
+        /// </summary>
+        void SeedDayHistory(double today)
+        {
+            var s = M.State;
+            s.history.Clear();
+            double earned = today / 1.62;
+            var days = new List<DayRecord>();
+            for (int d = s.day - 1; d >= Mathf.Max(1, s.day - 14); d--)
+            {
+                bool missed = d == s.day - 6;
+                days.Insert(0, new DayRecord { day = d, earned = earned, quota = missed ? earned * 1.25 : earned * 0.9 });
+                earned /= 1.33;
+            }
+            s.history.AddRange(days);
+        }
+
+        void SetStep(int step)
+        {
+            _gm.Settings.quality = step;
+            _gm.ApplySettings(save: false);
+            if (_gm.FidelityFx) _gm.FidelityFx.SnapFocus();
+        }
+
+        static IEnumerator PressKey(Keyboard kb, Key key)
+        {
+            InputSystem.QueueStateEvent(kb, new KeyboardState(key));
+            yield return null;
+            yield return null;
+            InputSystem.QueueStateEvent(kb, new KeyboardState());
+            yield return null;
+            yield return null;
+        }
+
+        /// <summary>
+        /// After a state jump the game shows the new chapter's banner once its story check runs (up to ~9 s later, after the
+        /// mail cooldown) and nothing else is on screen; wait off camera until it has come and gone.
+        /// </summary>
+        IEnumerator ChapterBannerOffCamera(float maxWait = 12f)
+        {
+            for (float t = 0; t < maxWait && !_gm.Overlay.ChapterBannerUp; t += Time.unscaledDeltaTime) yield return null;
+            while (_gm.Overlay.ChapterBannerUp) yield return null;
+            yield return Wait(0.6f);
+        }
+
+        /// <summary>Exactly n frames: n/30 s of video while recording.</summary>
+        static IEnumerator Frames(int n)
+        {
+            for (int i = 0; i < n; i++) yield return null;
         }
 
         // ================================================================== camera
         IEnumerator MonitorView()
         {
+            _gm.Cam.ResetMonitorZoom();
             _gm.Cam.SetMode(CamMode.Monitor, 0.01f);
             yield return null;
             yield return null;
+            // coming back from a zoom the camera eases out; wait for it so clicks land where the full view shows things
+            for (int i = 0; i < 90 && _gm.Cam.DistanceToTarget() > 0.002f; i++) yield return null;
         }
 
-        /// <summary>Glide toward a point of the CorpOS screen (viewport coords of the full monitor view).</summary>
+        /// <summary>
+        /// Close in on a point of the CorpOS screen (viewport coords of the full monitor view) with the game's own monitor
+        /// zoom, the one a touch player pinches: the view stays in Monitor mode, so the screen stays sharp at every fidelity
+        /// step (Ultra's depth of field never touches the monitor) and what's on screen is what a player would see.
+        /// </summary>
         IEnumerator Zoom(Vector2 viewport, float zoom, float seconds)
         {
             var cam = _gm.Refs.MainCamera;
-            _gm.Cam.SetMode(CamMode.Monitor, 0.01f);
-            yield return null;
-            yield return null;
+            yield return MonitorView();                         // the ray below needs the fitted view
             SceneRefs.ScreenFrame(_gm.Refs.MainScreen, out var center, out var frame, out _);
-            Vector3 normal = frame * Vector3.back;
             var ray = cam.ViewportPointToRay(new Vector3(viewport.x, viewport.y, 0));
-            new Plane(normal, center).Raycast(ray, out float enter);
+            new Plane(frame * Vector3.back, center).Raycast(ray, out float enter);
             Vector3 focus = ray.GetPoint(enter);
-            float dist = Vector3.Distance(cam.transform.position, center);
-            Vector3 fromPos = cam.transform.position, fromLook = center;
-            Vector3 toPos = focus + normal * (dist / zoom);
-            for (float t = 0; t < seconds; t += Time.deltaTime)
-            {
-                float k = Mathf.SmoothStep(0, 1, t / seconds);
-                _gm.Cam.SetFixed(Vector3.Lerp(fromPos, toPos, k), Vector3.Lerp(fromLook, focus, k));
-                yield return null;
-            }
-            // from Monitor mode SetFixed cuts straight there; from Fixed it eases in, so let it settle before clicking
-            _gm.Cam.SetFixed(toPos, focus);
-            yield return Wait(0.6f);
+            _gm.Cam.ZoomMonitor(zoom, new Vector2(Screen.width, Screen.height) * 0.5f, Vector2.zero);
+            _gm.Cam.PanMonitorTo(focus);
+            // the camera eases to the zoomed view; let it settle before clicking
+            yield return Wait(Mathf.Max(0.6f, seconds));
         }
 
         IEnumerator Orbit(float yaw0, float yaw1, float pitch0, float pitch1, float dist0, float dist1, float seconds, Vector3 offset)
