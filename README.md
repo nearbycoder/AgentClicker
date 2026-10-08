@@ -58,6 +58,7 @@ of it went past the hour.
 |---|---|---|---|
 | Mouse | Left stick moves a cursor, **A** clicks | Tap | Point and click anything |
 | Click **SHIP CODE**, or `Space` / `Enter` | **RT** or **X** | Tap **SHIP CODE** (two fingers work) | Ship code by hand |
+| Hold **SHIP CODE**, `Space` or `Enter` | Hold **RT** or **X** | Hold **SHIP CODE** | Keep shipping, 6 lines a second (with Settings → Gameplay → **Hold to keep shipping** on) |
 | Click the monitor | **A** on the monitor | Tap the monitor | Log in each morning |
 | Click agents, upgrades, gadgets | **A** on them | Tap them | Buy them (x1, x10, x100 or MAX at a time; **BUY ALL** for upgrades) |
 | `Tab` or the on-screen button | **View** | The on-screen button | Switch between the monitor and the office |
@@ -155,7 +156,8 @@ the pipeline booting, the camera pulls back, and Sam puts their feet up. Then th
 Graphics presets from Low to Ultra (MSAA, shadows, SSAO, render scale), display mode, resolution, V-Sync, a
 frame cap, field of view (the monitor view always fits the whole screen) and post-processing. Separate volume sliders for effects, music and ambience. A ♪ button on the CorpOS top bar (or `M`) mutes everything at once. Work
 days of 3, 5, 8 or 12 minutes, running the day while you're away, **reduce motion** (camera cuts instead of
-flying, no gadget showcases, and buttons, pulses and floating numbers hold still), tutorial tips, a purchase
+flying, no gadget showcases, and buttons, pulses and floating numbers hold still), **hold to keep shipping** (hold SHIP
+CODE, a key or a trigger instead of clicking, so your hands get a rest; Focus builds as it does with steady clicks), tutorial tips, a purchase
 camera toggle and mouse sensitivity. The game
 autosaves every 15 seconds, and your agents keep earning at a reduced rate while the game is closed.
 

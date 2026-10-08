@@ -390,12 +390,13 @@ namespace AgentClicker.UI
     }
 
     /// <summary>Forwards pointer events to delegates.</summary>
-    public class PointerRelay : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerClickHandler
+    public class PointerRelay : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler, IPointerClickHandler
     {
-        public Action<PointerEventData> Enter, Exit, Down, Click;
+        public Action<PointerEventData> Enter, Exit, Down, Up, Click;
         public void OnPointerEnter(PointerEventData e) => Enter?.Invoke(e);
         public void OnPointerExit(PointerEventData e) => Exit?.Invoke(e);
         public void OnPointerDown(PointerEventData e) => Down?.Invoke(e);
+        public void OnPointerUp(PointerEventData e) => Up?.Invoke(e);
         public void OnPointerClick(PointerEventData e) => Click?.Invoke(e);
 
         public static PointerRelay On(Component c)

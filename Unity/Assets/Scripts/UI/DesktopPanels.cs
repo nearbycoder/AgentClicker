@@ -156,7 +156,7 @@ namespace AgentClicker.UI
             _terminal.rectTransform.TopLeft(18, 34, 384, 160);
             _terminal.overflowMode = TextOverflowModes.Masking;
             _terminal.textWrappingMode = TextWrappingModes.NoWrap;
-            PointerRelay.On(term).Down = OnShip;
+            HoldRelay(term);
 
             _focusLabel = UIKit.Text(term.transform, "FocusLabel", "FOCUS", 14, Theme.TextDim, TextAlignmentOptions.MidlineLeft, UIFonts.Bold);
             _focusLabel.rectTransform.TopLeft(18, 200, 150, 20);
@@ -176,7 +176,7 @@ namespace AgentClicker.UI
             var pulse = btn.gameObject.AddComponent<Pulse>();
             pulse.ScaleAmount = 0.012f;
             pulse.Speed = 2.2f;
-            PointerRelay.On(btn).Down = OnShip;
+            HoldRelay(btn);
 
             // automation
             var auto = UIKit.Panel(col, "Automation", Theme.Panel, 14);
@@ -220,6 +220,43 @@ namespace AgentClicker.UI
             _ui.SpawnFloat(e, r.Amount, r.Crit);
             _punch.Play(0.05f);
             AddLine(FlavorText.CodeLine(_rng), r.Crit);
+            if (_gm.Settings.holdToShip)
+            {
+                if (_holding.Count == 0) _hold.Press();
+                _holding.Add(e.pointerId);
+            }
+        }
+
+        // Hold to keep shipping: the pointers (mouse, fingers, the gamepad cursor) holding SHIP CODE or the terminal down
+        readonly HoldToShip _hold = new HoldToShip();
+        readonly HashSet<int> _holding = new HashSet<int>();
+
+        void HoldRelay(Component c)
+        {
+            var relay = PointerRelay.On(c);
+            relay.Down = OnShip;
+            relay.Up = e => LetGo(e.pointerId);
+            relay.Exit = e => LetGo(e.pointerId); // sliding off the button lets go too
+        }
+
+        void LetGo(int pointer)
+        {
+            if (_holding.Remove(pointer) && _holding.Count == 0) _hold.Release();
+        }
+
+        public bool Holding => _hold.Holding;
+
+        /// <summary>Ships what a held SHIP CODE owes this frame; stops when it can't ship (a dialog, a call, 5 PM's review).</summary>
+        public void TickHold(float dt)
+        {
+            if (!_hold.Holding) return;
+            if (!_gm.Settings.holdToShip || !_gm.Model.IsWorking || !_ui.CanShip || _gm.Calls.Busy || _gm.Menu.Blocking)
+            {
+                _holding.Clear();
+                _hold.Release();
+                return;
+            }
+            for (int n = _hold.Tick(dt); n > 0; n--) ShipFromKeyboard();
         }
 
         public RectTransform Button => _button;

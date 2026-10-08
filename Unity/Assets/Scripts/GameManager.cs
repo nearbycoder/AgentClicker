@@ -588,26 +588,48 @@ namespace AgentClicker
             // screen, whose toggle shows the setting
             var keys = Keyboard.current;
             if (keys != null && keys.mKey.wasPressedThisFrame && !Menu.SettingsOpen) ToggleMute();
-            if (InEnding || Menu.Blocking || Calls.Busy) return;
+            if (InEnding || Menu.Blocking || Calls.Busy)
+            {
+                _padHold.Release();
+                _keyHold.Release();
+                return;
+            }
             var pad = Gamepad.current;
             if (pad != null)
             {
                 // View/Select is Tab; RT or X is Space
                 if (pad.selectButton.wasPressedThisFrame) Cam.Toggle();
-                if (Model.IsWorking && (pad.rightTrigger.wasPressedThisFrame || pad.buttonWest.wasPressedThisFrame))
-                    Computer.ShipFromKeyboard();
+                HoldOrPress(_padHold, pad.rightTrigger.wasPressedThisFrame || pad.buttonWest.wasPressedThisFrame,
+                            pad.rightTrigger.isPressed || pad.buttonWest.isPressed);
             }
+            else _padHold.Release();
             var kb = Keyboard.current;
             if (kb == null) return;
             if (kb.tabKey.wasPressedThisFrame) Cam.Toggle();
-            if (Model.IsWorking && (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame))
-                Computer.ShipFromKeyboard();
+            HoldOrPress(_keyHold, kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame,
+                        kb.spaceKey.isPressed || kb.enterKey.isPressed);
             if (kb.f12Key.wasPressedThisFrame && !Platform.IsWeb)
             {
                 string path = System.IO.Path.Combine(Application.persistentDataPath, $"screenshot_{DateTime.Now:yyyyMMdd_HHmmss}.png");
                 ScreenCapture.CaptureScreenshot(path);
                 Computer.Toast("Screenshot saved: " + path, Theme.TextDim);
             }
+        }
+
+        readonly HoldToShip _keyHold = new HoldToShip(), _padHold = new HoldToShip();
+
+        /// <summary>A press ships once; with Hold to keep shipping on, holding it on keeps shipping until it's let go.</summary>
+        void HoldOrPress(HoldToShip hold, bool pressed, bool down)
+        {
+            if (!Model.IsWorking || !Computer.CanShip) { hold.Release(); return; }
+            if (pressed)
+            {
+                Computer.ShipFromKeyboard();
+                if (Settings.holdToShip) hold.Press();
+                return;
+            }
+            if (!down || !Settings.holdToShip) { hold.Release(); return; }
+            for (int n = hold.Tick(Time.unscaledDeltaTime); n > 0; n--) Computer.ShipFromKeyboard();
         }
 
         void OnApplicationQuit() => Save();
@@ -900,8 +922,12 @@ namespace AgentClicker
         /// <summary>When the player last shipped code by hand (unscaled time).</summary>
         public float LastHandShip { get; private set; } = -10f;
 
+        /// <summary>Lines shipped by hand this session (keys, pointer, gamepad; not the Macro Pad).</summary>
+        public long HandShips { get; private set; }
+
         public ClickResult Ship()
         {
+            HandShips++;
             LastHandShip = Time.unscaledTime;
             var r = Model.Click();
             Employee.NotifyClick();

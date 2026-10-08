@@ -284,6 +284,9 @@ has rapport-dependent cards for each character.
 
 * **Focus** gains +3% per hand click (max 100%) and decays at 22% per second after 0.8 s idle. It
   multiplies click power by up to x3. It rewards active play and makes the phone a real interruption.
+  **Hold to keep shipping** (Settings → Gameplay, off by default, for hands that can't click for three hours): a held
+  SHIP CODE, Space, Enter, RT or X ships once and then 6 times a second (`HoldToShip`), about steady clicking, so Focus
+  builds the same way; letting go, a call, a dialog or the review stops it.
 * **Asks:** two per day. Day 1 is always "ship by hand" and "hire agents"; later days pick from hire,
   ship, upgrade, model drop, production level, over-deliver, answer calls and install a gadget. Each pays
   30 s of production (at least 50 × day), and finishing both earns Dana +1.

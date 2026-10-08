@@ -87,6 +87,7 @@ namespace AgentClicker
             CheckCreditsLabel("day 1", null);
             CheckScrollbar("day 1 agent list", _gm.Computer.Store.AgentRowRect(0).GetComponentInParent<UnityEngine.UI.ScrollRect>(), false);
             yield return MuteSegment();
+            yield return HoldToShipSegment();
             M.DeliverNextMail();
             M.DeliverNextMail();
             _gm.Computer.ShowInbox(null);
@@ -533,6 +534,62 @@ namespace AgentClicker
                 ? $"[Tour] PASS M turns the sound back on (listener {AudioListener.volume:0.00})"
                 : $"[Tour] FAIL M: muted {st.muted}, listener {AudioListener.volume:0.00}");
             if (st.muted) _gm.ToggleMute();
+        }
+
+        /// <summary>
+        /// Hold to keep shipping: with the setting on, holding Space, the mouse button on SHIP CODE or RT keeps shipping about
+        /// six lines a second and builds Focus, and nothing more is shipped once it's let go; with it off a held Space ships once.
+        /// </summary>
+        IEnumerator HoldToShipSegment()
+        {
+            var st = _gm.Settings;
+            bool wasHold = st.holdToShip, wasMail = st.autoOpenStoryMail, wasEvents = M.RandomEventsEnabled;
+            st.autoOpenStoryMail = false; // the CEO's email would open in a pause between holds
+            M.RandomEventsEnabled = false;
+            var cam = _gm.Refs.MainCamera;
+            var kb = Keyboard.current ?? InputSystem.AddDevice<Keyboard>();
+            var mouse = Mouse.current ?? InputSystem.AddDevice<Mouse>();
+            var rt = _gm.Computer.ShipButton;
+            Vector2 ship = cam.WorldToScreenPoint(rt.TransformPoint(rt.rect.center));
+            var results = new System.Collections.Generic.List<string>();
+            bool ok = true;
+
+            IEnumerator Hold(string what, System.Action down, System.Action up, bool on)
+            {
+                st.holdToShip = on;
+                _gm.Computer.CloseModal();
+                yield return new WaitForSecondsRealtime(1.5f); // Focus drains between holds
+                long n0 = _gm.HandShips;
+                float f0 = M.Focus;
+                down();
+                yield return new WaitForSecondsRealtime(2f);
+                long held = _gm.HandShips - n0;
+                float f1 = M.Focus;
+                up();
+                yield return new WaitForSecondsRealtime(0.6f);
+                long after = _gm.HandShips - n0 - held;
+                bool good = on ? held >= 11 && held <= 15 && after == 0 && f1 - f0 > 0.2f : held == 1 && after == 0;
+                ok &= good;
+                results.Add($"{what} {(on ? "on" : "off")}: {held} in 2 s, {after} after letting go, Focus {f0:0.00} → {f1:0.00}{(good ? "" : " ✗")}");
+            }
+
+            yield return Hold("Space", () => InputSystem.QueueStateEvent(kb, new KeyboardState(Key.Space)),
+                              () => InputSystem.QueueStateEvent(kb, new KeyboardState()), true);
+            yield return RealMove(ship);
+            yield return Hold("mouse on SHIP CODE", () => InputSystem.QueueStateEvent(mouse, new MouseState { position = ship }.WithButton(MouseButton.Left, true)),
+                              () => InputSystem.QueueStateEvent(mouse, new MouseState { position = ship }), true);
+            var pad = InputSystem.AddDevice<Gamepad>();
+            yield return Hold("RT", () => InputSystem.QueueStateEvent(pad, new GamepadState { rightTrigger = 1f }),
+                              () => InputSystem.QueueStateEvent(pad, new GamepadState()), true);
+            InputSystem.RemoveDevice(pad);
+            yield return Hold("Space", () => InputSystem.QueueStateEvent(kb, new KeyboardState(Key.Space)),
+                              () => InputSystem.QueueStateEvent(kb, new KeyboardState()), false);
+
+            st.holdToShip = wasHold;
+            st.autoOpenStoryMail = wasMail;
+            M.RandomEventsEnabled = wasEvents;
+            Debug.Log(ok ? $"[Tour] PASS hold to keep shipping: {string.Join("; ", results)}"
+                         : $"[Tour] FAIL hold to keep shipping: {string.Join("; ", results)}");
         }
 
         IEnumerator GoalCardSegment()

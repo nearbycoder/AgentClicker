@@ -222,6 +222,7 @@ namespace AgentClicker.UI
             if (_desktop.gameObject.activeSelf)
             {
                 _fleet.Tick(dt);
+                _ship.TickHold(dt);
                 _refresh -= dt;
                 if (_refresh <= 0) { RefreshAll(dt); RefreshDayEndPrompt(); }
                 UpdateDrop();
@@ -277,7 +278,7 @@ namespace AgentClicker.UI
 
         public void ShipFromKeyboard()
         {
-            if (_desktop.gameObject.activeSelf && _modal == null) _ship.ShipFromKeyboard();
+            if (CanShip) _ship.ShipFromKeyboard();
         }
 
         public void OnAutoClick(ClickResult r)
@@ -648,6 +649,9 @@ namespace AgentClicker.UI
         }
 
         public bool ModalOpen => _modal != null;
+
+        /// <summary>SHIP CODE is on screen and nothing is over it.</summary>
+        public bool CanShip => _desktop.gameObject.activeSelf && _modal == null;
         /// <summary>The model drop card and the outage banner (the zoom chip points at them when they're out of view).</summary>
         public RectTransform DropCard => _dropCard;
         public RectTransform OutageBanner => _outage;

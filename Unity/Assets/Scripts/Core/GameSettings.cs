@@ -44,6 +44,7 @@ namespace AgentClicker.Core
         public bool autoOpenStoryMail = true;
         public bool autopilotDay = true;   // run the day (clock out, go home, clock in, log in) when nobody is at the keyboard
         public bool reduceMotion;          // camera cuts instead of flying, no showcases, no bouncing UI
+        public bool holdToShip;            // a held SHIP CODE, Space, Enter, RT or X keeps shipping (accessibility)
         public float mouseSensitivity = 1f;
         public int numberStyle;            // NumberStyle
         public bool zoomTipSeen;           // a touch player has been told about zooming into the monitor

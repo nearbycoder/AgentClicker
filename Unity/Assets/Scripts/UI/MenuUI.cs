@@ -331,6 +331,8 @@ namespace AgentClicker.UI
                            "Idle after 5 PM: your agents clock out, go home and log back in"); Next();
                     Toggle("Reduce motion", () => s.reduceMotion, v => s.reduceMotion = v, y,
                            "Camera cuts instead of flying; buttons and numbers hold still"); Next();
+                    Toggle("Hold to keep shipping", () => s.holdToShip, v => s.holdToShip = v, y,
+                           "Hold SHIP CODE, Space or RT to ship 6 lines a second, so your hands get a rest"); Next();
                     Toggle("Tutorial tips", () => s.tutorialTips, v => s.tutorialTips = v, y); Next();
                     Toggle("Open important emails automatically", () => s.autoOpenStoryMail, v => s.autoOpenStoryMail = v, y); Next();
                     Slider("Mouse look sensitivity", 0.25f, 3f, () => s.mouseSensitivity, v => s.mouseSensitivity = v, y, v => $"{v:0.00}x"); Next();
@@ -344,6 +346,7 @@ namespace AgentClicker.UI
                             "<color=#A4AFC2><size=15>TOUCH</size></color>") +
                         Row("Point and click", "Mouse", "Left stick · A", "Tap") +
                         Row("Ship code", "SHIP CODE · Space · Enter", "RT · X", "Tap SHIP CODE") +
+                        Row("Hold to keep shipping", "Hold SHIP CODE or Space", "Hold RT", "Hold SHIP CODE") +
                         Row("Look around / sit down", "Tab · on-screen button", "View", "On-screen button") +
                         Row("Orbit the office", "Right mouse drag", "Right stick", "Drag the room") +
                         Row("Zoom", "Mouse wheel (office view)", "LB · RB", "Pinch") +
@@ -485,7 +488,7 @@ namespace AgentClicker.UI
         // ------------------------------------------------------------------ info / how to play
         const string HowToPlay =
             "<b>Ship code.</b> Click SHIP CODE (or press Space) to earn compute credits. Steady clicking builds Focus, up to x3 " +
-            "per click; it drains as soon as you stop.\n\n" +
+            "per click; it drains as soon as you stop. To rest your hands, turn on Settings → Gameplay → Hold to keep shipping.\n\n" +
             "<b>Hire agents.</b> Spend credits in the <color=#4DD0E1>ModelMart</color> on AI agents. They earn every second, and each " +
             "costs 15% more than the last. Upgrades multiply them; office gadgets appear on your desk. The <b>NEXT GOAL</b> card says " +
             "what to save for next.\n\n" +
