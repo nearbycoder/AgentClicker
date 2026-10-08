@@ -1,8 +1,8 @@
 # Agent Clicker: improvement plan
 
 Written on 2026-10-06, after v0.1.0 (published 2026-10-04). This document ranks what would most raise the
-game's quality for a real player, then records each round's scope and results. Rounds 1–9 (branches
-`improvements` to `improvements-9`) are merged into `main`; round 10 is on `improvements-10`.
+game's quality for a real player, then records each round's scope and results. Rounds 1–10 (branches
+`improvements` to `improvements-10`) are merged into `main`; round 11 is on `improvements-11`.
 
 ## Baseline (what was run, and what it showed)
 
@@ -1432,3 +1432,76 @@ Deferred, and why:
 Owner decisions: unchanged. Redeploying `gh-pages` (it would bring rounds 5–10 to the hosted game; on the hosted build Sam's hand can
 cover the monitor when an outage starts), the offline-earnings cap (10% for 1 hour), Windows Build Support,
 license, signing, releases and tags, and whether the long music piece is a keeper.
+
+## Round 11 scope
+
+Baseline on `main` (`caea7de`, identical to `origin/main`): 147/147 EditMode tests and the balance bot at 2h 09m (day 27)
+(`Logs/r11/tests-baseline.out`). Round 10 left 16:10 and 32:9 windows unrun, so the baseline tour ran at both before planning,
+inside the nested KWin: at 1280×800 (16:10, the Steam Deck's shape) all 69 checks pass; at 2560×720 (32:9) two fail. The
+overlays are scaled for a 1600×900 screen by the geometric mean of width and height, which makes a 32:9 overlay only about 636
+units tall: the Settings card loses its title and its DONE and RESET buttons off the top and bottom, and the ending's
+"100% AUTOMATED" is cut. One facepalm sample at 40° also put 51 px of Sam on the screen. The ranked list's player items are done
+or waiting on the owner, so the other two items come from what a player does most: click, and come back each day. Localization
+stays deferred (large), real phones, tablets and a real Steam Deck can't be tried here, and the owner's decisions are unchanged
+(Windows Build Support, the offline cap of 10% for 1 hour, license, signing, releases and tags, redeploying `gh-pages`, the long
+music piece, day 1's quota after a reorg).
+
+### 1. Nothing off the screen on a super-wide (32:9) monitor
+
+* The overlays, menus, calls and the zoom chip keep their layout at least 780 units tall (what a 21:9 window gets today), so
+  on a wider screen they scale down a little instead of running off the top and bottom. 16:9, 4:3 and 21:9 are unchanged.
+* Whatever else the 32:9 run finds gets fixed, starting with the ending's title; the facepalm sample is looked into (the tour
+  saves what the probe saw when it fails).
+* The tour's regular sizes become five: 1600×900, 1024×768, 1680×720, 1280×800 and 2560×720.
+
+**Acceptance**: every tour check passes at all five sizes; at 2560×720 the Settings card, its DONE button and the ending's title
+are inside the window (a new check: every menu and overlay button and title inside the screen); the overlay's scale at the other
+three sizes is unchanged. **Verify**: the tour at five sizes in the nested KWin, before/after screenshots.
+
+### 2. Hold to keep shipping (accessibility)
+
+The first Factory takes a person about three hours of clicking SHIP CODE, and Focus asks for steady clicks. That's hard on wrists
+and on phone screens, and nothing in Settings helps.
+
+* Settings → Gameplay gets **Hold to keep shipping** (off by default). With it on, holding SHIP CODE (mouse, finger or the gamepad
+  cursor), Space, Enter, RT or X ships once at once and then 6 times a second, about what steady clicking does, so Focus builds as
+  usual; letting go (or the pointer leaving the button, a call, a dialog or the end of the day) stops it. With it off nothing
+  changes: one press, one line of code. The Controls tab and How to play mention it.
+
+**Acceptance**: with it on, a real Input System hold of Space for 2 s ships 13 ± 2 times, a mouse hold on SHIP CODE and an RT hold
+the same, and nothing after release; Focus rises while held; with it off a 2 s hold ships once; the setting survives a settings
+round trip. **Verify**: tour checks with Input System devices, an EditMode test for the repeat rule and the setting.
+
+### 3. Your days at a glance
+
+A day ends every five minutes, and the performance review says what you shipped against the quota, but nothing shows whether
+the run is speeding up, or which days missed.
+
+* The Stats tab opens with **Last 14 days**: a bar per day of this division (credits shipped, on a log scale so day 2 and day 20
+  both show), green when the quota was met, red when it wasn't, a tick at each day's quota, and today's bar growing in the accent
+  colour. Hovering or tapping a bar puts the day in the info panel ("Day 22 · Tuesday: shipped 4.87B against a 2.00M quota ★,
+  +62% on day 21").
+* The performance review says how the day compares: "+62% on yesterday", "Best day yet", or how far it fell.
+* The save keeps this division's last 30 days; a reorg starts a fresh chart, and an older save starts with an empty one.
+
+**Acceptance**: EditMode tests (a day is recorded when the player clocks out, when the autopilot does and when the building closes;
+at most 30 kept; a reorg clears them; they survive the save's JSON; a save without them loads); tour checks in the Stats shot (one
+bar per recorded day plus today, heights in the same order as the values, colours matching met and missed) and on the review's
+comparison line; nothing cut off. **Verify**: the tests, the tour, screenshots.
+
+### 4. Test tools: a busy machine isn't a failure, and nested runs leave nothing behind
+
+* The browser test's background frame-rate check also reads the game's own frame cap (15 behind another window, none in front),
+  and when the page renders under 30 fps even in front (the machine is overloaded, as in round 10 at load 27) it measures again,
+  up to three times, saying so in its output. It still fails if the cap doesn't drop or the rate never does.
+* `Tools/nested.sh` stops any process still carrying its session's marker when it ends (round 10's runs left about 80 `ksecretd`
+  behind). This round's baseline runs left none, so this is a safeguard.
+
+**Acceptance**: the Chromium and Firefox web tests pass on this round's browser build and print the caps; after every nested run
+no process of this user carries that run's marker. **Verify**: the web tests' output, a process listing after each run
+(`Logs/r11/*.leftovers`).
+
+Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes in the nested KWin at the five sizes, the Chromium
+and Firefox web tests and the touch test pass on a browser build, the benchmark is re-run, screenshots go to
+`docs/media/improvements/round11/`, and the real `~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and after
+(before: no save; the same `prefs`, `TestResults.xml` and analytics files as at the end of round 10).
