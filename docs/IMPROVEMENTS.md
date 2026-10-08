@@ -1,8 +1,8 @@
 # Agent Clicker: improvement plan
 
 Written on 2026-10-06, after v0.1.0 (published 2026-10-04). This document ranks what would most raise the
-game's quality for a real player, then records each round's scope and results. Rounds 1–10 (branches
-`improvements` to `improvements-10`) are merged into `main`; round 11 is on `improvements-11`.
+game's quality for a real player, then records each round's scope and results. Rounds 1–11 (branches
+`improvements` to `improvements-11`) are merged into `main`; round 12 is on `improvements-12`.
 
 ## Baseline (what was run, and what it showed)
 
@@ -1564,3 +1564,81 @@ Deferred, and why:
 Owner decisions: unchanged. Redeploying `gh-pages` (it would bring rounds 5–11 to the hosted game; the hosted build cuts off Settings on
 a 32:9 screen and lets Sam's hand cover the monitor), the offline-earnings cap (10% for 1 hour), Windows Build Support, license, signing,
 releases and tags, whether the long music piece is a keeper, and whether day 1 after a reorg should scale its quota and asks.
+
+## Round 12 scope
+
+Baseline on `main` (`338cf2b`, identical to `origin/main`): 157/157 EditMode tests and the balance bot at 2h 09m (day 27)
+(`Logs/r12/tests-baseline.out`, load average 12–14). This round's focus, from the owner, is AAA polish: graphics, UI and the
+feel of the game, with a Graphics Fidelity setting of at least four steps. The game already has a four-step **Quality
+preset** (Low, Medium, High, Ultra) on a ◀ ▶ stepper, but its steps only change MSAA, shadow size and SSAO, and Ultra looks
+the same as High apart from sharper shadows. A look at the screens and the code also found that **the menus can't be used
+from the keyboard at all** (no focus, no arrow keys; only Esc works), and a keyboard player can't clock in on the night screen
+or log in without the mouse. All four items come from the focus list. Gameplay balance, difficulty and the story don't change.
+Localization stays deferred (large), real phones, tablets and a real Steam Deck can't be tried here, and the owner's decisions are
+unchanged.
+
+### 1. A Graphics Fidelity slider, Low to Ultra
+
+* Settings → Graphics opens with **Graphics fidelity**: a slider with four notches (Low, Medium, High, Ultra) in place of the
+  Quality preset stepper. It keeps the same saved field, so a player's current preset carries over, and High stays the
+  default. A line under it says what the step does. It works with the mouse (drag or click), the gamepad cursor, and the keyboard
+  and D-pad (item 3).
+* **Low** is for weak hardware: 85% render scale, FXAA instead of MSAA, hard 1K shadows with one cascade, no ambient occlusion,
+  quarter-resolution bloom, small reflections, no window effects (item 2). **Medium** is today's Medium. **High** is today's look and
+  cost. **Ultra** goes past it with what URP has: 8x MSAA, a sharper image (rendered above native resolution when the GPU
+  allows it), 4K shadows over four cascades with the highest soft-shadow filter, shadows from the ceiling lights, full-resolution
+  ambient occlusion with more samples, high-quality bloom, depth of field in the office, title and phone-call views (never on the
+  monitor's text), bigger reflections, and denser dust in the sunbeams.
+* A `-fidelity <dir>` mode (and `Tools/fidelity.sh`, run in the private nested KWin) freezes one frame in each of three views
+  (office, title, monitor), takes a screenshot at every step, then measures uncapped frame times for each step and view.
+
+**Acceptance**: the four steps give four visibly different screenshots of the same frozen frame in each view; Low is the cheapest and
+Ultra the most expensive, and High's frame time is within the run-to-run noise of today's build (an A/B benchmark against the
+`main` build, alternating, in one session); the setting survives a settings round trip, and a settings file from before this round
+keeps its step; the monitor's text stays sharp at every step. **Verify**: EditMode tests for the steps and settings, the fidelity run's
+screenshots and frame-time table (with the load), the tour, the benchmark.
+
+### 2. Light through the window
+
+The window shows the sky as one flat colour behind boxy towers, so the office reads as a set.
+
+* A sky with a gradient from the horizon up, a soft glow where the sun is, and haze over the skyline, all following the time of
+  day: blue in the morning, golden in the late afternoon, a sunset, then night.
+* While the sun is up, soft beams of light fall from the window into the room with slowly drifting dust in them (none on Low, the
+  most on Ultra); they fade out towards evening. Reduce motion stops the dust drifting.
+
+**Acceptance**: screenshots of the same view at morning, afternoon, sunset and night; nothing new in front of the monitor (the tour's
+occlusion checks pass); High's frame time within the noise of the baseline. **Verify**: tour screenshots, the fidelity run, the
+benchmark.
+
+### 3. Menus by keyboard and D-pad
+
+* The title screen, pause menu, settings, How to play and confirm dialogs get a visible focus ring. Arrow keys (or WASD) and the
+  D-pad move it; Enter, Space or A presses the focused button; Left and Right change the focused setting (a stepper, a slider such
+  as Graphics fidelity, or a toggle) or switch the settings tab. Esc and B still go back. The ring appears with the first key or
+  D-pad press and goes away when the mouse moves, so mouse players never see it.
+* While the D-pad is in use the gamepad cursor steps aside and A presses the focused item; moving the left stick brings the cursor
+  back. Outside the menus nothing changes (Space, Enter, RT and X still ship code).
+* Enter, Space or A also presses CLOCK IN on the night screen, logs in at the login screen and presses the performance review's GO
+  HOME, so a whole day can be played without a mouse. The Controls tab lists the menu keys.
+
+**Acceptance**: tour checks with real Input System keyboard and gamepad devices: from the title, keys alone open Settings, move the
+fidelity slider a step (the renderer's settings change with it) and back, flip a toggle, switch tabs and close; the same with the
+D-pad and A; a confirm dialog answered from the keyboard; CLOCK IN, login and GO HOME by Enter; the ring is hidden for mouse input;
+settings restored afterwards; nothing cut off. **Verify**: the tour at five sizes, screenshots of the ring.
+
+### 4. Buttons and screens that feel finished
+
+* Every button gets the same states: hover (brighter, and menu buttons lift slightly), press (a quick squash), keyboard focus (the
+  ring from item 3) and disabled. The settings tabs, steppers, toggles and dialog buttons get the hover tick the main menu buttons
+  already have.
+* Menu and dialog cards ease in (a fade with a slight scale-up, under a fifth of a second) instead of only fading, and the title
+  screen's logo, tagline and buttons arrive in a short stagger. With Reduce motion on, all of this is a plain fade.
+
+**Acceptance**: tour shots mid-transition and settled; a check that with Reduce motion on a card is at full size on its first frame;
+benchmark with no regression beyond noise; nothing cut off. **Verify**: the tour at five sizes, the benchmark.
+
+Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes in the nested KWin at the five sizes, the benchmark
+is re-run as an A/B against the baseline build (kept in `Builds/r12-base`), screenshots go to `docs/media/improvements/round12/`,
+and the real `~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and after (before: no save; `prefs` unchanged since round
+11; `TestResults.xml` and the analytics files as left by round 11).
