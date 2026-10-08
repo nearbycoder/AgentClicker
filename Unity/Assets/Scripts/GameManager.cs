@@ -471,12 +471,22 @@ namespace AgentClicker
             }
         }
 
-        /// <summary>Chapter banners wait until no modal, model drop, call or menu is on screen.</summary>
+        /// <summary>
+        /// Chapter banners wait until no dialog, model drop, outage, call or menu is on screen, and fade out when one
+        /// arrives, so they're never drawn over something that needs the player. One cut short comes back afterwards.
+        /// </summary>
         void UpdateChapterBanner()
         {
+            bool busy = OnTitle || InEnding || !Model.IsWorking || Computer.ModalOpen || Model.ActiveDrop != null ||
+                        Model.ActiveOutage != null || Calls.Busy || Model.ActiveCall != null || Menu.Blocking;
+            if (busy)
+            {
+                int again = Overlay.HideChapterBanner();
+                if (again != 0 && _pendingChapter == 0) _pendingChapter = again;
+            }
             if (_pendingChapter == 0) return;
             if (InEnding) { _pendingChapter = 0; return; }
-            if (OnTitle || !Model.IsWorking || Computer.ModalOpen || Model.ActiveDrop != null || Calls.Busy || Menu.Blocking) return;
+            if (busy) return;
             Sfx.Play(Sound.Chapter);
             Overlay.ShowChapterBanner(_pendingChapter);
             _pendingChapter = 0;

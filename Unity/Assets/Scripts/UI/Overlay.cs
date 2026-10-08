@@ -149,6 +149,11 @@ namespace AgentClicker.UI
         CanvasGroup _chapter;
         TextMeshProUGUI _chapterKicker, _chapterTitle, _chapterBlurb;
         float _chapterUntil;
+        int _chapterShown;
+
+        /// <summary>The chapter banner is on screen (or fading in), for checks.</summary>
+        public bool ChapterBannerUp => _chapter != null && _chapter.gameObject.activeSelf && Time.unscaledTime <= _chapterUntil;
+        public float ChapterBannerAlpha => _chapter != null && _chapter.gameObject.activeSelf ? _chapter.alpha : 0f;
 
         // the banner sits in the upper part of the screen, clear of SHIP CODE and the store
         const float BannerY = 0.74f;
@@ -173,7 +178,23 @@ namespace AgentClicker.UI
             _chapterBlurb.text = StoryDatabase.ChapterBlurbs[chapter];
             _chapter.alpha = 0;
             Fader.Set(_chapter, 1);
-            _chapterUntil = Time.unscaledTime + 4f;
+            _chapterShown = chapter;
+            _chapterUntil = Time.unscaledTime + ChapterSeconds;
+        }
+
+        const float ChapterSeconds = 4f;
+
+        /// <summary>
+        /// Something that needs the player arrived: the banner fades out. Returns its chapter if it had been up for under
+        /// two seconds, so it can be shown again afterwards, or 0.
+        /// </summary>
+        public int HideChapterBanner()
+        {
+            if (!ChapterBannerUp) return 0;
+            bool cutShort = Time.unscaledTime < _chapterUntil - ChapterSeconds + 2f;
+            _chapterUntil = 0;
+            Show(_chapter, false);
+            return cutShort ? _chapterShown : 0;
         }
 
         public void ShowNight(double nightEarnings, bool instant = false)

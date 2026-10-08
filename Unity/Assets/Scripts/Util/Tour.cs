@@ -200,15 +200,20 @@ namespace AgentClicker
             CheckFeedUnderToasts("late game");
             yield return MonitorClearSegment();
             yield return TimedEffectsSegment();
+            yield return ChapterBannerSegment();
 
             // ---- review & night ----------------------------------------------
+            _gm.Overlay.ShowChapterBanner(5); // clocking out under a banner (round 9's tour drew it across the review)
+            yield return new WaitForSeconds(0.3f);
             M.ClockOut();
             yield return new WaitForSeconds(0.8f);
             yield return Shot("08_review");
+            CheckNoBanner("on the review");
             _gm.Computer.CloseModal();
             _gm.GoHome();
             yield return new WaitForSeconds(1.5f);
             yield return Shot("09_night");
+            CheckNoBanner("on the night screen");
             _gm.ClockIn();
             yield return new WaitForSeconds(2.5f);
             yield return Shot("10_morning_day23");
@@ -1085,6 +1090,55 @@ namespace AgentClicker
             Vector2 span = hi - lo;
             fits = lo.x >= -0.001f && lo.y >= -0.001f && hi.x <= 1.001f && hi.y <= 1.001f && Mathf.Max(span.x, span.y) >= 0.97f;
             return $"screen spans {span.x:P0} × {span.y:P0} of the view";
+        }
+
+        void CheckNoBanner(string where) =>
+            Debug.Log(_gm.Overlay.ChapterBannerAlpha < 0.01f ? $"[Tour] PASS no chapter banner {where}"
+                                                            : $"[Tour] FAIL a chapter banner {where} (alpha {_gm.Overlay.ChapterBannerAlpha:0.00})");
+
+        /// <summary>
+        /// The chapter banner stays its four seconds with nothing else up, fades within half a second when a model drop,
+        /// the 5 PM card or a ringing phone arrives, and one cut short comes back once that's dealt with.
+        /// </summary>
+        IEnumerator ChapterBannerSegment()
+        {
+            var o = _gm.Overlay;
+            var bad = new System.Collections.Generic.List<string>();
+            var log = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < 20 && M.ActiveOutage != null; i++) M.ClickOutage();
+            if (M.ActiveDrop != null) M.ClaimDrop();
+            _gm.Computer.CloseModal();
+            yield return new WaitForSeconds(0.5f);
+
+            o.ShowChapterBanner(5);
+            yield return new WaitForSeconds(3.0f);
+            if (o.ChapterBannerUp && o.ChapterBannerAlpha > 0.99f) log.Add("stays with nothing else up (3 s)");
+            else bad.Add($"with nothing else up it went after {3.0f} s (alpha {o.ChapterBannerAlpha:0.00})");
+            yield return WaitFor(() => o.ChapterBannerAlpha < 0.01f, 3f);
+
+            IEnumerator Interrupt(string what, System.Action arrive, System.Action leave, System.Func<bool> gone)
+            {
+                o.ShowChapterBanner(5);
+                yield return new WaitForSeconds(0.6f);
+                arrive();
+                float t0 = Time.unscaledTime;
+                yield return WaitFor(() => o.ChapterBannerAlpha < 0.01f, 2f);
+                float took = Time.unscaledTime - t0;
+                if (o.ChapterBannerAlpha < 0.01f && took <= 0.5f) log.Add($"{what}: gone in {took:0.00} s");
+                else bad.Add($"{what}: still up after {took:0.00} s (alpha {o.ChapterBannerAlpha:0.00})");
+                if (what == "the 5 PM card") yield return Shot("07d_five_pm_no_banner");
+                leave();
+                yield return WaitFor(gone, 8f);
+                yield return WaitFor(() => o.ChapterBannerUp && o.ChapterBannerAlpha > 0.99f, 3f);
+                if (o.ChapterBannerUp) log.Add("back after");
+                else bad.Add($"{what}: the banner didn't come back afterwards");
+                yield return WaitFor(() => o.ChapterBannerAlpha < 0.01f, 6f);
+            }
+            yield return Interrupt("a model drop", () => M.SpawnDrop(), () => M.ClaimDrop(), () => M.ActiveDrop == null);
+            yield return Interrupt("the 5 PM card", () => _gm.Computer.ShowDayEndPrompt(), () => _gm.Computer.CloseModal(), () => !_gm.Computer.ModalOpen);
+            yield return Interrupt("a ringing phone", () => M.RingPhone(CallDatabase.ById("dana_demo")), () => M.DeclineCall(), () => !_gm.Calls.Busy);
+            Debug.Log(bad.Count == 0 ? $"[Tour] PASS chapter banner: {string.Join("; ", log)}"
+                                     : $"[Tour] FAIL chapter banner: {string.Join(" | ", bad)}; {string.Join("; ", log)}");
         }
 
         IEnumerator TimedEffectsSegment()
