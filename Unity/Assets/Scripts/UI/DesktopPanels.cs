@@ -81,7 +81,7 @@ namespace AgentClicker.UI
         {
             var m = _gm.Model;
             UIKit.Set(_clock, $"Day {m.State.day} · {FlavorText.Weekday(m.State.day)} · <b>{NumberFormat.Clock(m.ClockHours)}</b>");
-            string division = m.DivisionName;
+            string division = GameDatabase.DivisionShortName(m.State.reorgs);
             UIKit.Set(_corp, m.State.reorgs == 0 ? FlavorText.Company + " Intranet"
                 : division.StartsWith("Synergex") ? division : "Synergex · " + division);
             _clock.color = m.PastFiveOClock ? Theme.Warn : Theme.Text;

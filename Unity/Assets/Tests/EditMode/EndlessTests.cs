@@ -309,13 +309,16 @@ namespace AgentClicker.Tests
         public void DivisionsNeverRunOut()
         {
             var names = new HashSet<string>();
+            var shortNames = new HashSet<string>();
             for (int i = 0; i < 200; i++)
             {
                 string n = GameDatabase.DivisionName(i);
                 Assert.IsFalse(string.IsNullOrEmpty(n));
                 Assert.IsTrue(names.Add(n), n);
                 Assert.IsFalse(string.IsNullOrEmpty(GameDatabase.DivisionBlurb(i)));
+                Assert.IsTrue(shortNames.Add(GameDatabase.DivisionShortName(i)), GameDatabase.DivisionShortName(i));
             }
+            Assert.AreEqual("Synergex · Timeline 2", GameDatabase.DivisionShortName(GameDatabase.Divisions.Length));
         }
 
         [Test]

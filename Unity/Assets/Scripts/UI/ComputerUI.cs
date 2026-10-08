@@ -823,7 +823,13 @@ namespace AgentClicker.UI
                 p.Speed = 4f + i * 0.6f;
                 p.ScaleAmount = 0.05f;
                 if (i < stages.Length - 1)
-                    UIKit.Text(card, "Arrow", "→", 34, Theme.Accent, TextAlignmentOptions.Center, UIFonts.Bold).rectTransform.TopLeft(200 + i * 168, 268, 28, 50);
+                {
+                    // the gap between two stages is 28 px; a 34 pt arrow didn't fit it, and TMP dropped it
+                    var arrow = UIKit.Text(card, "Arrow", "→", 26, Theme.Accent, TextAlignmentOptions.Center, UIFonts.Bold);
+                    arrow.rectTransform.TopLeft(200 + i * 168, 270, 28, 46);
+                    arrow.textWrappingMode = TextWrappingModes.NoWrap;
+                    arrow.overflowMode = TextOverflowModes.Overflow;
+                }
             }
             var m = _gm.Model;
             UIKit.Text(card, "Body", m.State.factoriesBuilt <= 1

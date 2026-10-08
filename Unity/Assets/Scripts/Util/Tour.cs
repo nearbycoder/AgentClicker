@@ -35,6 +35,7 @@ namespace AgentClicker
             _gm.ShowTitle();
             yield return new WaitForSeconds(2.5f);
             yield return Shot("00a_title");
+            CheckTitleFits();
             _gm.Menu.OpenSettings(() => { });
             yield return new WaitForSeconds(0.6f);
             yield return Shot("00b_settings");
@@ -322,9 +323,23 @@ namespace AgentClicker
             yield return Shot("23_endgame_numbers");
             LogGoal("every agent owned");
             CheckCreditsLabel("end game", "190 tredecillion");
+            yield return TopBarNamesSegment();
             _gm.Computer.SelectStoreTab(StorePanel.TrophiesTabIndex);
             yield return new WaitForSeconds(0.6f);
             yield return Shot("24_endgame_trophies");
+            double bank = M.State.credits;
+            var installed = new System.Collections.Generic.List<string>(M.State.office);
+            foreach (var o in GameDatabase.OfficeItems) { M.State.credits = 1e300; M.BuyOffice(o.Id); }
+            M.State.credits = bank;
+            _gm.Computer.SelectStoreTab(StorePanel.OfficeTabIndex); // every gadget installed: all eighteen rows are laid out
+            yield return new WaitForSeconds(0.6f);
+            yield return Shot("24b_endgame_office");
+            // back as it was: the Macro Pad's auto-clicks would add to the touch checks' counts of shipped code
+            M.State.office.Clear();
+            M.State.office.AddRange(installed);
+            M.Load(M.State);
+            M.State.Phase = GamePhase.Working;
+            _gm.Office.Refresh(false);
 
             yield return GamepadSegment();
             yield return TouchSegment();
@@ -335,6 +350,9 @@ namespace AgentClicker
             Debug.Log(_monitorSmall.Count == 0
                 ? $"[Tour] PASS the CorpOS monitor never draws text below {MinMonitorText} pt (smallest {_monitorMinAll:0.#}: {_monitorMinWhat})"
                 : $"[Tour] FAIL the CorpOS monitor draws text below {MinMonitorText} pt: {string.Join(" | ", _monitorSmall.Values)}");
+            Debug.Log(_cut.Count == 0
+                ? $"[Tour] PASS nothing cut off: no text on the monitor, the overlays or the menus ends in \"…\" or is truncated in {_cutShots} shots (the activity feed's long lines excepted)"
+                : $"[Tour] FAIL text cut off: {string.Join(" | ", _cut.Values)}");
             Debug.Log("[Tour] done");
             Application.Quit();
         }
@@ -882,8 +900,11 @@ namespace AgentClicker
             yield return Gesture(new[] { shipAt - v * 0.5f, shipAt + v * 0.5f }, new[] { shipAt - v * 3, shipAt + v * 3 }, 20);
             yield return new WaitForSecondsRealtime(1.0f);
             M.SpawnDrop();
-            yield return new WaitForSecondsRealtime(0.3f);
             var dropCard = _gm.Computer.DropCard;
+            // at the far end of the drop's area, so its centre is out of the zoomed view at any window shape (a random spot
+            // could be half in view at 21:9, where the chip rightly stays away)
+            dropCard.anchoredPosition = new Vector2(ComputerUI.DropCardArea.xMax, -ComputerUI.DropCardArea.yMax);
+            yield return new WaitForSecondsRealtime(0.3f);
             bool chipShown = _gm.ZoomChip.Visible && _gm.ZoomChip.Text.Contains("MODEL DROP"), dropHidden = !inView(dropCard);
             string chipText = _gm.ZoomChip.Text;
             yield return Shot("32c_touch_zoom_chip");
@@ -1353,6 +1374,91 @@ namespace AgentClicker
             Debug.Log($"[Text] {shot}: screen {Fmt(screenMin, screenWhat)}, monitor {Fmt(monitorMin, monitorWhat)}");
         }
 
+        /// <summary>The title screen's buttons and version line are inside the window, none overlapping another.</summary>
+        void CheckTitleFits()
+        {
+            Transform column = null;
+            foreach (var rt in FindObjectsByType<RectTransform>())
+                if (rt.name == "Column" && rt.parent && rt.parent.name == "Title") column = rt;
+            var boxes = new System.Collections.Generic.List<(string, Rect)>();
+            foreach (Transform c in column)
+                if (c.gameObject.activeInHierarchy && (c.GetComponent<UnityEngine.UI.Button>() || c.name == "Version"))
+                {
+                    var w = new Vector3[4];
+                    ((RectTransform)c).GetWorldCorners(w);
+                    boxes.Add((c.name, Rect.MinMaxRect(w[0].x, w[0].y, w[2].x, w[2].y)));
+                }
+            var bad = new System.Collections.Generic.List<string>();
+            var screen = new Rect(0, 0, Screen.width, Screen.height);
+            for (int i = 0; i < boxes.Count; i++)
+            {
+                var (n, r) = boxes[i];
+                if (r.xMin < -0.5f || r.yMin < -0.5f || r.xMax > screen.width + 0.5f || r.yMax > screen.height + 0.5f) bad.Add($"{n} runs off the window ({r.yMin:0}..{r.yMax:0} of {Screen.height})");
+                for (int j = i + 1; j < boxes.Count; j++)
+                    if (r.Overlaps(boxes[j].Item2)) bad.Add($"{n} overlaps {boxes[j].Item1}");
+            }
+            Debug.Log(bad.Count == 0 && boxes.Count >= 5
+                ? $"[Tour] PASS the title screen fits: {boxes.Count} items inside the window, none overlapping (column x{column.localScale.x:0.00})"
+                : $"[Tour] FAIL the title screen ({boxes.Count} items): {string.Join(" | ", bad)}");
+        }
+
+        /// <summary>CorpOS's top bar names every division in full: the fifteen authored ones and the multiverse's timelines.</summary>
+        IEnumerator TopBarNamesSegment()
+        {
+            TMPro.TMP_Text corp = null;
+            foreach (var t in FindObjectsByType<TMPro.TMP_Text>())
+                if (t.name == "Corp" && t.transform.parent && t.transform.parent.name == "TopBar") corp = t;
+            int was = M.State.reorgs, n = 0;
+            var cut = new System.Collections.Generic.List<string>();
+            string widest = "";
+            float widestW = 0;
+            foreach (int r in new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 23, 100, 10000 })
+            {
+                M.State.reorgs = r;
+                yield return null;
+                yield return null;
+                corp.ForceMeshUpdate();
+                n++;
+                if (corp.isTextTruncated) cut.Add(corp.text);
+                if (corp.textBounds.size.x > widestW) { widestW = corp.textBounds.size.x; widest = corp.text; }
+            }
+            M.State.reorgs = was;
+            yield return null;
+            Debug.Log(corp != null && cut.Count == 0
+                ? $"[Tour] PASS the top bar names all {n} divisions tried in full (widest \"{widest}\", {widestW:0} of {corp.rectTransform.rect.width:0} px)"
+                : $"[Tour] FAIL the top bar cuts division names: {string.Join(" | ", cut)}");
+        }
+
+        static readonly System.Collections.Generic.SortedDictionary<string, string> _cut =
+            new System.Collections.Generic.SortedDictionary<string, string>();
+        static int _cutShots;
+
+        /// <summary>
+        /// Text that TextMesh Pro had to cut (an ellipsis, or lines dropped) on the CorpOS monitor, the overlays and the
+        /// menus. The activity feed's long lines and the settings' save-folder path end in "…" on purpose.
+        /// </summary>
+        void CollectCutText(string shot)
+        {
+            _cutShots++;
+            var feed = new System.Collections.Generic.HashSet<TMPro.TMP_Text>(_gm.Computer.FeedLines);
+            foreach (var t in FindObjectsByType<TMPro.TMP_Text>())
+            {
+                if (!t.isActiveAndEnabled || t.color.a < 0.05f || string.IsNullOrEmpty(t.text) || feed.Contains(t)) continue;
+                if (t.text.Contains("agentclicker_save.json")) continue;
+                var root = t.canvas ? t.canvas.rootCanvas : null;
+                if (root == null || (root.name != "CorpOS Canvas" && root.renderMode == RenderMode.WorldSpace)) continue;
+                bool hidden = false;
+                foreach (var g in t.GetComponentsInParent<CanvasGroup>())
+                    if (g.alpha < 0.05f) { hidden = true; break; }
+                if (hidden) continue;
+                t.ForceMeshUpdate();
+                if (!t.isTextTruncated) continue;
+                string key = (t.transform.parent ? t.transform.parent.name + "/" : "") + t.name;
+                if (!_cut.ContainsKey(key))
+                    _cut[key] = $"{key} \"{t.GetParsedText().Replace("\n", " ")}\" ({shot})";
+            }
+        }
+
         /// <summary>The credits card names a big number in words (none for small ones), on one line inside the card.</summary>
         void CheckCreditsLabel(string when, string words)
         {
@@ -1441,6 +1547,7 @@ namespace AgentClicker
             ScreenCapture.CaptureScreenshot(path);
             Debug.Log("[Tour] " + path);
             LogSmallestText(name);
+            CollectCutText(name);
             yield return null;
             yield return null;
         }

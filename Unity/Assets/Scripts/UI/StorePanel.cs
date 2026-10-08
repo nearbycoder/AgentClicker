@@ -384,20 +384,19 @@ namespace AgentClicker.UI
             {
                 var def = o;
                 var b = UIKit.Button(content, o.Id, Theme.PanelLight, () => BuyOffice(def), 10);
-                b.GetComponent<RectTransform>().Height(64);
+                b.GetComponent<RectTransform>().Height(66);
                 var row = new OfficeRow { Def = o, Button = b };
                 row.Icon = UIKit.Panel(b.transform, "Icon", Theme.Gold, 10);
-                row.Icon.rectTransform.TopLeft(10, 10, 44, 44);
+                row.Icon.rectTransform.TopLeft(10, 11, 44, 44);
                 UIKit.Text(row.Icon.transform, "Glyph", o.Name.TrimStart('"').Substring(0, 1), 22, Theme.Bg, TextAlignmentOptions.Center, UIFonts.Bold)
                      .rectTransform.Fill();
                 row.Name = UIKit.Text(b.transform, "Name", o.Name, 18, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Bold);
-                row.Name.rectTransform.TopLeft(66, 9, 300, 24);
-                // the price sits beside the name, so the description gets the row's full width
+                row.Name.rectTransform.TopLeft(66, 5, 300, 24);
+                // the price sits beside the name, so the description gets the row's full width (and two lines, like a perk's)
                 row.Cost = UIKit.Text(b.transform, "Cost", "", 16, Theme.Good, TextAlignmentOptions.TopRight, UIFonts.Bold);
-                row.Cost.rectTransform.TopLeft(366, 10, 138, 22);
+                row.Cost.rectTransform.TopLeft(366, 7, 138, 22);
                 row.Desc = UIKit.Text(b.transform, "Desc", o.Description, 14, Theme.TextDim, TextAlignmentOptions.TopLeft);
-                row.Desc.rectTransform.TopLeft(66, 34, 440, 24);
-                row.Desc.textWrappingMode = TextWrappingModes.NoWrap;
+                row.Desc.rectTransform.TopLeft(66, 28, 440, 36);
                 Hover(b, () => OfficeInfo(def));
                 _officeRows.Add(row);
             }

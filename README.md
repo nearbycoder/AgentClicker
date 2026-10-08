@@ -153,7 +153,7 @@ the pipeline booting, the camera pulls back, and Sam puts their feet up. Then th
 ### Settings and quality of life
 
 Graphics presets from Low to Ultra (MSAA, shadows, SSAO, render scale), display mode, resolution, V-Sync, a
-frame cap, field of view and post-processing. Separate volume sliders for effects, music and ambience. A ♪ button on the CorpOS top bar (or `M`) mutes everything at once. Work
+frame cap, field of view (the monitor view always fits the whole screen) and post-processing. Separate volume sliders for effects, music and ambience. A ♪ button on the CorpOS top bar (or `M`) mutes everything at once. Work
 days of 3, 5, 8 or 12 minutes, running the day while you're away, **reduce motion** (camera cuts instead of
 flying, no gadget showcases, and buttons, pulses and floating numbers hold still), tutorial tips, a purchase
 camera toggle and mouse sensitivity. The game
@@ -271,7 +271,7 @@ hours, or if later divisions aren't clearly faster than the first. For a ten-div
 ```sh
 Tools/make_trailer.sh          # record every shot with the scripted director, then edit (needs ffmpeg, python3)
 Tools/make_trailer.sh --edit   # re-edit from Recordings/trailer without recording again
-Tools/tour.sh                  # screenshot tour of every phase, for visual checks
+Tools/tour.sh                  # screenshot tour of every phase, with layout checks (add -screen-width/-screen-height)
 Tools/nested.sh Tools/tour.sh  # the same inside a private nested KWin (no window on your desktop)
 Tools/benchmark.sh             # uncapped frame times, GC and render stats in a late-game office
 Tools/soak.sh 60               # leave a late-game office alone for an hour; memory and objects every 30 s
@@ -344,7 +344,8 @@ Agent Clicker is complete and playable from the first click to the endless game.
 release (v0.1.0).
 
 * **Tested on Linux only**: CachyOS with KDE Plasma on Wayland and an AMD Radeon 8060S. Other distributions
-  and GPUs should work but haven't been tried.
+  and GPUs should work but haven't been tried. The screenshot tour checks every phase in a 16:9 (1600×900), a 4:3
+  (1024×768) and a 21:9 (1680×720) window; other shapes, such as 16:10, haven't been looked at shot by shot.
 * **XWayland hang**: the Linux player can hang at startup through XWayland. Launch with `-force-wayland`
   (the `AgentClicker.sh` launcher in zips made by `Tools/package.sh`, and `Tools/play.sh`, do this for you).
 * **One unexplained crash**: in October 2026 the Linux player crashed once (SIGSEGV on a native worker thread,

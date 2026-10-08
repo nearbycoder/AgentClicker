@@ -379,6 +379,10 @@ namespace AgentClicker.Core
         public static string DivisionName(int reorgs) =>
             reorgs < Divisions.Length ? Divisions[reorgs].Name : $"Synergex Multiverse · Timeline {reorgs - Divisions.Length + 2}";
 
+        /// <summary>The division's name where space is short (CorpOS's top bar): the multiverse's timelines go by number.</summary>
+        public static string DivisionShortName(int reorgs) =>
+            reorgs < Divisions.Length ? Divisions[reorgs].Name : $"Synergex · Timeline {reorgs - Divisions.Length + 2}";
+
         public static string DivisionBlurb(int reorgs) =>
             reorgs < Divisions.Length ? Divisions[reorgs].Blurb : "Another timeline, another Synergex, another Factory. It never ends. You're fine with that.";
 

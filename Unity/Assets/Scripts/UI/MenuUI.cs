@@ -110,34 +110,53 @@ namespace AgentClicker.UI
             fade.rectTransform.anchoredPosition = new Vector2(640, 0);
             fade.rectTransform.sizeDelta = new Vector2(320, 0);
 
-            var t = UIKit.Text(_title.transform, "Logo", $"AGENT\n<color={UIKit.Hex(Theme.Accent)}>CLICKER</color>", 104, Color.white,
+            // the logo, tagline, buttons and version line, laid out for a 900-unit-tall screen and scaled down to fit a
+            // shorter one (a 21:9 window is about 785 units tall, which put QUIT below its bottom edge)
+            _titleColumn = UIKit.Rect("Column", _title.transform).TopLeft(0, 0, 700, 900);
+            var col = _titleColumn.transform;
+            var t = UIKit.Text(col, "Logo", $"AGENT\n<color={UIKit.Hex(Theme.Accent)}>CLICKER</color>", 104, Color.white,
                                TextAlignmentOptions.TopLeft, UIFonts.Bold);
             t.rectTransform.TopLeft(70, 70, 600, 240);
             t.lineSpacing = -18;
-            UIKit.Text(_title.transform, "Tagline", "Automate yourself out of a job.\nKeep the paycheck.", 24, Theme.TextDim,
+            UIKit.Text(col, "Tagline", "Automate yourself out of a job.\nKeep the paycheck.", 24, Theme.TextDim,
                        TextAlignmentOptions.TopLeft, UIFonts.Medium).rectTransform.TopLeft(74, 300, 560, 70);
 
             float y = 410;
-            _continue = MenuButton(_title.transform, "CONTINUE", () => _gm.ContinueGame(), 70, y, primary: true);
+            _continue = MenuButton(col, "CONTINUE", () => _gm.ContinueGame(), 70, y, primary: true);
             _continueSub = UIKit.Text(_continue.transform, "Sub", "", 15, Theme.Bg.WithAlpha(0.75f), TextAlignmentOptions.MidlineRight, UIFonts.Medium);
             _continueSub.rectTransform.Fill().Insets(0, 0, 20, 0);
             y += 70;
-            MenuButton(_title.transform, "NEW GAME", () =>
+            MenuButton(col, "NEW GAME", () =>
             {
                 if (_gm.SavingEnabled && SaveSystem.Load() != null) Confirm("Start a new game? Your current career will be lost.", "START OVER", _gm.NewGame);
                 else _gm.NewGame();
             }, 70, y);
             y += 70;
-            MenuButton(_title.transform, "SETTINGS", () => OpenSettings(() => Show(_title, true)), 70, y);
+            MenuButton(col, "SETTINGS", () => OpenSettings(() => Show(_title, true)), 70, y);
             y += 70;
-            MenuButton(_title.transform, "HOW TO PLAY", () => ShowInfo("How to play", HowToPlay), 70, y);
+            MenuButton(col, "HOW TO PLAY", () => ShowInfo("How to play", HowToPlay), 70, y);
             y += 70;
-            MenuButton(_title.transform, "CREDITS", () => ShowCredits(() => { }), 70, y);
-            y += 70;
-            if (!Platform.IsWeb) MenuButton(_title.transform, "QUIT", () => Confirm("Quit to desktop?", "QUIT", _gm.QuitGame), 70, y);
+            MenuButton(col, "CREDITS", () => ShowCredits(() => { }), 70, y);
+            if (!Platform.IsWeb)
+            {
+                y += 70;
+                MenuButton(col, "QUIT", () => Confirm("Quit to desktop?", "QUIT", _gm.QuitGame), 70, y);
+            }
+            y += 58 + 26;
+            UIKit.Text(col, "Version", $"v{Application.version} · {Application.companyName} · all labs, models and companies are fictional",
+                       15, Theme.TextFaint, TextAlignmentOptions.TopLeft).rectTransform.TopLeft(74, y, 620, 22);
+            _titleColumnHeight = y + 22 + 22;
+            _titleColumn.sizeDelta = new Vector2(700, _titleColumnHeight);
+        }
 
-            UIKit.Text(_title.transform, "Version", $"v{Application.version} · {Application.companyName} · all labs, models and companies are fictional",
-                       15, Theme.TextFaint, TextAlignmentOptions.BottomLeft).rectTransform.Anchor(0, 0, 0, 0).Insets(74, 22, -900, -40);
+        RectTransform _titleColumn;
+        float _titleColumnHeight;
+
+        /// <summary>The title column fits the screen's height (scaled down when the window is short and wide).</summary>
+        void FitTitleColumn()
+        {
+            float scale = Mathf.Min(1f, _root.rect.height / _titleColumnHeight);
+            if (Mathf.Abs(_titleColumn.localScale.x - scale) > 0.001f) _titleColumn.localScale = new Vector3(scale, scale, 1f);
         }
 
         public void ShowTitle()
@@ -671,6 +690,7 @@ namespace AgentClicker.UI
         {
             if (_gm == null) return;
             float dt = Time.unscaledDeltaTime;
+            if (TitleOpen) FitTitleColumn();
 
             if (CardsOpen)
             {
