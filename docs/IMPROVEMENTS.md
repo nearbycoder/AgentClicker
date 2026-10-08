@@ -1,8 +1,8 @@
 # Agent Clicker: improvement plan
 
 Written on 2026-10-06, after v0.1.0 (published 2026-10-04). This document ranks what would most raise the
-game's quality for a real player, then records each round's scope and results. Rounds 1–8 (branches
-`improvements` to `improvements-8`) are merged into `main`; round 9 is on `improvements-9`.
+game's quality for a real player, then records each round's scope and results. Rounds 1–9 (branches
+`improvements` to `improvements-9`) are merged into `main`; round 10 is on `improvements-10`.
 
 ## Baseline (what was run, and what it showed)
 
@@ -1307,3 +1307,63 @@ Deferred, and why:
 Owner decisions: unchanged. Redeploying `gh-pages` (it would bring rounds 5–9 to the hosted game), the offline-earnings cap (10% for
 1 hour), Windows Build Support, license, signing, releases and tags. New: whether the long music piece is a keeper once someone
 has listened to it (reverting is one commit, `648fe74`, plus `6f9e287`).
+
+## Round 10 scope
+
+Baseline on `main` (`e5c4224`, identical to `origin/main`): 147/147 EditMode tests, balance bot 2h 09m (day 27), and the tour's
+62 checks passing at 1600×900 and 1024×768 as of round 9. The ranked list's player items are done or waiting on the owner, so
+this round went back through every screenshot of round 9's two tours (73 shots each) looking for what gets in a player's
+way. Three things, all visible in the committed tours of rounds 8 and 9 and none caught by a check. Localization stays
+deferred (large), real phones and tablets can't be tried here, and the owner's decisions are unchanged (Windows Build
+Support, the offline cap of 10% for 1 hour, license, signing, releases and tags, redeploying `gh-pages`, the long music piece).
+
+### 1. Sam's head never covers the monitor
+
+In the 1024×768 tour's late-game outage shot the monitor view shows nothing but the back of Sam's head and headphones. An
+outage (and a missed quota, and the 5 PM stretch) plays a one-shot that bows Sam's head forward, and the monitor camera sits
+wherever the whole screen fits: on a 4:3 screen (an iPad, an older monitor, a 1024×768 window) that's farther back than on a
+16:9 one, and so is Field of view 40° at 16:9. The head then fills the view for about two seconds, exactly when the outage
+banner wants five clicks.
+
+* In the monitor view the camera stays at the distance it uses on a 16:9 screen at 50°, the one that clears Sam, and widens
+  its field of view as far as a narrower screen (or a narrower Field of view setting) needs to fit the whole monitor. A flat
+  screen seen head-on looks the same from any distance once it fills the view, so nothing else changes; the setting still
+  applies everywhere else, and the field of view eases with the camera when it flies in or out.
+
+**Acceptance**: with Sam in each pose that leans forward (Facepalm, Stretch, Typing), no part of Sam is between the camera
+and the screen inside the view, at 1600×900, 1024×768 and 1680×720 (21:9), and at Field of view 40° and 70°; the whole
+monitor is in view in each case and fills the binding direction as before; at 16:9 and 50° the camera's position and field of
+view are unchanged; zooming in on a touch screen still works (the existing touch checks). **Verify**: a new tour check that
+tests Sam's renderers' bounds against the view in front of the screen, the tour at all three sizes, before/after screenshots.
+
+### 2. The chapter banner gets out of the way
+
+A chapter banner waits for a quiet moment to appear, then stays four seconds whatever happens. In round 9's tour "CHAPTER 5 ·
+The Factory" sits across the 5 PM card, then across "QUOTA MET" on the review, and its blurb runs through "NIGHT 22" on the
+night screen; in the mid-game shot "Scale Out" covers the agent list while a model drop card arrives under it. Any chapter
+can do this when a call, a drop, the 5 PM card or a dialog arrives within those four seconds.
+
+* While a dialog, the review or night screen, a ringing or answered call, a model drop, the pause menu or the ending is up,
+  the banner fades out (and isn't shown again; the morning card already names the chapter).
+
+**Acceptance**: tour checks that a banner up when the 5 PM card opens, when a model drop appears and when the phone rings is
+gone (alpha 0) within half a second; a banner with nothing else on screen still stays its four seconds; the tour's review and
+night shots show no banner. **Verify**: those checks, before/after screenshots.
+
+### 3. Nothing cut off, on any screen shape
+
+The top bar of every division after the fifteenth reads "Synergex Multiverse · Timeli…". Nothing checks for text that runs out
+of its box, and the tour has never run at a wide screen.
+
+* A tour check in every shot lists any CorpOS or overlay text that TextMesh Pro had to cut (ellipsis or truncation), except
+  the activity feed's lines, which end in "…" on purpose (round 8). Whatever it finds gets fixed, starting with the top bar,
+  which names the timeline in the multiverse ("Synergex Multiverse · T3").
+* The tour also runs at 1680×720 (21:9), and its shots are looked through for overlaps.
+
+**Acceptance**: the check passes in every shot at 1600×900, 1024×768 and 1680×720 (after the fixes), and it fails on the old
+top bar (proving it can see a cut). **Verify**: the check's output in the three tours, a crop of the top bar.
+
+Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes in the nested KWin at all three sizes, the
+Chromium and Firefox web tests and the touch test pass on a browser build, the benchmark is re-run, screenshots go to
+`docs/media/improvements/round10/`, and the real `~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and after
+(before: no save; `prefs` as at the end of round 9).
