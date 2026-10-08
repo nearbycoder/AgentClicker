@@ -52,9 +52,13 @@ namespace AgentClicker.Office
             {
                 _sky = new Material(skyShader) { name = "Sky (runtime)" };
                 // beyond the farthest row of towers (x = -50), tall and wide enough to fill the window from anywhere in the room
-                var sky = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                sky.name = "SkyBackdrop";
-                Destroy(sky.GetComponent<Collider>());
+                // a mesh of its own rather than CreatePrimitive, which adds a MeshCollider (the browser build strips physics)
+                var sky = new GameObject("SkyBackdrop", typeof(MeshFilter), typeof(MeshRenderer));
+                var quad = new Mesh { name = "SkyBackdrop" };
+                quad.vertices = new[] { new Vector3(-0.5f, -0.5f, 0), new Vector3(0.5f, -0.5f, 0), new Vector3(0.5f, 0.5f, 0), new Vector3(-0.5f, 0.5f, 0) };
+                quad.triangles = new[] { 0, 2, 1, 0, 3, 2 };
+                quad.RecalculateBounds();
+                sky.GetComponent<MeshFilter>().sharedMesh = quad;
                 sky.transform.SetParent(root, false);
                 sky.transform.position = new Vector3(-75f, 10f, -10f);
                 sky.transform.rotation = Quaternion.Euler(0, -90f, 0);
