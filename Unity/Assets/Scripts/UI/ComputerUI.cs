@@ -649,6 +649,10 @@ namespace AgentClicker.UI
         }
 
         public bool ModalOpen => _modal != null;
+        /// <summary>The open dialog on the monitor, for keyboard and D-pad focus (null when none).</summary>
+        public Transform ModalRoot => _modal ? _modal.transform : null;
+        /// <summary>The login screen while it's showing.</summary>
+        public Transform LoginRoot => _login && _login.gameObject.activeInHierarchy ? _login : null;
 
         /// <summary>SHIP CODE is on screen and nothing is over it.</summary>
         public bool CanShip => _desktop.gameObject.activeSelf && _modal == null;

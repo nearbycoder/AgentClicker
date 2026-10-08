@@ -107,6 +107,36 @@ namespace AgentClicker.UI
             }
         }
 
+        static Sprite _ring;
+
+        /// <summary>A white rounded-rect outline (the keyboard focus ring), 9-sliced like <see cref="Rounded"/>.</summary>
+        public static Sprite RoundedRing
+        {
+            get
+            {
+                if (_ring != null) return _ring;
+                const int thickness = 7;
+                int size = SpriteRadius * 2 + 2;
+                var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+                var px = new Color32[size * size];
+                for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    float cx = Mathf.Clamp(x + 0.5f, SpriteRadius, size - SpriteRadius);
+                    float cy = Mathf.Clamp(y + 0.5f, SpriteRadius, size - SpriteRadius);
+                    float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(cx, cy));
+                    float a = Mathf.Clamp01(SpriteRadius - d + 0.5f) - Mathf.Clamp01(SpriteRadius - thickness - d + 0.5f);
+                    px[y * size + x] = new Color32(255, 255, 255, (byte)(Mathf.Clamp01(a) * 255));
+                }
+                tex.SetPixels32(px);
+                tex.Apply(false, true);
+                _ring = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100, 0, SpriteMeshType.FullRect,
+                                      new Vector4(SpriteRadius, SpriteRadius, SpriteRadius, SpriteRadius));
+                _ring.name = "RoundedRing";
+                return _ring;
+            }
+        }
+
         static Sprite _fadeRight;
 
         /// <summary>Horizontal gradient: opaque on the left, transparent on the right.</summary>

@@ -32,6 +32,10 @@ namespace AgentClicker.UI
         RectTransform _settingsBody;
         readonly Dictionary<SettingsTab, Button> _settingsTabs = new Dictionary<SettingsTab, Button>();
         Action _settingsBack;
+        // keyboard and D-pad: the settings card's rows (MenuFocus finds every other screen's buttons itself)
+        readonly List<FocusItem> _settingsItems = new List<FocusItem>();
+        int _settingsVersion;
+        Button _settingsReset, _settingsDone;
 
         public bool TitleOpen => _title.gameObject.activeSelf;
         public bool PauseOpen => _pause.gameObject.activeSelf;
@@ -264,9 +268,11 @@ namespace AgentClicker.UI
                 SetSettingsTab(_tab);
             }, 10);
             reset.GetComponent<RectTransform>().TopLeft(40, 690, 220, 48);
+            _settingsReset = reset;
             reset.Label("RESET TO DEFAULTS", 15, Theme.TextDim, UIFonts.Bold);
             var done = UIKit.Button(card.transform, "Done", Theme.Accent, CloseSettings, 10);
             done.GetComponent<RectTransform>().TopLeft(760, 690, 200, 48);
+            _settingsDone = done;
             done.Label("DONE", 20, Theme.Bg);
         }
 
@@ -291,6 +297,15 @@ namespace AgentClicker.UI
             _tab = tab;
             foreach (var kv in _settingsTabs) kv.Value.GetComponent<Image>().color = kv.Key == tab ? Theme.Accent2 : Theme.PanelLight;
             foreach (Transform c in _settingsBody) Destroy(c.gameObject);
+            _settingsItems.Clear();
+            _settingsVersion++;
+            var tabRow = new object();
+            _settingsItems.Add(new FocusItem
+            {
+                Rect = (RectTransform)_settingsTabs[tab].transform, Row = tabRow, Label = "Tabs: " + tab,
+                Adjust = d => { _gm.Sfx.Play(Sound.UiClick, 0.6f); SetSettingsTab((SettingsTab)(((int)tab + d + 4) % 4)); },
+                Press = () => { _gm.Sfx.Play(Sound.UiClick, 0.6f); SetSettingsTab((SettingsTab)(((int)tab + 1) % 4)); },
+            });
             var s = _gm.Settings;
             float y = 0;
             void Next() => y += 52;
@@ -354,13 +369,53 @@ namespace AgentClicker.UI
                         Row("Pick a reply on a call", "1 · 2 · 3", "D-pad ← ↑ →", "Tap a reply") +
                         Row("Pause menu", "Esc · ⚙ button", "Start", "⚙ button") +
                         Row("Back / close", "Esc", "B", "On-screen buttons") +
+                        Row("Menus and dialogs", "Arrows · Enter", "D-pad · A", "Tap") +
                         Row("Mute all sound", "M · ♪ button", "♪ button", "♪ button") +
                         (Platform.IsWeb ? "" : Row("Screenshot", "F12", "", "")), 19, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Medium);
                     t.rectTransform.TopLeft(0, 0, 920, 520);
-                    t.lineSpacing = 18;
+                    t.lineSpacing = 12;
                     break;
             }
+            // the focus starts on the tab's first setting; RESET and DONE share the bottom row
+            if (_settingsItems.Count > 1) _settingsItems[1].Default = true;
+            else _settingsItems[0].Default = true;
+            var foot = new object();
+            _settingsItems.Add(ButtonItem(_settingsReset, foot, "RESET TO DEFAULTS"));
+            _settingsItems.Add(ButtonItem(_settingsDone, foot, "DONE"));
         }
+
+        static FocusItem ButtonItem(Button b, object row, string label) => new FocusItem
+        {
+            Rect = (RectTransform)b.transform, Row = row, Label = label,
+            Press = () => UnityEngine.EventSystems.ExecuteEvents.Execute(b.gameObject,
+                new UnityEngine.EventSystems.BaseEventData(UnityEngine.EventSystems.EventSystem.current),
+                UnityEngine.EventSystems.ExecuteEvents.submitHandler),
+        };
+
+        /// <summary>
+        /// The menu in front, for keyboard and D-pad focus: a dialog, then How to play, Settings (with its rows listed),
+        /// the pause menu or the title screen. Story cards and the credits take Space and Enter themselves.
+        /// </summary>
+        public Transform FocusLayer(out List<FocusItem> items, out int version)
+        {
+            items = null;
+            version = 0;
+            if (_confirm.gameObject.activeSelf) return _confirm.transform;
+            if (_info.gameObject.activeSelf) return _info.transform;
+            if (_settings.gameObject.activeSelf)
+            {
+                items = _settingsItems;
+                version = _settingsVersion;
+                return _settings.transform;
+            }
+            if (CardsOpen || _credits.gameObject.activeSelf) return null;
+            if (PauseOpen) return _pause.transform;
+            if (TitleOpen) return _title.transform;
+            return null;
+        }
+
+        /// <summary>The settings rows the keyboard can reach (the tour checks them).</summary>
+        internal IReadOnlyList<FocusItem> SettingsFocusItems => _settingsItems;
 
         static string Pct(float v) => $"{v * 100:0}%";
         static string Row(string a, string b, string c, string d) => $"<color=#A4AFC2>{a}</color><pos=30%>{b}<pos=59%>{c}<pos=80%>{d}\n";
@@ -395,15 +450,15 @@ namespace AgentClicker.UI
             if (Platform.IsWeb)
             {
                 var row = SettingRow("Save file", y, "Keep a copy, or move your career to another browser or computer");
-                RowButton(row, "DOWNLOAD", 600, 140, _gm.DownloadSave);
-                RowButton(row, "LOAD FILE…", 750, 150, _gm.LoadSaveFile);
+                _settingsItems.Add(ButtonItem(RowButton(row, "DOWNLOAD", 600, 140, _gm.DownloadSave), row, "DOWNLOAD"));
+                _settingsItems.Add(ButtonItem(RowButton(row, "LOAD FILE…", 750, 150, _gm.LoadSaveFile), row, "LOAD FILE…"));
             }
             else
             {
                 string folder = SaveSystem.Folder, home = Environment.GetEnvironmentVariable("HOME");
                 if (!string.IsNullOrEmpty(home) && folder.StartsWith(home)) folder = "~" + folder.Substring(home.Length);
                 var row = SettingRow("Save file (the browser game reads it too)", y, $"{folder}/agentclicker_save.json");
-                RowButton(row, "OPEN FOLDER", 740, 160, _gm.OpenSaveFolder);
+                _settingsItems.Add(ButtonItem(RowButton(row, "OPEN FOLDER", 740, 160, _gm.OpenSaveFolder), row, "OPEN FOLDER"));
             }
         }
 
@@ -427,6 +482,7 @@ namespace AgentClicker.UI
             right.GetComponent<RectTransform>().TopLeft(860, 8, 40, 34);
             right.Label("▶", 15, Theme.Text, UIFonts.Mono);
             Refresh();
+            _settingsItems.Add(new FocusItem { Rect = row, Label = label, Adjust = Step, Press = () => Step(1) });
         }
 
         void Toggle(string label, Func<bool> get, Action<bool> set, float y, string hint = null)
@@ -450,6 +506,8 @@ namespace AgentClicker.UI
             b.GetComponent<RectTransform>().TopLeft(790, 8, 110, 34);
             t = b.Label("", 16, Theme.Text, UIFonts.Bold);
             Refresh();
+            void Flip() => b.onClick.Invoke();
+            _settingsItems.Add(new FocusItem { Rect = row, Label = label, Press = Flip, Adjust = d => { if (get() != d > 0) Flip(); } });
         }
 
         /// <summary>Graphics fidelity: a slider with a notch per step, its name on the right and what it does underneath.</summary>
@@ -468,6 +526,7 @@ namespace AgentClicker.UI
                 _gm.ApplySettings();
             }, v => Fidelity.Step(Mathf.RoundToInt(v)).Name, 560, 220, 110);
             slider.wholeNumbers = true;
+            _settingsItems[_settingsItems.Count - 1].Adjust = d => slider.value = Mathf.Clamp(Mathf.Round(slider.value) + d, 0, last);
             // a notch at each step, over the track and behind the handle
             for (int i = 0; i <= last; i++)
             {
@@ -487,6 +546,21 @@ namespace AgentClicker.UI
         {
             var row = SettingRow(label, y);
             Slider(row, min, max, get, v => { set(v); _gm.ApplySettings(); }, fmt);
+        }
+
+        /// <summary>A slider row for the keyboard: Left and Right move it a twentieth of its range (a step if it has steps).</summary>
+        void SliderItem(RectTransform row, string label, UnityEngine.UI.Slider slider)
+        {
+            float step = slider.wholeNumbers ? 1f : (slider.maxValue - slider.minValue) / 20f;
+            _settingsItems.Add(new FocusItem
+            {
+                Rect = row, Label = label,
+                Adjust = d =>
+                {
+                    slider.value = Mathf.Clamp(slider.value + d * step, slider.minValue, slider.maxValue);
+                    _gm.Sfx.Play(Sound.UiClick, 0.4f, 1.2f);
+                },
+            });
         }
 
         UnityEngine.UI.Slider Slider(RectTransform row, float min, float max, Func<float> get, Action<float> changed, Func<float, string> fmt,
@@ -518,6 +592,7 @@ namespace AgentClicker.UI
                 changed(v);
                 value.text = fmt(v);
             });
+            SliderItem(row, row.name, slider);
             return slider;
         }
 

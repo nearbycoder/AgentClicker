@@ -20,6 +20,8 @@ namespace AgentClicker.UI
         /// <summary>The gamepad was used this frame (counts as being at the keyboard for the day autopilot).</summary>
         public bool InputThisFrame { get; private set; }
         public bool Active { get; private set; }
+        /// <summary>The D-pad is moving the menus' focus ring: the cursor is hidden and A presses the focused item instead.</summary>
+        public bool Parked { get; private set; }
         public Vector2 Position => _pos;
 
         GameManager _gm;
@@ -80,6 +82,12 @@ namespace AgentClicker.UI
                 Deactivate();
                 return;
             }
+            if (Parked)
+            {
+                // the stick takes the cursor back from the D-pad
+                if (stick.sqrMagnitude > 0.04f) Unpark();
+                else return;
+            }
 
             float dt = Mathf.Min(Time.unscaledDeltaTime, 0.1f);
             Vector2 last = _pos;
@@ -120,15 +128,35 @@ namespace AgentClicker.UI
             InputSystem.QueueStateEvent(_mouse, new MouseState { position = _pos });
             _wasDown = false;
             Active = true;
-            _cursor.gameObject.SetActive(true);
+            _cursor.gameObject.SetActive(!Parked);
             _cursor.anchoredPosition = _pos / _canvas.scaleFactor;
             Cursor.visible = false;
             Debug.Log("[Gamepad] cursor on: " + Gamepad.current?.displayName);
         }
 
+        /// <summary>The D-pad took over the menus: hide the cursor (letting go of its button) until the stick moves.</summary>
+        public void Park()
+        {
+            if (Parked) return;
+            Parked = true;
+            if (_mouse != null && _mouse.added && _wasDown)
+                InputSystem.QueueStateEvent(_mouse, new MouseState { position = _pos });
+            _wasDown = false;
+            _cursor.gameObject.SetActive(false);
+        }
+
+        public void Unpark()
+        {
+            if (!Parked) return;
+            Parked = false;
+            _cursor.gameObject.SetActive(Active);
+            _cursor.localScale = Vector3.one;
+        }
+
         void Deactivate()
         {
             Active = false;
+            Parked = false;
             _cursor.gameObject.SetActive(false);
             Cursor.visible = true;
             if (_mouse != null && _mouse.added) InputSystem.RemoveDevice(_mouse);

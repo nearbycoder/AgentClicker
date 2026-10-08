@@ -55,6 +55,7 @@ namespace AgentClicker
             var (size, overflowing) = _gm.Menu.InfoTextFit();
             Debug.Log(!overflowing && size >= 16f ? $"[Tour] PASS How to Play fits at {size:0.#} pt"
                                                   : $"[Tour] FAIL How to Play at {size:0.#} pt, overflowing {overflowing}");
+            yield return MenuKeysSegment();
             _gm.Menu.HideAll();
             _gm.Menu.ShowStoryCards(StoryDatabase.Intro(), null);
             yield return new WaitForSeconds(3.5f);
@@ -213,14 +214,38 @@ namespace AgentClicker
             yield return Shot("08_review");
             CheckReviewTrend();
             CheckNoBanner("on the review");
-            _gm.Computer.CloseModal();
-            _gm.GoHome();
+            // a day without the mouse: the review's GO HOME, the night's CLOCK IN and the login, all by keyboard
+            var dayKb = Keyboard.current ?? InputSystem.AddDevice<Keyboard>();
+            yield return PressKey(dayKb, Key.DownArrow); // shows the focus ring (the mouse was last used)
+            yield return new WaitForSeconds(0.8f);
+            yield return Shot("08b_review_keyboard_focus");
+            Debug.Log(_gm.Focus.RingVisible && _gm.Focus.FocusedLabel.Contains("GO HOME")
+                ? "[Tour] PASS the review's focus ring is on GO HOME" : $"[Tour] FAIL review focus: ring {_gm.Focus.RingVisible}, on '{_gm.Focus.FocusedLabel}'");
+            yield return PressKey(dayKb, Key.Enter);
+            yield return new WaitForSeconds(0.3f);
+            Debug.Log(M.Phase == GamePhase.Night ? "[Tour] PASS Enter presses GO HOME" : $"[Tour] FAIL Enter on the review: phase {M.Phase}");
+            if (M.Phase != GamePhase.Night) { _gm.Computer.CloseModal(); _gm.GoHome(); }
             yield return new WaitForSeconds(1.5f);
             yield return Shot("09_night");
             CheckNoBanner("on the night screen");
-            _gm.ClockIn();
-            yield return new WaitForSeconds(2.5f);
+            yield return PressKey(dayKb, Key.Enter);
+            yield return new WaitForSeconds(0.3f);
+            Debug.Log(M.Phase != GamePhase.Night ? "[Tour] PASS Enter presses CLOCK IN" : "[Tour] FAIL Enter on the night screen didn't clock in");
+            if (M.Phase == GamePhase.Night) _gm.ClockIn();
+            // the login opens at once; Enter pressed again in the same breath (hammering it) doesn't also log in
+            yield return new WaitForSeconds(0.15f);
+            bool atLogin = M.Phase == GamePhase.Login;
+            yield return PressKey(dayKb, Key.Enter);
+            yield return new WaitForSeconds(0.2f);
+            bool hammered = M.Phase != GamePhase.Login;
+            yield return new WaitForSeconds(2.2f);
             yield return Shot("10_morning_day23");
+            yield return PressKey(dayKb, Key.Enter);
+            yield return new WaitForSeconds(2.0f);
+            Debug.Log(atLogin && !hammered && M.Phase == GamePhase.Working
+                ? "[Tour] PASS a second Enter right after CLOCK IN leaves the login alone; a deliberate Enter logs in"
+                : $"[Tour] FAIL login by keyboard: at login {atLogin}, logged in by the hurried Enter {hammered}, phase now {M.Phase}");
+            if (M.Phase == GamePhase.Login) _gm.Login();
 
             // ---- autopilot: nobody touches the keyboard from 5 PM to the next morning ----------
             yield return AutopilotSegment();
@@ -1767,6 +1792,109 @@ namespace AgentClicker
             Debug.Log(shown >= 5 && shortened > 0 && bad.Count == 0
                 ? $"[Tour] PASS activity feed: {shown} lines, all inside the panel, {shortened} too long ending in \"…\""
                 : $"[Tour] FAIL activity feed: {shown} lines, {shortened} shortened; {string.Join(" | ", bad)}");
+        }
+
+        static IEnumerator PressKey(Keyboard kb, Key key)
+        {
+            InputSystem.QueueStateEvent(kb, new KeyboardState(key));
+            yield return null;
+            yield return null;
+            InputSystem.QueueStateEvent(kb, new KeyboardState());
+            yield return null;
+            yield return null;
+        }
+
+        /// <summary>The title screen and Settings with only the keyboard, then only the D-pad and A; a dialog by keys.</summary>
+        IEnumerator MenuKeysSegment()
+        {
+            var kb = Keyboard.current ?? InputSystem.AddDevice<Keyboard>();
+            var focus = _gm.Focus;
+            var urp = (UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset)UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline;
+            void Check(bool ok, string what) => Debug.Log((ok ? "[Tour] PASS " : "[Tour] FAIL ") + what);
+            IEnumerator DownTo(string label, Key key = Key.DownArrow)
+            {
+                for (int i = 0; i < 14 && focus.FocusedLabel != label; i++) yield return PressKey(kb, key);
+            }
+            int q0 = _gm.Settings.quality;
+            bool fps0 = _gm.Settings.showFps;
+
+            _gm.Menu.HideAll();
+            _gm.Menu.ShowTitle();
+            yield return new WaitForSeconds(0.8f);
+            yield return RealMove(new Vector2(320, 320));
+            yield return RealMove(new Vector2(360, 340));
+            Check(!focus.RingVisible, "no focus ring after the mouse moves");
+            yield return PressKey(kb, Key.DownArrow);
+            Check(focus.RingVisible && focus.FocusedLabel == "NEW GAME", $"the first arrow shows the ring on NEW GAME (on '{focus.FocusedLabel}')");
+            yield return DownTo("SETTINGS");
+            yield return Shot("00e_title_keyboard_focus");
+            yield return new WaitForSeconds(0.4f);
+            yield return PressKey(kb, Key.Enter);
+            yield return new WaitForSeconds(0.6f);
+            Check(_gm.Menu.SettingsOpen && focus.FocusedLabel == "Graphics fidelity",
+                  $"Enter on SETTINGS opens Settings with Graphics fidelity focused (open {_gm.Menu.SettingsOpen}, on '{focus.FocusedLabel}')");
+            yield return PressKey(kb, Key.RightArrow);
+            yield return new WaitForSeconds(0.3f);
+            int up = Mathf.Min(q0 + 1, Fidelity.Steps.Length - 1);
+            Check(_gm.Settings.quality == up && urp.msaaSampleCount == Fidelity.Step(up).Msaa,
+                  $"Right moves Graphics fidelity to {Fidelity.Step(up).Name} (setting {_gm.Settings.quality}, MSAA {urp.msaaSampleCount})");
+            yield return Shot("00f_settings_keyboard_fidelity");
+            yield return PressKey(kb, Key.LeftArrow);
+            yield return new WaitForSeconds(0.3f);
+            Check(_gm.Settings.quality == q0 && urp.msaaSampleCount == Fidelity.Step(q0).Msaa, "Left moves it back");
+            yield return DownTo("Show FPS counter");
+            yield return PressKey(kb, Key.Enter);
+            Check(focus.FocusedLabel == "Show FPS counter" && _gm.Settings.showFps != fps0, "Enter flips the focused toggle");
+            yield return PressKey(kb, Key.Space);
+            Check(_gm.Settings.showFps == fps0, "Space flips it back");
+            yield return DownTo("Tabs: Graphics", Key.UpArrow);
+            yield return PressKey(kb, Key.RightArrow);
+            Check(focus.FocusedLabel == "Tabs: Audio", $"Right on the tabs opens Audio (on '{focus.FocusedLabel}')");
+            yield return PressKey(kb, Key.LeftArrow);
+            yield return PressKey(kb, Key.Escape);
+            yield return new WaitForSeconds(0.4f);
+            Check(!_gm.Menu.SettingsOpen && _gm.Menu.TitleOpen, "Esc closes Settings back to the title");
+
+            bool yes = false;
+            _gm.Menu.Confirm("Tour: answer this with the keyboard", "YES", () => yes = true);
+            yield return new WaitForSeconds(0.5f);
+            Check(focus.FocusedLabel == "CANCEL", $"a dialog opens with CANCEL focused (on '{focus.FocusedLabel}')");
+            yield return PressKey(kb, Key.RightArrow);
+            yield return PressKey(kb, Key.Enter);
+            yield return new WaitForSeconds(0.3f);
+            Check(yes, "Right and Enter answer YES");
+
+            // the same with a gamepad: the D-pad moves the ring, the cursor steps aside, A presses
+            var pad = InputSystem.AddDevice<Gamepad>("TourMenuPad");
+            IEnumerator Button(GamepadButton b)
+            {
+                InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(b));
+                yield return null;
+                yield return null;
+                InputSystem.QueueStateEvent(pad, new GamepadState());
+                yield return null;
+                yield return null;
+            }
+            yield return new WaitForSeconds(0.3f);
+            for (int i = 0; i < 8 && focus.FocusedLabel != "SETTINGS"; i++) yield return Button(GamepadButton.DpadDown);
+            Check(_gm.Pad.Parked && focus.RingVisible && focus.FocusedLabel == "SETTINGS",
+                  $"the D-pad moves the ring and parks the cursor (parked {_gm.Pad.Parked}, on '{focus.FocusedLabel}')");
+            yield return new WaitForSeconds(0.4f);
+            yield return Button(GamepadButton.South);
+            yield return new WaitForSeconds(0.6f);
+            Check(_gm.Menu.SettingsOpen, "A opens Settings");
+            yield return Button(GamepadButton.DpadRight);
+            yield return new WaitForSeconds(0.3f);
+            Check(_gm.Settings.quality == up, "the D-pad moves Graphics fidelity");
+            yield return Button(GamepadButton.DpadLeft);
+            yield return Button(GamepadButton.East);
+            yield return new WaitForSeconds(0.4f);
+            Check(!_gm.Menu.SettingsOpen && _gm.Settings.quality == q0, "B closes Settings with the setting back where it was");
+            InputSystem.RemoveDevice(pad);
+            _gm.Settings.quality = q0;
+            _gm.Settings.showFps = fps0;
+            _gm.ApplySettings(save: false);
+            yield return RealMove(new Vector2(400, 400));
         }
 
         IEnumerator Shot(string name)

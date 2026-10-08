@@ -37,6 +37,7 @@ namespace AgentClicker
         public MenuUI Menu { get; private set; }
         public CallUI Calls { get; private set; }
         public GamepadCursor Pad { get; private set; }
+        public MenuFocus Focus { get; private set; }
         public TouchControls Touch { get; private set; }
         public ZoomEdgeChip ZoomChip { get; private set; }
         public Sfx Sfx { get; private set; }
@@ -152,6 +153,7 @@ namespace AgentClicker
             Menu = gameObject.AddComponent<MenuUI>();
             Calls = gameObject.AddComponent<CallUI>();
             Pad = gameObject.AddComponent<GamepadCursor>();
+            Focus = gameObject.AddComponent<MenuFocus>();
             Touch = gameObject.AddComponent<TouchControls>();
             ZoomChip = gameObject.AddComponent<ZoomEdgeChip>();
 
@@ -202,6 +204,7 @@ namespace AgentClicker
             Menu.Init(this);
             Calls.Init(this);
             Pad.Init(this);
+            Focus.Init(this);
             Touch.Init(this);
             ZoomChip.Init(this);
             foreach (var side in FindObjectsByType<SideScreen>(FindObjectsInactive.Include))

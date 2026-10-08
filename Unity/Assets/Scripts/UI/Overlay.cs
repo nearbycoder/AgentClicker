@@ -221,6 +221,10 @@ namespace AgentClicker.UI
         }
 
         public void HideEnding() => Show(_ending, false);
+        /// <summary>The night screen once it's faded in (keyboard and D-pad focus: CLOCK IN).</summary>
+        public Transform NightRoot => _night.gameObject.activeSelf && _night.alpha > 0.9f ? _night.transform : null;
+        /// <summary>The ending's buttons once they're up.</summary>
+        public Transform EndingRoot => _ending.gameObject.activeSelf && _ending.alpha > 0.9f ? _ending.transform : null;
         public void HideNight() => Show(_night, false, true);
         public void HideDayCard() => Show(_dayCard, false, true);
 
