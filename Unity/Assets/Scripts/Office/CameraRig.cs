@@ -16,6 +16,8 @@ namespace AgentClicker.Office
 
         public CamMode Mode { get; private set; } = CamMode.Office;
         public float MouseSensitivity { get; set; } = 1f;
+        /// <summary>Settings → Field of view (degrees, vertical), for every view but the monitor's, which fits the screen.</summary>
+        public float FieldOfView { get; set; } = 50f;
         /// <summary>Settings → Reduce motion: every camera move is a cut, and the title camera holds still.</summary>
         public bool ReduceMotion { get; set; }
         public bool InTransition => _transition < 1f;
@@ -25,6 +27,7 @@ namespace AgentClicker.Office
         float _yaw, _pitch, _dist;
         Vector3 _fromPos;
         Quaternion _fromRot;
+        float _fromFov;
         float _transition = 1f, _transitionTime = 1f;
         Transform _showcaseTarget;
         float _showcaseUntil;
@@ -48,6 +51,7 @@ namespace AgentClicker.Office
             if (mode == Mode && !InTransition) return;
             _fromPos = _cam.transform.position;
             _fromRot = _cam.transform.rotation;
+            _fromFov = _cam.fieldOfView;
             Mode = mode;
             _transition = 0f;
             _transitionTime = ReduceMotion ? 0.0001f : Mathf.Max(0.01f, seconds);
@@ -98,6 +102,7 @@ namespace AgentClicker.Office
                 SetMode(_afterShowcase, 0.9f);
 
             GetTarget(out var pos, out var rot);
+            float fov = TargetFov();
             if (_transition < 1f)
             {
                 _transition = Mathf.Min(1f, _transition + Time.deltaTime / _transitionTime);
@@ -105,12 +110,14 @@ namespace AgentClicker.Office
                 // arc slightly upward while travelling for a nicer dolly
                 Vector3 p = Vector3.Lerp(_fromPos, pos, k) + Vector3.up * Mathf.Sin(k * Mathf.PI) * 0.06f;
                 _cam.transform.SetPositionAndRotation(p, Quaternion.Slerp(_fromRot, rot, k));
+                _cam.fieldOfView = Mathf.Lerp(_fromFov, fov, k);
             }
             else
             {
                 float s = 1f - Mathf.Exp(-Time.deltaTime * 10f);
                 _cam.transform.SetPositionAndRotation(Vector3.Lerp(_cam.transform.position, pos, s),
                                                       Quaternion.Slerp(_cam.transform.rotation, rot, s));
+                _cam.fieldOfView = Mathf.Abs(_cam.fieldOfView - fov) < 0.01f ? fov : Mathf.Lerp(_cam.fieldOfView, fov, s);
             }
         }
 
@@ -226,8 +233,9 @@ namespace AgentClicker.Office
             half = Vector2.zero;
             if (_refs == null || _refs.MainScreen == null) return;
             SceneRefs.ScreenFrame(_refs.MainScreen, out _, out _, out var size);
-            float d = MonitorFitDistance(size) / zoom;
-            float tanV = Mathf.Tan(_cam.fieldOfView * Mathf.Deg2Rad / 2f);
+            MonitorFrame(size, out float distance, out float fov);
+            float d = distance / zoom;
+            float tanV = Mathf.Tan(fov * Mathf.Deg2Rad / 2f);
             half = new Vector2(d * tanV * _cam.aspect, d * tanV);
         }
 
@@ -304,17 +312,47 @@ namespace AgentClicker.Office
             SceneRefs.ScreenFrame(_refs.MainScreen, out var center, out var frame, out var size);
             Vector3 normal = frame * Vector3.back;
             rot = Quaternion.LookRotation(-normal, frame * Vector3.up);
-            pos = center + normal * (MonitorFitDistance(size) / _monZoom) + rot * new Vector3(_monPan.x, _monPan.y, 0f);
+            MonitorFrame(size, out float distance, out _);
+            pos = center + normal * (distance / _monZoom) + rot * new Vector3(_monPan.x, _monPan.y, 0f);
         }
 
-        /// <summary>The distance at which the whole monitor (plus a small margin) fills the view.</summary>
-        float MonitorFitDistance(Vector2 size)
+        // The monitor view's camera stays this close to the screen (metres): in front of Sam's head and hands when he leans
+        // in (a facepalm at an outage, the morning stretch). Fitting the screen at 50° put it 0.37 m away on a 16:9 screen,
+        // where a facepalm's hand reached a corner of the screen, and farther on a 4:3 one or at 40°, behind his head.
+        const float MonitorMaxDistance = 0.30f;
+
+        /// <summary>
+        /// The monitor view's distance from the screen (unzoomed) and its field of view: no farther back than
+        /// <see cref="MonitorMaxDistance"/>, and wide enough that the whole monitor (plus a small margin) fills the view.
+        /// A flat screen seen head-on looks the same at any distance, so this only changes what's in front of it.
+        /// </summary>
+        void MonitorFrame(Vector2 size, out float distance, out float fov)
         {
-            float vfov = _cam.fieldOfView * Mathf.Deg2Rad;
-            float hfov = 2f * Mathf.Atan(Mathf.Tan(vfov / 2f) * _cam.aspect);
-            float dh = size.y * 0.5f * MonitorMargin / Mathf.Tan(vfov / 2f);
-            float dw = size.x * 0.5f * MonitorMargin / Mathf.Tan(hfov / 2f);
-            return Mathf.Max(dh, dw);
+            distance = Mathf.Min(FitDistance(size, FieldOfView, _cam.aspect), MonitorMaxDistance);
+            float tanV = Mathf.Max(size.y * 0.5f * MonitorMargin / distance, size.x * 0.5f * MonitorMargin / (distance * _cam.aspect));
+            fov = 2f * Mathf.Atan(tanV) * Mathf.Rad2Deg;
+        }
+
+        /// <summary>The distance at which the whole monitor (plus a small margin) fills a view of this field of view and aspect.</summary>
+        float FitDistance(Vector2 size, float fovDegrees, float aspect)
+        {
+            float tanV = Mathf.Tan(fovDegrees * Mathf.Deg2Rad / 2f);
+            return Mathf.Max(size.y * 0.5f * MonitorMargin / tanV, size.x * 0.5f * MonitorMargin / (tanV * aspect));
+        }
+
+        float TargetFov()
+        {
+            if (Mode != CamMode.Monitor || _refs == null || _refs.MainScreen == null) return FieldOfView;
+            SceneRefs.ScreenFrame(_refs.MainScreen, out _, out _, out var size);
+            MonitorFrame(size, out _, out float fov);
+            return fov;
+        }
+
+        /// <summary>The monitor view's distance and field of view right now, for checks.</summary>
+        public void MonitorFrame(out float distance, out float fov)
+        {
+            SceneRefs.ScreenFrame(_refs.MainScreen, out _, out _, out var size);
+            MonitorFrame(size, out distance, out fov);
         }
 
         void ShowcasePose(out Vector3 pos, out Quaternion rot)

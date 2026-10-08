@@ -216,6 +216,7 @@ namespace AgentClicker
             Model.DayLengthSeconds = DayLength;
             Cam.MouseSensitivity = Settings.mouseSensitivity;
             Cam.ReduceMotion = Settings.reduceMotion;
+            Cam.FieldOfView = Settings.fieldOfView;
             if (save) Settings.Save();
         }
 

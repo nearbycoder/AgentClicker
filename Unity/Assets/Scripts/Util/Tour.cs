@@ -198,6 +198,7 @@ namespace AgentClicker
             yield return Shot("07_desktop_lategame_outage");
             LogGoal("late game");
             CheckFeedUnderToasts("late game");
+            yield return MonitorClearSegment();
             yield return TimedEffectsSegment();
 
             // ---- review & night ----------------------------------------------
@@ -951,6 +952,141 @@ namespace AgentClicker
         /// Benchmark Hype, Caffeine Rush and an outage at once: every effect is on screen with its multiplier and seconds
         /// left, none cut off or overlapping the rate. Then the 5 PM card's quota line follows overtime past the quota.
         /// </summary>
+        /// <summary>
+        /// In the monitor view no part of Sam is between the camera and the screen while he leans in (the outage's
+        /// facepalm, the morning stretch, typing), at this window's shape and at both ends of the Field of view setting,
+        /// and the whole monitor fills the view.
+        /// </summary>
+        IEnumerator MonitorClearSegment()
+        {
+            var cam = _gm.Refs.MainCamera;
+            float setting = _gm.Settings.fieldOfView;
+            var bad = new System.Collections.Generic.List<string>();
+            var frames = new System.Collections.Generic.List<string>();
+            int samples = 0;
+            foreach (float f in new[] { setting, 40f, 70f })
+            {
+                _gm.Settings.fieldOfView = f;
+                _gm.ApplySettings(false);
+                _gm.Cam.SetMode(CamMode.Monitor, 0.01f);
+                yield return WaitFor(() => _gm.Cam.DistanceToTarget() < 0.0005f, 3f);
+                yield return new WaitForSeconds(0.3f);
+                _gm.Cam.MonitorFrame(out float distance, out float fov);
+                string fit = MonitorFit(cam, out bool fits);
+                frames.Add($"{f:0}°: {distance:0.000} m at {cam.fieldOfView:0.0}°, {fit}");
+                if (!fits) bad.Add($"at {f:0}° the monitor doesn't fill the view ({fit})");
+                if (Mathf.Abs(cam.fieldOfView - fov) > 0.05f) bad.Add($"at {f:0}° the camera is at {cam.fieldOfView:0.0}°, not {fov:0.0}°");
+                foreach (var pose in new[] { EmployeeController.Facepalm, EmployeeController.Stretch, EmployeeController.Typing })
+                {
+                    _gm.Employee.PlayOneShot(pose, 3f);
+                    for (float t = 0; t < 2f; t += 0.05f)
+                    {
+                        yield return new WaitForSeconds(0.05f);
+                        samples++;
+                        int covered = 0, total = 0;
+                        yield return SamPixelsOnScreen(cam, (c, n) => { covered = c; total = n; });
+                        if (total < 1000) { bad.Add($"the screen is {total} px in the probe"); break; }
+                        if (covered > 0)
+                        {
+                            bad.Add($"{pose} at {f:0}°: Sam covers {covered} of {total} px of the screen ({t + 0.1f:0.0} s in)");
+                            yield return Shot($"07x_covered_{pose}_{f:0}");
+                            break;
+                        }
+                        if (f == setting && pose == EmployeeController.Facepalm && Mathf.Abs(t - 0.6f) < 0.025f) yield return Shot("07a_monitor_facepalm");
+                    }
+                }
+            }
+            _gm.Settings.fieldOfView = setting;
+            _gm.ApplySettings(false);
+            // control: from 0.55 m in front of the screen (behind Sam's head) the probe must see him
+            SceneRefs.ScreenFrame(_gm.Refs.MainScreen, out var screen, out var frame, out _);
+            _gm.Cam.SetFixed(screen + frame * Vector3.back * 0.55f, screen);
+            _gm.Employee.PlayOneShot(EmployeeController.Facepalm, 3f);
+            yield return new WaitForSeconds(0.6f);
+            int seen = 0, of = 0;
+            yield return SamPixelsOnScreen(cam, (c, n) => { seen = c; of = n; });
+            if (seen == 0) bad.Add("the probe didn't see Sam from behind his head (control)");
+            _gm.Cam.SetMode(CamMode.Monitor, 0.01f);
+            _gm.Employee.PlayOneShot(EmployeeController.Idle, 0.01f);
+            yield return new WaitForSeconds(0.6f);
+            Debug.Log(bad.Count == 0
+                ? $"[Tour] PASS Sam never covers the monitor ({Screen.width}×{Screen.height}, {samples} samples of Facepalm, Stretch and Typing; {string.Join("; ", frames)}; control from 0.55 m: Sam covers {seen} of {of} px)"
+                : $"[Tour] FAIL Sam covers the monitor ({Screen.width}×{Screen.height}): {string.Join(" | ", bad)}; {string.Join("; ", frames)}");
+        }
+
+        /// <summary>
+        /// Renders Sam alone (moved to a spare layer for one frame) through a copy of the game camera and counts his
+        /// pixels inside the main screen's rectangle. Exact for any pose, unlike the parts' bounds, which reach past the
+        /// camera: in the monitor view it sits at Sam's eye height, just in front of his face.
+        /// </summary>
+        IEnumerator SamPixelsOnScreen(Camera cam, System.Action<int, int> result)
+        {
+            const int Layer = 31;
+            var parts = _gm.Refs.Employee.GetComponentsInChildren<Renderer>();
+            var layers = new int[parts.Length];
+            for (int i = 0; i < parts.Length; i++) { layers[i] = parts[i].gameObject.layer; parts[i].gameObject.layer = Layer; }
+            int w = 320, h = Mathf.Max(1, Mathf.RoundToInt(320 / cam.aspect));
+            var rt = RenderTexture.GetTemporary(w, h, 24, RenderTextureFormat.ARGB32);
+            var probe = new GameObject("Sam probe").AddComponent<Camera>();
+            probe.CopyFrom(cam);
+            probe.cullingMask = 1 << Layer;
+            probe.clearFlags = CameraClearFlags.SolidColor;
+            probe.backgroundColor = Color.magenta;
+            probe.allowMSAA = false;
+            probe.allowHDR = false;
+            probe.targetTexture = rt;
+            var data = UnityEngine.Rendering.Universal.CameraExtensions.GetUniversalAdditionalCameraData(probe);
+            data.renderPostProcessing = false;
+            data.renderShadows = false;
+            data.antialiasing = UnityEngine.Rendering.Universal.AntialiasingMode.None;
+            yield return new WaitForEndOfFrame();
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            var was = RenderTexture.active;
+            RenderTexture.active = rt;
+            tex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+            RenderTexture.active = was;
+            Destroy(probe.gameObject);
+            RenderTexture.ReleaseTemporary(rt);
+            for (int i = 0; i < parts.Length; i++) if (parts[i]) parts[i].gameObject.layer = layers[i];
+
+            ScreenRect(cam, out var lo, out var hi);
+            int x0 = Mathf.Clamp(Mathf.CeilToInt(lo.x * w), 0, w), x1 = Mathf.Clamp(Mathf.FloorToInt(hi.x * w), 0, w);
+            int y0 = Mathf.Clamp(Mathf.CeilToInt(lo.y * h), 0, h), y1 = Mathf.Clamp(Mathf.FloorToInt(hi.y * h), 0, h);
+            var px = tex.GetPixels32();
+            int covered = 0;
+            for (int y = y0; y < y1; y++)
+                for (int x = x0; x < x1; x++)
+                {
+                    var c = px[y * w + x];
+                    if (c.r < 235 || c.g > 20 || c.b < 235) covered++;
+                }
+            Destroy(tex);
+            result(covered, (x1 - x0) * (y1 - y0));
+        }
+
+        /// <summary>The main screen's rectangle in the view (viewport coordinates).</summary>
+        void ScreenRect(Camera cam, out Vector2 lo, out Vector2 hi)
+        {
+            SceneRefs.ScreenFrame(_gm.Refs.MainScreen, out var center, out var frame, out var size);
+            lo = Vector2.one * float.MaxValue;
+            hi = Vector2.one * float.MinValue;
+            foreach (var c in new[] { new Vector2(-1, -1), new Vector2(1, -1), new Vector2(-1, 1), new Vector2(1, 1) })
+            {
+                Vector3 v = cam.WorldToViewportPoint(center + frame * new Vector3(c.x * size.x / 2, c.y * size.y / 2, 0));
+                lo = Vector2.Min(lo, v);
+                hi = Vector2.Max(hi, v);
+            }
+        }
+
+        /// <summary>Where the main screen lands in the view: all inside, and filling it in one direction.</summary>
+        string MonitorFit(Camera cam, out bool fits)
+        {
+            ScreenRect(cam, out var lo, out var hi);
+            Vector2 span = hi - lo;
+            fits = lo.x >= -0.001f && lo.y >= -0.001f && hi.x <= 1.001f && hi.y <= 1.001f && Mathf.Max(span.x, span.y) >= 0.97f;
+            return $"screen spans {span.x:P0} × {span.y:P0} of the view";
+        }
+
         IEnumerator TimedEffectsSegment()
         {
             _gm.Computer.CloseModal();

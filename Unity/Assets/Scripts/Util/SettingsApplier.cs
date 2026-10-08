@@ -70,7 +70,6 @@ namespace AgentClicker.Util
             var cam = refs.MainCamera;
             if (cam)
             {
-                cam.fieldOfView = s.fieldOfView;
                 var data = cam.GetUniversalAdditionalCameraData();
                 data.renderPostProcessing = s.postProcessing;
                 // MSAA already smooths edges; only fall back to FXAA when it's off.
