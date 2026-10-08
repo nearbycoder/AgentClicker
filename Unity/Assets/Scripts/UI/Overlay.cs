@@ -79,6 +79,7 @@ namespace AgentClicker.UI
             var clockIn = UIKit.Button(_night.transform, "ClockIn", Theme.Accent, () => _gm.ClockIn(), 16);
             clockIn.GetComponent<RectTransform>().Center(380, 84, 0, -150);
             clockIn.Label("CLOCK IN  →", 30, Theme.Bg);
+            clockIn.Menu();
             clockIn.gameObject.AddComponent<Pulse>().ScaleAmount = 0.02f;
 
             // ending
@@ -100,12 +101,14 @@ namespace AgentClicker.UI
             epiRt.anchoredPosition = new Vector2(-170, 0);
             epiRt.sizeDelta = new Vector2(320, 64);
             epi.Label("EPILOGUE  →", 22, Theme.Bg);
+            epi.Menu();
             var keep = UIKit.Button(_ending.transform, "Keep", Theme.PanelLight, () => _gm.KeepPlaying(), 14);
             var keepRt = keep.GetComponent<RectTransform>();
             keepRt.anchorMin = keepRt.anchorMax = new Vector2(0.5f, 0.07f);
             keepRt.anchoredPosition = new Vector2(170, 0);
             keepRt.sizeDelta = new Vector2(320, 64);
             keep.Label("KEEP PLAYING", 22, Theme.Text);
+            keep.Menu();
 
             Show(_night, false, true);
             Show(_ending, false, true);

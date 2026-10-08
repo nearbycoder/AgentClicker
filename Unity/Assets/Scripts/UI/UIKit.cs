@@ -288,9 +288,18 @@ namespace AgentClicker.UI
             var nav = b.navigation;
             nav.mode = Navigation.Mode.None;
             b.navigation = nav;
+            img.gameObject.AddComponent<ButtonFeel>();
             if (onClick != null) b.onClick.AddListener(() => onClick());
             // Don't keep buttons selected: Space/Enter ship code and must not "submit" the last button clicked.
             b.onClick.AddListener(() => EventSystem.current?.SetSelectedGameObject(null));
+            return b;
+        }
+
+        /// <summary>A menu-sized button: lifts a little and ticks on hover (dense lists on the monitor only brighten).</summary>
+        public static Button Menu(this Button b, bool lift = true)
+        {
+            var feel = b.GetComponent<ButtonFeel>();
+            if (feel) { feel.Lift = lift; feel.Tick = true; }
             return b;
         }
 

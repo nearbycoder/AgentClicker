@@ -645,6 +645,7 @@ namespace AgentClicker.UI
             if (dismissable) PointerRelay.On(dim).Click = _ => { if (Time.unscaledTime - _modalOpenedAt > 0.5f) CloseModal(); };
             card = UIKit.Panel(dim.transform, "Card", Theme.Panel, 22, true); // raycast target: clicks on the card don't close it
             card.rectTransform.Center(w, h);
+            CardIn.Play(card.transform);
             return card.rectTransform;
         }
 
@@ -695,9 +696,11 @@ namespace AgentClicker.UI
             var stay = UIKit.Button(card, "Stay", Theme.PanelLight, () => { CloseModal(); _gm.WorkLate(); }, 12);
             stay.GetComponent<RectTransform>().TopLeft(50, 220, 260, 64);
             stay.Label("WORK LATE", 22, Theme.Text);
+            stay.Menu();
             var go = UIKit.Button(card, "ClockOut", Theme.Warn, () => { CloseModal(); _gm.ClockOut(); }, 12);
             go.GetComponent<RectTransform>().TopLeft(330, 220, 260, 64);
             go.Label("CLOCK OUT", 22, Theme.Bg);
+            go.Menu();
         }
 
         /// <summary>The 5 PM card's quota line, if the card is up: "Quota met: 1.19B of 2.00M."</summary>
@@ -754,6 +757,7 @@ namespace AgentClicker.UI
             var go = UIKit.Button(card, "GoHome", Theme.Accent, () => { CloseModal(); _gm.GoHome(); }, 14);
             go.GetComponent<RectTransform>().TopLeft(230, 450, 300, 72);
             go.Label("GO HOME  →", 26, Theme.Bg);
+            go.Menu();
         }
 
         /// <summary>

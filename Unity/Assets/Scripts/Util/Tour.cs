@@ -403,6 +403,14 @@ namespace AgentClicker
             Debug.Log($"[Tour] control: normal motion leaves the camera {flying:0.000} m off after two frames, {movingNormally} pulsing elements moving");
             _gm.Cam.SetMode(CamMode.Office, 0.01f);
             yield return new WaitForSeconds(0.3f);
+            // menu cards ease in with normal motion...
+            _gm.Menu.OpenPause();
+            yield return null;
+            float easing = _gm.Menu.PauseCardScale;
+            yield return new WaitForSecondsRealtime(0.5f);
+            float settled = _gm.Menu.PauseCardScale;
+            _gm.Menu.ClosePause();
+            yield return new WaitForSeconds(0.2f);
 
             _gm.Settings.reduceMotion = true;
             _gm.ApplySettings(false);
@@ -412,6 +420,14 @@ namespace AgentClicker
             float off = _gm.Cam.DistanceToTarget();
             Debug.Log(off < 0.01f && flying > 0.05f ? $"[Tour] PASS reduce motion: camera cut to the monitor ({off:0.0000} m off)"
                                                     : $"[Tour] FAIL reduce motion: camera {off:0.000} m from the monitor (control {flying:0.000})");
+            // ...and with it the card is at full size from its first frame
+            _gm.Menu.OpenPause();
+            yield return null;
+            float still = _gm.Menu.PauseCardScale;
+            _gm.Menu.ClosePause();
+            Debug.Log(easing < 0.995f && Mathf.Abs(settled - 1f) < 0.001f && Mathf.Abs(still - 1f) < 0.001f
+                ? $"[Tour] PASS menu cards ease in ({easing:0.000} on the first frame, {settled:0.000} after 0.5 s) and Reduce motion shows them whole ({still:0.000})"
+                : $"[Tour] FAIL card ease-in: {easing:0.000} on the first frame, {settled:0.000} after 0.5 s, {still:0.000} with Reduce motion");
             int moving = -1;
             yield return CountMovingPulses(n => moving = n);
             Debug.Log(moving == 0 && movingNormally > 0 ? $"[Tour] PASS reduce motion: pulsing elements hold still ({movingNormally} moved without it)"

@@ -85,15 +85,17 @@ namespace AgentClicker.UI
             b.GetComponent<RectTransform>().TopLeft(x, y, w, h);
             var t = UIKit.Text(b.transform, "Label", label, 22, primary ? Theme.Bg : Theme.Text, TextAlignmentOptions.MidlineLeft, UIFonts.Bold);
             t.rectTransform.Fill().Insets(24, 0, 16, 0);
-            PointerRelay.On(b).Enter = _ => _gm.Sfx.Play(Sound.UiClick, 0.25f, 1.4f);
-            return b;
+            return b.Menu();
         }
 
         void Show(CanvasGroup g, bool on)
         {
             g.gameObject.SetActive(on);
             g.alpha = on ? 0 : 1;
-            if (on) Fader.Set(g, 1);
+            if (!on) return;
+            Fader.Set(g, 1);
+            CardIn.Play(g.transform.Find("Card"));
+            if (g == _title && _titleStagger) _titleStagger.Play();
         }
 
         // ------------------------------------------------------------------ title
@@ -148,10 +150,12 @@ namespace AgentClicker.UI
                        15, Theme.TextFaint, TextAlignmentOptions.TopLeft).rectTransform.TopLeft(74, y, 620, 22);
             _titleColumnHeight = y + 22 + 22;
             _titleColumn.sizeDelta = new Vector2(700, _titleColumnHeight);
+            _titleStagger = _titleColumn.gameObject.AddComponent<StaggerIn>();
         }
 
         RectTransform _titleColumn;
         float _titleColumnHeight;
+        StaggerIn _titleStagger;
 
         /// <summary>The title column fits the screen's height (scaled down when the window is short and wide).</summary>
         void FitTitleColumn()
@@ -237,6 +241,9 @@ namespace AgentClicker.UI
             _gm.Sfx.DuckMusic(0.5f);
         }
 
+        /// <summary>The pause card's scale right now (it eases in; the tour checks Reduce motion skips that).</summary>
+        internal float PauseCardScale => _pause.transform.Find("Card").localScale.x;
+
         public void ClosePause()
         {
             _pause.gameObject.SetActive(false);
@@ -258,7 +265,7 @@ namespace AgentClicker.UI
                 var b = UIKit.Button(card.transform, tabs[i], Theme.PanelLight, () => { _gm.Sfx.Play(Sound.UiClick, 0.6f); SetSettingsTab(tab); }, 8);
                 b.GetComponent<RectTransform>().TopLeft(40 + i * 160, 92, 150, 40);
                 b.Label(tabs[i], 16, Theme.Text, UIFonts.Bold);
-                _settingsTabs[tab] = b;
+                _settingsTabs[tab] = b.Menu(lift: false);
             }
             _settingsBody = UIKit.Rect("Body", card.transform).TopLeft(40, 150, 920, 520);
             var reset = UIKit.Button(card.transform, "Defaults", Theme.PanelLight, () =>
@@ -270,10 +277,12 @@ namespace AgentClicker.UI
             reset.GetComponent<RectTransform>().TopLeft(40, 690, 220, 48);
             _settingsReset = reset;
             reset.Label("RESET TO DEFAULTS", 15, Theme.TextDim, UIFonts.Bold);
+            reset.Menu();
             var done = UIKit.Button(card.transform, "Done", Theme.Accent, CloseSettings, 10);
             done.GetComponent<RectTransform>().TopLeft(760, 690, 200, 48);
             _settingsDone = done;
             done.Label("DONE", 20, Theme.Bg);
+            done.Menu();
         }
 
         public void OpenSettings(Action back)
@@ -445,7 +454,7 @@ namespace AgentClicker.UI
                 var b = UIKit.Button(row, label, Theme.PanelLight, () => { _gm.Sfx.Play(Sound.UiClick, 0.6f); onClick(); }, 8);
                 b.GetComponent<RectTransform>().TopLeft(x, 8, w, 34);
                 b.Label(label, 15, Theme.Text, UIFonts.Bold);
-                return b;
+                return b.Menu(lift: false);
             }
             if (Platform.IsWeb)
             {
@@ -478,9 +487,11 @@ namespace AgentClicker.UI
             var left = UIKit.Button(row, "Prev", Theme.PanelLight, () => Step(-1), 8);
             left.GetComponent<RectTransform>().TopLeft(560, 8, 40, 34);
             left.Label("◀", 15, Theme.Text, UIFonts.Mono);
+            left.Menu(lift: false);
             var right = UIKit.Button(row, "Next", Theme.PanelLight, () => Step(1), 8);
             right.GetComponent<RectTransform>().TopLeft(860, 8, 40, 34);
             right.Label("▶", 15, Theme.Text, UIFonts.Mono);
+            right.Menu(lift: false);
             Refresh();
             _settingsItems.Add(new FocusItem { Rect = row, Label = label, Adjust = Step, Press = () => Step(1) });
         }
@@ -505,6 +516,7 @@ namespace AgentClicker.UI
             }, 17);
             b.GetComponent<RectTransform>().TopLeft(790, 8, 110, 34);
             t = b.Label("", 16, Theme.Text, UIFonts.Bold);
+            b.Menu(lift: false);
             Refresh();
             void Flip() => b.onClick.Invoke();
             _settingsItems.Add(new FocusItem { Rect = row, Label = label, Press = Flip, Adjust = d => { if (get() != d > 0) Flip(); } });
@@ -630,6 +642,7 @@ namespace AgentClicker.UI
             var back = UIKit.Button(card.transform, "Back", Theme.Accent, () => { _gm.Sfx.Play(Sound.UiClick); _info.gameObject.SetActive(false); }, 10);
             back.GetComponent<RectTransform>().TopLeft(660, 624, 200, 50);
             back.Label("BACK", 20, Theme.Bg);
+            back.Menu();
         }
 
         public void ShowHowToPlay() => ShowInfo("How to play", HowToPlay);
@@ -662,6 +675,7 @@ namespace AgentClicker.UI
             var no = UIKit.Button(card.transform, "No", Theme.PanelLight, () => { _gm.Sfx.Play(Sound.UiClick); _confirm.gameObject.SetActive(false); }, 10);
             no.GetComponent<RectTransform>().TopLeft(40, 170, 230, 56);
             no.Label("CANCEL", 20, Theme.Text);
+            no.Menu();
             _confirmYes = UIKit.Button(card.transform, "Yes", Theme.Bad, () =>
             {
                 _gm.Sfx.Play(Sound.UiClick);
@@ -670,6 +684,7 @@ namespace AgentClicker.UI
             }, 10);
             _confirmYes.GetComponent<RectTransform>().TopLeft(290, 170, 230, 56);
             _confirmYes.Label("YES", 20, Color.white);
+            _confirmYes.Menu();
         }
 
         public void Confirm(string message, string yes, Action onYes, Color? yesColor = null)
@@ -708,6 +723,7 @@ namespace AgentClicker.UI
             skipRt.anchoredPosition = new Vector2(-30, -30);
             skipRt.sizeDelta = new Vector2(120, 40);
             skip.Label("SKIP ▶", 15, Theme.TextDim, UIFonts.Bold);
+            skip.Menu(lift: false);
         }
 
         public void ShowStoryCards(List<StoryCard> cards, Action done)

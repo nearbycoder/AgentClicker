@@ -192,6 +192,7 @@ namespace AgentClicker
         void Start()
         {
             UIFonts.Prewarm();
+            ButtonFeel.HoverSound = () => Sfx.Play(Sound.UiClick, 0.25f, 1.4f);
             Cam.Init(Refs);
             Atmosphere.Init(Refs, Cam);
             TimeOfDay.Atmosphere = Atmosphere;
