@@ -1367,3 +1367,68 @@ Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes 
 Chromium and Firefox web tests and the touch test pass on a browser build, the benchmark is re-run, screenshots go to
 `docs/media/improvements/round10/`, and the real `~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and after
 (before: no save; `prefs` as at the end of round 9).
+
+## Round 10 results (2026-10-07)
+
+All three items landed on `improvements-10`, one commit each after the plan (`10e41b9`). Tests: **147/147** (one extended), balance
+bot unchanged at 2h 09m (day 27). The tour now runs 69 checks (62), all passing at 1600×900 (load average 16–17), 1024×768
+(15–17) and, new this round, 1680×720 (21:9, 16–21), every run inside the private nested KWin. On this round's browser build the
+Chromium web test passes 21/21, Firefox 20/20 and the touch test 27/27 (load average 15–20; see below for one Chromium rerun).
+Screenshots are in [`docs/media/improvements/round10/`](media/improvements/round10).
+
+| Item | Commit | Verified by |
+|---|---|---|
+| 1. Sam never covers the monitor | `8c71f5e` | A tour check renders Sam alone (on a spare layer, through a copy of the game camera) every 0.05 s of Facepalm, Stretch and Typing at Field of view 50°, 40° and 70° and counts his pixels inside the screen's rectangle: 0 in all 369 samples at each of the three window sizes, while a control from 0.55 m (behind his head) sees him cover 41 % of the screen. The camera sits 0.30 m from the screen at 60.1° on 16:9, 75.3° on 4:3 (0.248 m at 70.0° when the setting is already wider), and the screen spans 99 % of the binding direction in every case. Before/after below |
+| 2. The chapter banner gets out of the way | `34ed595` | Tour checks at all three sizes: the banner stays with nothing else up; it's gone 0.33–0.37 s after a model drop, the 5 PM card or a ringing phone arrives, and back afterwards; no banner on the review or the night screen after clocking out under one |
+| 3. Nothing cut off, on any screen shape | `bb515c4` | A tour check asks TextMesh Pro in every shot (76) whether it cut any text on the monitor, overlays or menus. Its first run failed on three things at every size; after the fixes it passes at all three. Also new: the top bar names 20 divisions in full (widest 162 of 200 px), and the title screen's six items are inside the window and apart (column scaled x0.88 at 21:9) |
+
+![The monitor view during an outage's facepalm: 4:3 and 16:9, before and after](media/improvements/round10/monitor_facepalm_before_after.jpg)
+
+![The chapter banner before and after: with a model drop, on the review and on the night screen](media/improvements/round10/chapter_banner_before_after.jpg)
+
+![Cut off before, whole after: the 21:9 title screen, the Factory's pipeline, a gadget row and the top bar](media/improvements/round10/nothing_cut_off_before_after.jpg)
+
+**What the new checks found.** Item 1's check showed the problem wasn't only 4:3: on a 16:9 screen at the default 50°, the
+camera the game shipped with (0.37 m from the screen) let the facepalm's hand sweep across most of the monitor when an outage
+starts (bottom-left of the image above; the check caught it at 50° and at 40°). Item 3's check found, besides the top bar, that the Software Factory's pipeline had never shown
+its arrows (a 34 pt "→" in a 28 px gap, which TextMesh Pro drops whole) and that the Lava Lamp's row lost "often" (the recliner's
+would lose "Required for the Software Factory"). Running the tour at 21:9 found QUIT below the bottom of the title screen and the
+version line across CREDITS.
+
+Changes from the plan:
+* Item 1: the camera's limit is 0.30 m from the screen, not "the distance a 16:9 screen gets at 50°", because that distance is the
+  one where the hand covers the screen. So the 16:9 default changed too (0.37 m at 50° → 0.30 m at 60.1°), against the plan's
+  "unchanged at 16:9 and 50°"; a flat screen seen head-on looks the same, and the shots before and after show the same monitor.
+  The check renders Sam instead of testing his parts' bounds: in the monitor view the camera sits at his eye height just in front
+  of his face, so boxes around his parts reached past it, and six frames the bounds test flagged showed nothing on the screen.
+* Item 2: a banner cut short in its first two seconds comes back once the interruption is over (the plan said it wouldn't be shown
+  again), so a chapter's fanfare isn't lost to a model drop. Banners now also wait for an outage to end, as its banner needs clicks.
+* Item 3: the top bar says "Synergex · Timeline 10" rather than "Synergex Multiverse · T10"; gadget rows got two lines (like the
+  Board Room's perks) instead of shorter copy; the title screen fix and the arrows weren't in the plan. Two tour fixes came out of
+  the new runs: the zoom chip check assumed a 16:9 view (at 21:9 a random drop was half in view, where the chip rightly stays
+  away), so the tour now places that drop at the far end of its area; and the end-game Office shot installs every gadget, then puts
+  the office back, since the Macro Pad's auto-clicks threw off the touch checks' counts.
+* Load: the first Chromium web test ran while the load average climbed from 22 to 27 and failed only the background frame-rate
+  check, with the page at 4.3 fps even in front; the rerun at 16–19 passed 21/21 (60.1 → 15.1 → 60.3 fps).
+
+Also measured: `Tools/benchmark.sh` A/B against the published v0.1.0 (downloaded to `Builds/`, deleted afterwards), alternating two
+runs each inside the nested KWin at load average 11–20: at the 60 fps cap while clicking, main-thread CPU read 4.91 and 3.15 ms for
+v0.1.0 and 4.04 and 5.18 ms for this build in the monitor view, and 3.67 / 3.71 against 3.54 / 3.79 ms in the endless state;
+uncapped figures swung run to run as before. The monitor view draws about 53K triangles instead of 47–49K (its wider view takes in a
+little more of the room around the screen). No sign of a regression. The real `~/.config/unity3d/Nearby Games/Agent Clicker/` was
+hashed before and after: `prefs` has the same content (the editor rewrote it during the browser build), `TestResults.xml` changed
+(the editor's test package, as in rounds 3–9), and there is no save. No game setting was written there.
+
+Noticed, not changed: on day 1 of every division after a reorg the quota is 150 credits ("36.7UDc / 150 ✓ met" in the end-game
+shot), so it's met in the first second and pays a free star; from day 2 it follows the previous day. Whether day 1 should scale is
+a balance question.
+
+Deferred, and why:
+* **Other window shapes**: 16:10 and 32:9 weren't run; the three sizes above cover the narrowest and the widest common shapes.
+* **Real phones and tablets**, iOS Safari and Android Chrome: still emulation only. An iPad is 4:3, which item 1 is about; the
+  touch test's 1180×820 tablet passes.
+* **Whether the music sounds good**, **localization (#13)** and **WebKit**: unchanged from round 9.
+
+Owner decisions: unchanged. Redeploying `gh-pages` (it would bring rounds 5–10 to the hosted game; on the hosted build Sam's hand can
+cover the monitor when an outage starts), the offline-earnings cap (10% for 1 hour), Windows Build Support,
+license, signing, releases and tags, and whether the long music piece is a keeper.

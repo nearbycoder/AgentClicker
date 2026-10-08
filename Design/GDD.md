@@ -181,7 +181,10 @@ Later divisions get a short victory lap instead of the full ending.
 ## 10. Presentation
 
 * **Office view**: an over-the-shoulder 3D camera. The monitor UI is live and still clickable.
-* **Monitor view**: the camera dollies into the main monitor, so the 2D game fills the screen.
+* **Monitor view**: the camera dollies into the main monitor, so the 2D game fills the screen. It stays within 0.30 m of
+  the screen, in front of Sam's head and hands when he leans in (the outage's facepalm, the morning stretch), and widens
+  its field of view as far as the window's shape needs to fit the whole monitor; Settings → Field of view applies to
+  every other view.
 * Toggle views with `Tab`, the mouse wheel, or the on-screen button. Right-drag in
   office view to look around.
 * **Input**: mouse and keyboard; a gamepad drives an on-screen cursor; on a touch screen (the browser build on a
@@ -233,8 +236,9 @@ Omni Conductor.
 Emails are delivered while you're working, at most one every 8 seconds. Chapter-opening emails open the
 inbox automatically once you've shipped your first 10 lines of code and paused clicking for 1.5 s, so day 1 starts at
 SHIP CODE and a burst of clicks can't close the email unread (this can be turned off in settings). For the same
-reason a modal ignores clicks on its backdrop for its first half second. Chapter banners wait until no modal, model drop or call is on screen, and sit in the
-upper part of the screen, clear of SHIP CODE. The morning day card shows the current chapter.
+reason a modal ignores clicks on its backdrop for its first half second. Chapter banners wait until no dialog, model drop, outage or call is on screen, and sit in the
+upper part of the screen, clear of SHIP CODE. One that's up fades out when any of those (or the review, the night
+screen or a menu) arrives; if it had been up for under two seconds it comes back afterwards. The morning day card shows the current chapter.
 New games start with three intro cards, and the ending has five epilogue cards followed by a credits roll.
 
 ## 13. Menus & settings
