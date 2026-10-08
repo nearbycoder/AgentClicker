@@ -191,7 +191,10 @@ Later divisions get a short victory lap instead of the full ending.
   every other view.
 * Toggle views with `Tab`, the mouse wheel, or the on-screen button. Right-drag in
   office view to look around.
-* **Input**: mouse and keyboard; a gamepad drives an on-screen cursor; on a touch screen (the browser build on a
+* **Input**: mouse and keyboard; a gamepad drives an on-screen cursor. Every menu, dialog and the day's own screens
+  (login, review, night) also take a focus ring moved by the arrow keys, WASD or the D-pad, pressed with Enter, Space or A
+  (`MenuFocus`); Left and Right change a setting. On in-game screens Space and Enter only press after a short pause, since
+  they also ship code. On a touch screen (the browser build on a
   tablet or a phone held sideways) taps are clicks, one finger dragged across the office looks around, a pinch zooms
   (pinching in all the way sits back down), and the store keeps the last tapped item's details because touch has no
   hover. In the monitor view two fingers zoom into the screen (up to 3×) and pan, because the whole monitor makes
@@ -258,8 +261,9 @@ and opens the save folder on the desktop; the file is the same on every platform
 
 ## 14. Performance budget
 
-The target is under 2 ms of main-thread CPU at 60 fps on the High preset, no GC hitches while clicking,
-and graceful scaling via presets on integrated GPUs. Track it with `Tools/benchmark.sh`.
+The target is under 2 ms of main-thread CPU at 60 fps on the High step of Graphics fidelity (the default), no GC
+hitches while clicking, and graceful scaling on integrated GPUs: Low for weak hardware, Ultra as far past High as URP
+goes. Track it with `Tools/benchmark.sh`, and each fidelity step's look and GPU cost with `Tools/fidelity.sh`.
 
 ## 15. Interruptions: phone calls
 

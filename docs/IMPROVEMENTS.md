@@ -1642,3 +1642,83 @@ Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes 
 is re-run as an A/B against the baseline build (kept in `Builds/r12-base`), screenshots go to `docs/media/improvements/round12/`,
 and the real `~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and after (before: no save; `prefs` unchanged since round
 11; `TestResults.xml` and the analytics files as left by round 11).
+
+## Round 12 results (2026-10-08)
+
+All four items landed on `improvements-12`, one commit each after the plan (`9f90b9c`), plus a fix found by the browser test.
+Final checks ran on the build of `b8d9076` (the last code commit; only this docs commit follows). Tests: **163/163** (157 at
+baseline; 6 new for the fidelity ladder and its settings), balance bot unchanged at 2h 09m (day 27) (`Logs/r12/tests-final.out`,
+load 13–20). The tour now runs **93 checks** (73 before) and passes them all at 1600×900, 1024×768, 1680×720, 1280×800 and
+2560×720, each in the private nested KWin (`Logs/r12/final2-*.out`, load 11–17). On the browser build of `b8d9076` the Chromium
+web test passes 21/21 and Firefox 20/20 (`Logs/r12/webtest2-*.out`, load 11–14). Screenshots are in
+[`docs/media/improvements/round12/`](media/improvements/round12).
+
+| Item | Commit | Verified by |
+|---|---|---|
+| 1. Graphics Fidelity slider, Low to Ultra | `4cf91ac` | EditMode tests: four steps named Low to Ultra with High the default; every step costs at least as much as the one below in each setting; High is exactly the old High preset; Ultra beyond High and Low below it; out-of-range steps clamp; summaries fit the hint line; settings JSON from round 11 keeps its step. `Tools/fidelity.sh` (new): one frozen frame per step in three views, then frame and GPU times per step (table below). Tour: keyboard and D-pad move the slider and the renderer follows (MSAA 4 → 8 → 4) |
+| 2. Light through the window | `ba49d76`, `b8d9076` | The fidelity run's time series (9:30, 15:30, 17:20, 19:40, same view): sky colours follow the day, the shaft is on while the sun is up (intensity 0.197, 0.164, 0.155 in the log) and off at night, 48 specks on High. Tour occlusion and layout checks pass at all five sizes (the shaft fades out in the monitor view). The browser test found `CreatePrimitive` logging a MeshCollider error on every load (physics is stripped there); `b8d9076` builds the quad by hand and the error is gone from both browsers' consoles |
+| 3. Menus by keyboard and D-pad | `c792e09` | 19 new tour checks with real Input System keyboard and gamepad devices, passing at all five sizes: no ring after mouse movement; the first arrow shows it on NEW GAME; Enter opens Settings with Graphics fidelity focused; Right/Left move it; Enter and Space flip a toggle; Right on the tabs opens Audio; Esc closes; a dialog opens on CANCEL and Right+Enter answers YES; the D-pad parks the gamepad cursor and moves the ring, A opens Settings, the D-pad moves the slider, B closes; on the review the ring is on GO HOME and Enter presses it; Enter presses CLOCK IN; a second Enter right after CLOCK IN leaves the login alone and a deliberate one logs in |
+| 4. Buttons and screens that feel finished | `6289e4e` | Tour: the pause card is 0.976 of full size on its first frame and 1.000 after 0.5 s, and with Reduce motion it is 1.000 from the first frame; nothing cut off and nothing off the screen at all five sizes (the title column, the settings card and the dialogs keep their places once settled) |
+
+**Graphics fidelity, step by step.** Same frozen frame at each step (`Logs/r12/fidelity-final2-gl/*.png`), 1600×900, late-game office,
+AMD Radeon 8060S. Frame times are uncapped averages, the better of two interleaved 4-second passes; GPU times come from Unity's
+frame timing on Vulkan (`-force-vulkan`), because OpenGL, the player's default here, doesn't report them. OpenGL run:
+`Logs/r12/fidelity-final2-gl.out`, load 12–13; Vulkan run: `Logs/r12/fidelity-final2-vk.out`, load 12–20.
+
+| Step | What it changes | Office view: frame (GL) / frame, GPU (Vulkan) | Title screen | Monitor view |
+|---|---|---|---|---|
+| Low | 85% render scale, FXAA instead of MSAA, hard 1K shadows with one cascade to 9 m, 3 extra lights, no ambient occlusion, quarter-resolution bloom (4 passes), 64 px reflections, no sunbeam or dust | 1.34 ms / 4.43 ms, GPU 0.42 ms | 2.07 / 4.30 ms, GPU 0.46 | 3.86 / 3.36 ms, GPU 0.37 |
+| Medium | 2x MSAA, soft 2K shadows over two cascades to 12 m, 5 lights, no AO, half-resolution bloom, 128 px reflections, sunbeam with 24 specks | 2.01 / 4.97 ms, GPU 0.79 | 3.48 / 5.11 ms, GPU 0.70 | 5.20 / 5.06 ms, GPU 0.54 |
+| High (default) | 4x MSAA, soft 2K shadows to 14 m, 8 lights, SSAO (8 samples), the long-standing look, plus this round's sky, sunbeam and 48 specks | 2.45 / 7.36 ms, GPU 1.33 | 4.72 / 6.59 ms, GPU 1.20 | 5.30 / 6.94 ms, GPU 1.34 |
+| Ultra | 8x MSAA, 125% render scale, 4K shadows over four cascades to 16 m with the high soft-shadow filter, shadows from both ceiling lights, SSAO with 12 samples and fine normals, high-quality bloom (8 passes), 64-bit HDR and a 64³ grading LUT, a portrait-lens depth of field (50 mm, f/2.8) that keeps Sam and his screens sharp and fades to nothing on the monitor, 256 px reflections, 120 specks | 5.47 / 10.62 ms, GPU 3.74 | 8.22 / 10.01 ms, GPU 3.71 | 9.82 / 8.68 ms, GPU 3.21 |
+
+GPU time rises with every step in every view, in this run and the three before it (`Logs/r12/fidelity-vk`, `fidelity-item2b`,
+`fidelity-final-vk`: High 1.2–2.3 ms, Ultra 3.2–6.4 ms across the three views). Uncapped frame times on this shared machine are mostly CPU and compositor
+time and swing with the load: at load 22–36 earlier in the day they didn't even rank the steps. High against today's build: the
+benchmark, alternating the baseline build (`Builds/r12-base`, the build of round 11's final commit) and this round's twice each at
+load 14–16 on `6289e4e` (`Logs/r12/bench-final-*.out`), read 3.51 and 2.92 ms of main-thread CPU in the idle office view for the
+baseline against 2.97 and 2.83 ms for this round, and 4.4/4.2 against 3.4/4.1 ms in the monitor view at the 60 fps cap while
+clicking: no regression beyond the noise. The browser download went from 15,048,062 to 15,068,478 bytes (+20 KB, three small shaders).
+
+![Graphics fidelity: the office view at each step](media/improvements/round12/fidelity_office.jpg)
+
+![Graphics fidelity: the title screen at each step (Ultra softens the poster behind the logo)](media/improvements/round12/fidelity_title.jpg)
+
+![The monitor's text at each step, 2x crops: it stays sharp at every step](media/improvements/round12/fidelity_monitor_text.jpg)
+
+![Settings → Graphics → Graphics fidelity](media/improvements/round12/graphics_fidelity_setting.jpg)
+
+![Light through the window: morning, afternoon, sunset and night](media/improvements/round12/window_light_times.jpg)
+
+![The focus ring: title, Settings, the review, and the Controls tab](media/improvements/round12/keyboard_focus.jpg)
+
+Changes from the plan:
+* Item 1: the frame-time measurement became two interleaved passes per view and a GPU time, after the first runs at load 22–62
+  showed Low slower than Medium. Frame timing stats are now on in the player settings (they cost next to nothing) so Vulkan runs
+  report GPU time. The depth of field was first too subtle to see; it now uses a 50 mm f/2.8 lens focused halfway between Sam and
+  his screen.
+* Item 2: the dust is a batch of quads animated in the vertex shader instead of a particle system (no particle module in the browser
+  download, no CPU cost). The first build's sunbeam made NaNs at triangle edges under MSAA (an extrapolated UV fed `pow`), which the
+  bloom spread over half the screen; the shaders now clamp their inputs and outputs. From the time-series camera the afternoon shaft
+  runs back towards the camera and is mostly out of view, which is where the light really goes.
+* Item 3: A presses the focused item only once the D-pad has parked the cursor; otherwise A stays the cursor's click, as before.
+  Space and Enter on in-game screens (dialogs on the monitor, the login, the night screen) only press after a 0.6 s pause, since they
+  also ship code.
+* Hover sounds: menu-sized buttons and the settings controls tick; the monitor's dense lists don't (they only brighten and squash).
+
+Noticed, not changed: the seven `python3 -m http.server` processes from before round 11 are still running and were left alone; the
+browser build they serve from `Builds/WebGL` was rebuilt in place, as in earlier rounds. The real
+`~/.config/unity3d/Nearby Games/Agent Clicker/` was hashed before and after (`Logs/r12/real-config-*.sha256`): `prefs` is unchanged,
+there is no save, and `TestResults.xml` changed (the editor's test runner, as in rounds 3–11). After every nested run no process carried
+a nested session's marker (`Logs/r12/leftovers.txt`).
+
+Deferred, and why:
+* **Ultra on weaker GPUs and in the browser**: measured only on this Radeon 8060S on the desktop. Ultra costs about 3.7 ms of GPU at
+  1600×900 here; a 4K screen with 125% render scale and 8x MSAA would cost several times that. The browser build was checked at the
+  default step only.
+* **A real Steam Deck, real phones, WebKit, listening to the music, localization**: unchanged from round 11.
+
+Owner decisions: unchanged. Redeploying `gh-pages` (it would bring rounds 5–12 to the hosted game), the offline-earnings cap (10% for
+1 hour), Windows Build Support, license, signing, releases and tags, whether the long music piece is a keeper, and whether day 1 after a
+reorg should scale its quota and asks. New: whether OpenGL should stay the Linux player's default graphics API (Vulkan worked in every
+fidelity run here and reports GPU timing; switching would need testing on other machines).

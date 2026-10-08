@@ -154,8 +154,13 @@ the pipeline booting, the camera pulls back, and Sam puts their feet up. Then th
 
 ### Settings and quality of life
 
-Graphics presets from Low to Ultra (MSAA, shadows, SSAO, render scale), display mode, resolution, V-Sync, a
-frame cap, field of view (the monitor view always fits the whole screen) and post-processing. Separate volume sliders for effects, music and ambience. A ♪ button on the CorpOS top bar (or `M`) mutes everything at once. Work
+A **Graphics fidelity** slider from Low to Ultra: Low is for weak GPUs (85% resolution, FXAA, hard shadows, no ambient
+occlusion or sunbeams), High is the default, and Ultra adds 8x MSAA, 125% resolution, 4K shadows over four cascades,
+shadows from the ceiling lights, finer ambient occlusion, a 64-bit HDR buffer, denser dust in the sunbeams and a depth of
+field that keeps Sam and his screens sharp and never touches the monitor's text. Also display mode, resolution, V-Sync, a
+frame cap, field of view (the monitor view always fits the whole screen) and post-processing. Every menu works with the
+mouse, the keyboard (arrows, Enter, Esc) and a gamepad (the D-pad and A, or the stick's cursor), and so do the day's own
+buttons: GO HOME, CLOCK IN and LOG IN take Enter. Separate volume sliders for effects, music and ambience. A ♪ button on the CorpOS top bar (or `M`) mutes everything at once. Work
 days of 3, 5, 8 or 12 minutes, running the day while you're away, **reduce motion** (camera cuts instead of
 flying, no gadget showcases, and buttons, pulses and floating numbers hold still), **hold to keep shipping** (hold SHIP
 CODE, a key or a trigger instead of clicking, so your hands get a rest; Focus builds as it does with steady clicks), tutorial tips, a purchase
@@ -243,7 +248,7 @@ editor at `~/Unity/Hub/Editor/6000.6.2f1/Editor/Unity`, or set `UNITY_EDITOR` to
 ```sh
 Tools/unity.sh setup       # URP, post-processing, player settings, reimport models (idempotent)
 Tools/unity.sh scene       # regenerate Assets/Scenes/Main.unity from the models (the scene is committed)
-Tools/unity.sh tests       # 157 EditMode tests, including the economy balance simulation
+Tools/unity.sh tests       # 163 EditMode tests, including the economy balance simulation
 Tools/unity.sh build       # Linux player → Builds/Linux
 Tools/unity.sh build-mac   # universal macOS player → Builds/Mac
 Tools/unity.sh build-webgl # browser build (Brotli, works on any static host) → Builds/WebGL
@@ -278,6 +283,8 @@ Tools/tour.sh                  # screenshot tour of every phase, with layout che
 Tools/nested.sh Tools/tour.sh  # the same inside a private nested KWin (no window on your desktop)
 Tools/tours.sh Logs/tour       # the tour at all five window shapes it's checked at, each in a nested KWin
 Tools/benchmark.sh             # uncapped frame times, GC and render stats in a late-game office
+Tools/fidelity.sh Logs/f       # each Graphics fidelity step: same-frame screenshots in three views, frame and GPU times
+                               # (in a nested KWin; add "1600x900 -force-vulkan" for GPU times, which OpenGL doesn't report)
 Tools/soak.sh 60               # leave a late-game office alone for an hour; memory and objects every 30 s
 ```
 
@@ -308,6 +315,10 @@ docs/media/                   trailer, teaser loop, poster and screenshots
   carry meaning (`EMIT_*` glows, `GLASS_*` is transparent, `METAL_*` / `GLOSS_*` / `MATTE_*` set the surface,
   `Screen` marks a monitor), and `ModelImportPipeline.cs` turns them into URP materials on import. An editor
   script builds the scene, and the whole UI is constructed at runtime with uGUI and TextMesh Pro.
+* **Light through the window, in shaders.** The sky outside is a small URP shader on a backdrop beyond the city
+  (a gradient by view direction, haze, the sun's glow, stars at night) driven by the time of day; the sunbeam is an
+  additive prism pushed along the sun's direction from the window opening, and the dust in it is a batch of quads moved,
+  wrapped and faced to the camera entirely in the vertex shader, so it costs nothing on the CPU.
 * **A rigged, animated employee** made of rigid bone-parented parts. Ten animations (typing, sipping, stretching,
   facepalming, feet up and more) are baked on one timeline and split into clips by the importer. Typing speed
   follows your click rate.
@@ -379,7 +390,11 @@ release (v0.1.0).
   0.8). Music starts a few seconds after loading because it's synthesised on the page's only thread.
 * **No Windows build yet.** The build script has a Windows target, but it hasn't been built or tested.
 * **Gamepad support is new and only tested with a simulated controller**: the tour drives an Input System gamepad
-  device with the same events a real one sends, but no physical controller or Steam Deck has been tried. English only.
+  device with the same events a real one sends (the cursor, and the D-pad and A on the menus' focus ring), but no physical
+  controller or Steam Deck has been tried. English only.
+* **Graphics fidelity was measured on one GPU**: on this Radeon 8060S at 1600×900, Low to Ultra cost about 0.4, 0.8, 1.3 and 3.7 ms
+  of GPU time in the office view (`Tools/fidelity.sh`, Vulkan). Ultra renders at 125% with 8x MSAA, so on a large screen or a weaker
+  GPU it can cost far more; nothing else has been tried, and the browser build was only checked at the default step.
 * **The music was checked by measurement, not by ear**: the long piece's length, its sections, its loop points and its
   level are tested, but nobody has listened to it on this machine.
 * **Pacing is tuned by a bot.** The balance tests keep the first Factory between 1.5 and 5 hours for a greedy
