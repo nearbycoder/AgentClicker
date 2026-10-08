@@ -205,7 +205,7 @@ build made on Linux. It is unsigned and hasn't been tested on a Mac. If macOS re
 **In a browser.** Play it at **<https://nearbycoder.github.io/AgentClicker/>** (GitHub Pages, about 15 MB to download; a mouse and keyboard, a gamepad, or a touch screen
 held sideways). The hosted copy is the `gh-pages` branch, a plain copy of a browser build; it was published before touch
 play, monitor zoom, home-screen play, the memory fix below and the later polish (the away card for a closed game, one-tap
-FULLSCREEN, the zoom chip, the mute button, scrollbars, the longer music, the tab's title) were added, so they arrive on the site with its next update.
+FULLSCREEN, the zoom chip, the mute button, scrollbars, the longer music, the tab's title, hold to keep shipping, the day chart) were added, so they arrive on the site with its next update.
 `Tools/unity.sh build-webgl` makes the same build in `Builds/WebGL`. Serve the folder with any static web server, for example
 `python3 -m http.server -d Builds/WebGL 8000`, and open <http://localhost:8000>. The page (from
 `Unity/Assets/WebGLTemplates/AgentClicker`) fills the browser window, shows a progress bar while loading, has a
@@ -243,7 +243,7 @@ editor at `~/Unity/Hub/Editor/6000.6.2f1/Editor/Unity`, or set `UNITY_EDITOR` to
 ```sh
 Tools/unity.sh setup       # URP, post-processing, player settings, reimport models (idempotent)
 Tools/unity.sh scene       # regenerate Assets/Scenes/Main.unity from the models (the scene is committed)
-Tools/unity.sh tests       # 147 EditMode tests, including the economy balance simulation
+Tools/unity.sh tests       # 157 EditMode tests, including the economy balance simulation
 Tools/unity.sh build       # Linux player → Builds/Linux
 Tools/unity.sh build-mac   # universal macOS player → Builds/Mac
 Tools/unity.sh build-webgl # browser build (Brotli, works on any static host) → Builds/WebGL

@@ -1505,3 +1505,62 @@ Whole round: `Tools/unity.sh tests` passes (balance unchanged), the tour passes 
 and Firefox web tests and the touch test pass on a browser build, the benchmark is re-run, screenshots go to
 `docs/media/improvements/round11/`, and the real `~/.config/unity3d/Nearby Games/Agent Clicker/` is hashed before and after
 (before: no save; the same `prefs`, `TestResults.xml` and analytics files as at the end of round 10).
+
+## Round 11 results (2026-10-08)
+
+All four items landed on `improvements-11`, one commit each after the plan (`cd2d427`). Tests: **157/157** (147 at baseline; 10
+new: 1 for the scaler, 3 for holding, 6 for the day record), balance bot unchanged at 2h 09m (day 27). The tour
+now runs 73 checks (69 at baseline) and passes them all at the five sizes, 1600×900, 1024×768, 1680×720, 1280×800 and 2560×720, every
+run inside the private nested KWin, on the build of `e7c7647` (load average 3.5–15; `Logs/r11/final-*.out`). On the browser
+build of `fa8eb06` the Chromium web test passes 21/21 (load 12–15), Firefox 20/20 (9–14) and the touch test 27/27 (8–14).
+Screenshots are in [`docs/media/improvements/round11/`](media/improvements/round11).
+
+| Item | Commit | Verified by |
+|---|---|---|
+| 1. Nothing off a super-wide screen | `25c4671` | A new check in every shot (78) that each button and line of text on the menus, overlays and calls is inside the window: it passes at all five sizes, with the overlay canvas 2773×780 units at 32:9 (636 units tall before) and unchanged at the other sizes (1600×900, 1386×1039, 1833×786, 1518×949). An EditMode test for the scaling rule (16:9, 4:3, 16:10 and 21:9 keep match 0.5; 32:9 monitors get exactly 780 units). The ending's title is back at 32:9. Before/after below |
+| 2. Hold to keep shipping | `9df261a` | Tour, with real Input System devices: Space held 2 s ships 12, the mouse held on SHIP CODE 13, RT 13, none after letting go, Focus rising by 0.35–0.39 each time; with the setting off a 2 s Space hold ships 1. EditMode tests: 13 lines in 2 s at 15, 60 and 144 fps, a quick tap is one line, a two-second hitch ships at most 3, off by default, survives the settings' JSON |
+| 3. Your days at a glance | `fa8eb06` | EditMode tests: a day is recorded when the player clocks out, when the autopilot does and when the building closes; 30 kept; a reorg clears them; the review's wording ("Best day yet · +62% on yesterday", "38% below yesterday", "x20", "the same"); the save's JSON; a save from before this round loads with an empty chart. Tour: the review says "Best day yet · +62% on yesterday" inside its box; the Stats chart shows 14 bars (day 11 to today, 11 met, 2 missed) with heights in the order of the credits shipped and colours by met and missed |
+| 4. Test tools | `e7c7647` | The web tests above print the game's caps (-1 → 15 → -1 in both browsers, first try; the retry for an overloaded page didn't come up, as the load stayed under 15). `Tools/nested.sh` stopped an orphaned process started inside it (a `setsid sleep`); after every nested run this round no process carried that run's marker (`Logs/r11/*.leftovers`) |
+
+![32:9 before and after: the Settings card with its title and DONE button, and the ending's title](media/improvements/round11/super_wide_before_after.jpg)
+
+![Settings → Gameplay → Hold to keep shipping](media/improvements/round11/hold_to_keep_shipping_setting.jpg)
+
+![The review compares the day with yesterday; the Stats tab's last 14 days](media/improvements/round11/days_at_a_glance.jpg)
+
+**What the new runs found.** The 16:10 baseline passed everything; 32:9 failed on the overlays (above) and once on Sam: 51 px of him on
+the screen during a facepalm. That didn't reproduce in the next runs, so the check now samples the facepalm four times as densely, plays
+it from each pose Sam can be in when an outage starts (typing, idle, leaning back), and, when Sam shows, freezes time and names the part.
+It named his right hand (`Mesh_hand.R`, 66 of 55,264 px at 16:9 and 14 px at 21:9), clipping the bottom edge of the screen for a moment
+about 1.2–1.3 s into a facepalm that starts from typing: a real occlusion round 10's sampling had missed at every size. The monitor
+camera now stays 0.28 m from the screen (63.6° at 16:9, was 0.30 m at 60.1°); with that, 1,046 samples per size show none of Sam.
+The browser test found that the new Settings row moved its Number format and save-file clicks; their coordinates follow it.
+
+![The probe at 0.30 m: Sam's right hand at the bottom edge of the screen](media/improvements/round11/facepalm_hand_probe.jpg)
+
+Changes from the plan:
+* Item 1 grew the monitor camera change above, and the canvas floor is 780 units, which moves a 2560×1080 (64:27) monitor from 779 to 780.
+* Item 3: the tour seeds two weeks of history before the review (it jumps between saved states, so it has no real past days). Its chart
+  therefore has an odd shape (an autopilot day of 99M after 5.96B, then today at 4.76T from the tour's later state jumps), which the
+  log scale still shows in order; a real run's days grow more evenly.
+* Item 2 put the Gameplay tab at eleven rows; the save-file row now sits just above RESET and DONE (no overlap; the check passes at all sizes).
+
+Also measured: `Tools/benchmark.sh` A/B against the published v0.1.0 (downloaded to `Builds/`, deleted afterwards), alternating two runs
+each inside the nested KWin at load average 4–13: at the 60 fps cap while clicking, main-thread CPU read 2.20 and 1.87 ms for v0.1.0 and
+3.53 and 2.03 ms for this build in the monitor view (this build's first run had a hitch: 51 fps, p99 138 ms), and 2.27 / 1.60 against
+1.71 / 1.73 ms in the endless state. No sign of a regression beyond the run-to-run noise seen in every round. The real
+`~/.config/unity3d/Nearby Games/Agent Clicker/` was hashed before and after: `prefs` is unchanged, `TestResults.xml` changed (the editor's
+test package, as in rounds 3–10), and there is no save.
+
+Noticed, not changed: seven `python3 -m http.server` processes started in this repository about a day and a half before this round
+(serving `Builds/WebGL` and `Logs/dpr`) are still running; this session didn't start them, so they were left alone. Day 1 after a reorg
+also hands out its asks as trivially as its 150-credit quota ("Ship 140 credits of code by hand" with a click worth 3.72UDc), part of
+the same balance question.
+
+Deferred, and why:
+* **A real Steam Deck or super-wide monitor**: the shapes are checked in windows; no device here.
+* **Real phones and tablets**, **whether the music sounds good**, **localization (#13)** and **WebKit**: unchanged from round 10.
+
+Owner decisions: unchanged. Redeploying `gh-pages` (it would bring rounds 5–11 to the hosted game; the hosted build cuts off Settings on
+a 32:9 screen and lets Sam's hand cover the monitor), the offline-earnings cap (10% for 1 hour), Windows Build Support, license, signing,
+releases and tags, whether the long music piece is a keeper, and whether day 1 after a reorg should scale its quota and asks.
