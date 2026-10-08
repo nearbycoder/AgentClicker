@@ -24,6 +24,9 @@ namespace AgentClicker.Core
         public int ReflectionRes;
         /// <summary>A 64-bit HDR buffer and a finer colour-grading LUT (smoother gradients in the sky and the bloom).</summary>
         public bool HighPrecision;
+        /// <summary>Sunbeams through the window, and how many dust motes drift in them.</summary>
+        public bool Sunbeams;
+        public int Dust;
     }
 
     /// <summary>
@@ -38,28 +41,28 @@ namespace AgentClicker.Core
         {
             new FidelityStep
             {
-                Name = "Low", Summary = "For weak GPUs: 85% resolution, FXAA, hard shadows, no AO",
+                Name = "Low", Summary = "For weak GPUs: 85% scale, FXAA, hard shadows, no AO or sunbeams",
                 Msaa = 1, RenderScale = 0.85f, ShadowRes = 1024, Cascades = 1, ShadowDistance = 9, AdditionalLights = 3,
                 BloomQuarterRes = true, BloomIterations = 4, ReflectionRes = 64,
             },
             new FidelityStep
             {
-                Name = "Medium", Summary = "2x MSAA, soft 2K shadows, full resolution",
+                Name = "Medium", Summary = "2x MSAA, soft 2K shadows, sunbeams with a little dust",
                 Msaa = 2, RenderScale = 1f, ShadowRes = 2048, Cascades = 2, ShadowDistance = 12, AdditionalLights = 5,
-                SoftShadows = true, BloomIterations = 6, ReflectionRes = 128,
+                SoftShadows = true, BloomIterations = 6, ReflectionRes = 128, Sunbeams = true, Dust = 24,
             },
             new FidelityStep
             {
-                Name = "High", Summary = "4x MSAA, soft shadows, ambient occlusion (the default)",
+                Name = "High", Summary = "4x MSAA, soft shadows, ambient occlusion, sunbeams (default)",
                 Msaa = 4, RenderScale = 1f, ShadowRes = 2048, Cascades = 2, ShadowDistance = 14, AdditionalLights = 8,
-                SoftShadows = true, Ssao = 1, BloomIterations = 6, ReflectionRes = 128,
+                SoftShadows = true, Ssao = 1, BloomIterations = 6, ReflectionRes = 128, Sunbeams = true, Dust = 48,
             },
             new FidelityStep
             {
-                Name = "Ultra", Summary = "8x MSAA, 125% resolution, 4K and lamp shadows, depth of field",
+                Name = "Ultra", Summary = "8x MSAA, 125% scale, 4K and lamp shadows, depth of field, dust",
                 Msaa = 8, RenderScale = 1.25f, ShadowRes = 4096, Cascades = 4, ShadowDistance = 16, AdditionalLights = 8,
                 SoftShadows = true, HighSoftShadows = true, LampShadows = true, Ssao = 2, BloomHighQuality = true, BloomIterations = 8,
-                DepthOfField = true, ReflectionRes = 256, HighPrecision = true,
+                DepthOfField = true, ReflectionRes = 256, HighPrecision = true, Sunbeams = true, Dust = 120,
             },
         };
 

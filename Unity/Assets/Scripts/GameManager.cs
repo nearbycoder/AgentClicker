@@ -31,6 +31,7 @@ namespace AgentClicker
         public EmployeeController Employee { get; private set; }
         public TimeOfDay TimeOfDay { get; private set; }
         public FidelityEffects FidelityFx { get; private set; }
+        public Atmosphere Atmosphere { get; private set; }
         public ComputerUI Computer { get; private set; }
         public Overlay Overlay { get; private set; }
         public MenuUI Menu { get; private set; }
@@ -145,6 +146,7 @@ namespace AgentClicker
             Employee = gameObject.AddComponent<EmployeeController>();
             TimeOfDay = gameObject.AddComponent<TimeOfDay>();
             FidelityFx = gameObject.AddComponent<FidelityEffects>();
+            Atmosphere = gameObject.AddComponent<Atmosphere>();
             Computer = gameObject.AddComponent<ComputerUI>();
             Overlay = gameObject.AddComponent<Overlay>();
             Menu = gameObject.AddComponent<MenuUI>();
@@ -189,6 +191,8 @@ namespace AgentClicker
         {
             UIFonts.Prewarm();
             Cam.Init(Refs);
+            Atmosphere.Init(Refs, Cam);
+            TimeOfDay.Atmosphere = Atmosphere;
             TimeOfDay.Init(Refs);
             FidelityFx.Init(Refs, Cam);
             Office.Init(Model, Refs);

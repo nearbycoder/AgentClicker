@@ -71,6 +71,8 @@ namespace AgentClicker
                 }
             }
 
+            yield return TimesOfDay();
+
             _gm.Settings.quality = _original;
             _gm.ApplySettings(save: false);
             Debug.Log("[Fidelity] done");
@@ -89,6 +91,29 @@ namespace AgentClicker
             _gm.Settings.quality = step;
             _gm.ApplySettings(save: false);
             if (_gm.FidelityFx) _gm.FidelityFx.SnapFocus();
+        }
+
+        /// <summary>The light through the window over a day, at the default step, from a view that takes in the window.</summary>
+        IEnumerator TimesOfDay()
+        {
+            _gm.Menu.HideAll();
+            SetStep(Fidelity.Default);
+            QualitySettings.vSyncCount = 1;
+            _gm.Computer.CloseModal();
+            (int minutes, string name)[] times = { (30, "0930"), (390, "1530"), (500, "1720"), (640, "1940") };
+            foreach (var (minutes, name) in times)
+            {
+                _gm.Model.State.dayMinutes = minutes;
+                _gm.Cam.SetFixed(new Vector3(1.55f, 1.75f, -2.75f), new Vector3(-1.6f, 1.05f, -0.35f));
+                yield return new WaitForSeconds(1.2f);
+                _gm.Computer.CloseModal();
+                yield return new WaitForEndOfFrame();
+                string path = Path.Combine(OutputDir, $"time_{name}.png");
+                ScreenCapture.CaptureScreenshot(path);
+                yield return null;
+                var atmo = _gm.Atmosphere;
+                Debug.Log($"[Fidelity] time {name}: sunbeam {(atmo && atmo.BeamVisible ? $"on ({atmo.BeamIntensity:0.000})" : "off")}, dust {(atmo ? atmo.DustCount : 0)} ({path})");
+            }
         }
 
         /// <summary>The same frozen frame at every step.</summary>

@@ -87,6 +87,7 @@ namespace AgentClicker.Util
             if (refs.Ssao) refs.Ssao.SetActive(s.postProcessing && (p.Ssao == 1 || (p.Ssao == 2 && ultra == null)));
             if (ultra) ultra.SetActive(s.postProcessing && p.Ssao == 2);
             if (FidelityEffects.Instance) FidelityEffects.Instance.Apply(p);
+            if (Atmosphere.Instance) Atmosphere.Instance.SetFidelity(p, s.reduceMotion);
 
             var cam = refs.MainCamera;
             if (cam)

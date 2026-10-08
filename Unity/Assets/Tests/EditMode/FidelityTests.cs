@@ -34,6 +34,8 @@ namespace AgentClicker.Tests
                 Assert.GreaterOrEqual(b.Ssao, a.Ssao, at + " AO");
                 Assert.GreaterOrEqual(b.BloomIterations, a.BloomIterations, at + " bloom iterations");
                 Assert.GreaterOrEqual(b.ReflectionRes, a.ReflectionRes, at + " reflections");
+                Assert.GreaterOrEqual(b.Dust, a.Dust, at + " dust");
+                Assert.IsTrue(!a.Sunbeams || b.Sunbeams, at + " sunbeams");
                 // once a feature is on it stays on (and quarter-resolution bloom, a saving, only goes away)
                 Assert.IsTrue(!a.SoftShadows || b.SoftShadows, at + " soft shadows");
                 Assert.IsTrue(!a.HighSoftShadows || b.HighSoftShadows, at + " soft shadow filter");
@@ -72,6 +74,9 @@ namespace AgentClicker.Tests
             Assert.AreEqual(1, low.Msaa, "Low smooths edges with FXAA instead of MSAA");
             Assert.Less(low.RenderScale, 1f);
             Assert.AreEqual(0, low.Ssao);
+            Assert.IsFalse(low.Sunbeams);
+            Assert.AreEqual(0, low.Dust);
+            Assert.Greater(ultra.Dust, high.Dust);
             Assert.IsFalse(low.SoftShadows);
         }
 
