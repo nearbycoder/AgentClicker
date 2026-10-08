@@ -29,10 +29,7 @@ namespace AgentClicker.UI
             var canvas = go.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 55; // above the overlay hints, below calls and menus
-            var scaler = go.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1600, 900);
-            scaler.matchWidthOrHeight = 0.5f;
+            OverlayScaler.Add(go);
             go.AddComponent<GraphicRaycaster>();
             _root = (RectTransform)go.transform;
 

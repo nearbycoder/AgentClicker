@@ -353,6 +353,9 @@ namespace AgentClicker
             Debug.Log(_cut.Count == 0
                 ? $"[Tour] PASS nothing cut off: no text on the monitor, the overlays or the menus ends in \"…\" or is truncated in {_cutShots} shots (the activity feed's long lines excepted)"
                 : $"[Tour] FAIL text cut off: {string.Join(" | ", _cut.Values)}");
+            Debug.Log(_offscreen.Count == 0
+                ? $"[Tour] PASS nothing off the screen: every button and line of text on the menus, overlays and calls is inside the {Screen.width}×{Screen.height} window in {_cutShots} shots (overlay canvas {OverlayCanvasSize()})"
+                : $"[Tour] FAIL off the screen ({Screen.width}×{Screen.height}): {string.Join(" | ", _offscreen.Values)}");
             Debug.Log("[Tour] done");
             Application.Quit();
         }
@@ -1002,24 +1005,58 @@ namespace AgentClicker
                 frames.Add($"{f:0}°: {distance:0.000} m at {cam.fieldOfView:0.0}°, {fit}");
                 if (!fits) bad.Add($"at {f:0}° the monitor doesn't fill the view ({fit})");
                 if (Mathf.Abs(cam.fieldOfView - fov) > 0.05f) bad.Add($"at {f:0}° the camera is at {cam.fieldOfView:0.0}°, not {fov:0.0}°");
-                foreach (var pose in new[] { EmployeeController.Facepalm, EmployeeController.Stretch, EmployeeController.Typing })
+                // at the default field of view the facepalm also starts from each pose Sam can be in when an outage begins
+                // (typing, idle, and leaning back once the agents do the work), since the blend between them differs
+                var runs = new System.Collections.Generic.List<(string pose, string from)>();
+                if (f == setting)
+                    foreach (var b in new[] { EmployeeController.Relax, EmployeeController.Typing, EmployeeController.Idle })
+                        runs.Add((EmployeeController.Facepalm, b));
+                else runs.Add((EmployeeController.Facepalm, null));
+                runs.Add((EmployeeController.Stretch, null));
+                runs.Add((EmployeeController.Typing, null));
+                foreach (var (pose, start) in runs)
                 {
-                    _gm.Employee.PlayOneShot(pose, 3f);
-                    for (float t = 0; t < 2f; t += 0.05f)
+                    if (start != null)
                     {
-                        yield return new WaitForSeconds(0.05f);
+                        Time.timeScale = 1f;
+                        _gm.Employee.PlayOneShot(start, 3f);
+                        yield return new WaitForSeconds(0.6f);
+                    }
+                    // the facepalm's hand sweeps past the camera quickly: sample it four times as densely (in slow motion)
+                    bool dense = pose == EmployeeController.Facepalm;
+                    float step = dense ? 0.0125f : 0.05f;
+                    Time.timeScale = dense ? 0.25f : 1f;
+                    string from = _gm.Employee.Current;
+                    _gm.Employee.PlayOneShot(pose, 3f);
+                    for (float t = 0; t < 2f; t += step)
+                    {
+                        yield return new WaitForSeconds(step);
                         samples++;
                         int covered = 0, total = 0;
                         yield return SamPixelsOnScreen(cam, (c, n) => { covered = c; total = n; });
                         if (total < 1000) { bad.Add($"the screen is {total} px in the probe"); break; }
                         if (covered > 0)
                         {
-                            bad.Add($"{pose} at {f:0}°: Sam covers {covered} of {total} px of the screen ({t + 0.1f:0.0} s in)");
+                            // which parts: time stands still while each renderer is drawn alone
+                            float scale = Time.timeScale;
+                            Time.timeScale = 0f;
+                            var which = new System.Collections.Generic.List<string>();
+                            foreach (var r in _gm.Refs.Employee.GetComponentsInChildren<Renderer>())
+                            {
+                                if (!r.enabled || !r.gameObject.activeInHierarchy) continue;
+                                int part = 0;
+                                yield return SamPixelsOnScreen(cam, (c, n) => part = c, save: false, only: r);
+                                if (part > 0) which.Add($"{r.name} {part}");
+                            }
+                            Time.timeScale = scale;
+                            Debug.Log($"[Tour] probe parts ({pose} from {from}, {t + step:0.00} s in): {string.Join(", ", which)}");
+                            bad.Add($"{pose} at {f:0}°: Sam covers {covered} of {total} px of the screen ({t + step:0.00} s in, from {from})");
                             yield return Shot($"07x_covered_{pose}_{f:0}");
                             break;
                         }
-                        if (f == setting && pose == EmployeeController.Facepalm && Mathf.Abs(t - 0.6f) < 0.025f) yield return Shot("07a_monitor_facepalm");
+                        if (f == setting && pose == EmployeeController.Facepalm && Mathf.Abs(t - 0.6f) < step * 0.5f) yield return Shot("07a_monitor_facepalm");
                     }
+                    Time.timeScale = 1f;
                 }
             }
             _gm.Settings.fieldOfView = setting;
@@ -1030,13 +1067,13 @@ namespace AgentClicker
             _gm.Employee.PlayOneShot(EmployeeController.Facepalm, 3f);
             yield return new WaitForSeconds(0.6f);
             int seen = 0, of = 0;
-            yield return SamPixelsOnScreen(cam, (c, n) => { seen = c; of = n; });
+            yield return SamPixelsOnScreen(cam, (c, n) => { seen = c; of = n; }, save: false);
             if (seen == 0) bad.Add("the probe didn't see Sam from behind his head (control)");
             _gm.Cam.SetMode(CamMode.Monitor, 0.01f);
             _gm.Employee.PlayOneShot(EmployeeController.Idle, 0.01f);
             yield return new WaitForSeconds(0.6f);
             Debug.Log(bad.Count == 0
-                ? $"[Tour] PASS Sam never covers the monitor ({Screen.width}×{Screen.height}, {samples} samples of Facepalm, Stretch and Typing; {string.Join("; ", frames)}; control from 0.55 m: Sam covers {seen} of {of} px)"
+                ? $"[Tour] PASS Sam never covers the monitor ({Screen.width}×{Screen.height}, {samples} samples of Facepalm (from Relax, Typing and Idle at {setting:0}°), Stretch and Typing; {string.Join("; ", frames)}; control from 0.55 m: Sam covers {seen} of {of} px)"
                 : $"[Tour] FAIL Sam covers the monitor ({Screen.width}×{Screen.height}): {string.Join(" | ", bad)}; {string.Join("; ", frames)}");
         }
 
@@ -1045,10 +1082,12 @@ namespace AgentClicker
         /// pixels inside the main screen's rectangle. Exact for any pose, unlike the parts' bounds, which reach past the
         /// camera: in the monitor view it sits at Sam's eye height, just in front of his face.
         /// </summary>
-        IEnumerator SamPixelsOnScreen(Camera cam, System.Action<int, int> result)
+        int _probeShots;
+
+        IEnumerator SamPixelsOnScreen(Camera cam, System.Action<int, int> result, bool save = true, Renderer only = null)
         {
             const int Layer = 31;
-            var parts = _gm.Refs.Employee.GetComponentsInChildren<Renderer>();
+            var parts = only ? new[] { only } : _gm.Refs.Employee.GetComponentsInChildren<Renderer>();
             var layers = new int[parts.Length];
             for (int i = 0; i < parts.Length; i++) { layers[i] = parts[i].gameObject.layer; parts[i].gameObject.layer = Layer; }
             int w = 320, h = Mathf.Max(1, Mathf.RoundToInt(320 / cam.aspect));
@@ -1079,13 +1118,24 @@ namespace AgentClicker
             int x0 = Mathf.Clamp(Mathf.CeilToInt(lo.x * w), 0, w), x1 = Mathf.Clamp(Mathf.FloorToInt(hi.x * w), 0, w);
             int y0 = Mathf.Clamp(Mathf.CeilToInt(lo.y * h), 0, h), y1 = Mathf.Clamp(Mathf.FloorToInt(hi.y * h), 0, h);
             var px = tex.GetPixels32();
-            int covered = 0;
+            int covered = 0, cx0 = w, cx1 = -1, cy0 = h, cy1 = -1;
             for (int y = y0; y < y1; y++)
                 for (int x = x0; x < x1; x++)
                 {
                     var c = px[y * w + x];
-                    if (c.r < 235 || c.g > 20 || c.b < 235) covered++;
+                    if (c.r < 235 || c.g > 20 || c.b < 235)
+                    {
+                        covered++;
+                        cx0 = Mathf.Min(cx0, x); cx1 = Mathf.Max(cx1, x); cy0 = Mathf.Min(cy0, y); cy1 = Mathf.Max(cy1, y);
+                    }
                 }
+            if (covered > 0 && save)
+            {
+                // what the probe saw, for a look afterwards: Sam on magenta, the screen's rectangle in the log
+                string file = Path.Combine(OutputDir, $"07y_probe_{++_probeShots}.png");
+                File.WriteAllBytes(file, tex.EncodeToPNG());
+                Debug.Log($"[Tour] probe {file}: {w}×{h}, screen x {x0}–{x1} y {y0}–{y1}, Sam's pixels on it x {cx0}–{cx1} y {cy0}–{cy1}");
+            }
             Destroy(tex);
             result(covered, (x1 - x0) * (y1 - y0));
         }
@@ -1459,6 +1509,65 @@ namespace AgentClicker
             }
         }
 
+        static readonly System.Collections.Generic.SortedDictionary<string, string> _offscreen =
+            new System.Collections.Generic.SortedDictionary<string, string>();
+
+        static readonly string[] ScreenCanvases = { "Menu Canvas", "Overlay Canvas", "Call Canvas", "Zoom Chip Canvas" };
+
+        static string Trim(string s, int n) => s.Length <= n ? s : s.Substring(0, n) + "…";
+
+        string OverlayCanvasSize()
+        {
+            var c = GameObject.Find("Overlay Canvas");
+            var r = c ? ((RectTransform)c.transform).rect : default;
+            return $"{r.width:0}×{r.height:0} units";
+        }
+
+        /// <summary>
+        /// Buttons and text on the screen-space canvases (menus, overlays, calls, the zoom chip) that reach past the window's
+        /// edges: a 32:9 window once put the Settings card's DONE button below the bottom of the screen.
+        /// </summary>
+        void CollectOffscreen(string shot)
+        {
+            var corners = new Vector3[4];
+            void Test(Component c, Rect r, string what)
+            {
+                if (r.xMin >= -1 && r.yMin >= -1 && r.xMax <= Screen.width + 1 && r.yMax <= Screen.height + 1) return;
+                string key = (c.transform.parent ? c.transform.parent.name + "/" : "") + c.name;
+                if (!_offscreen.ContainsKey(key))
+                    _offscreen[key] = $"{key} {what} at x {r.xMin:0}–{r.xMax:0}, y {r.yMin:0}–{r.yMax:0} ({shot})";
+            }
+            bool Visible(Component c)
+            {
+                if (!c.gameObject.activeInHierarchy) return false;
+                var canvas = c.GetComponentInParent<Canvas>();
+                var root = canvas ? canvas.rootCanvas : null;
+                if (root == null || root.renderMode != RenderMode.ScreenSpaceOverlay || System.Array.IndexOf(ScreenCanvases, root.name) < 0) return false;
+                foreach (var g in c.GetComponentsInParent<CanvasGroup>())
+                    if (g.alpha < 0.05f) return false;
+                // rows of a scrolling list may sit outside their (masked) viewport
+                var mask = c.GetComponentInParent<UnityEngine.UI.RectMask2D>();
+                return mask == null;
+            }
+            foreach (var b in FindObjectsByType<UnityEngine.UI.Selectable>())
+            {
+                if (!b.isActiveAndEnabled || !Visible(b)) continue;
+                ((RectTransform)b.transform).GetWorldCorners(corners);
+                Test(b, Rect.MinMaxRect(corners[0].x, corners[0].y, corners[2].x, corners[2].y), "button");
+            }
+            foreach (var t in FindObjectsByType<TMPro.TMP_Text>())
+            {
+                if (!t.isActiveAndEnabled || t.color.a < 0.05f || string.IsNullOrEmpty(t.text) || !Visible(t)) continue;
+                t.ForceMeshUpdate();
+                if (t.textInfo.characterCount == 0) continue;
+                var b = t.textBounds;
+                var lo = t.transform.TransformPoint(b.min);
+                var hi = t.transform.TransformPoint(b.max);
+                Test(t, Rect.MinMaxRect(Mathf.Min(lo.x, hi.x), Mathf.Min(lo.y, hi.y), Mathf.Max(lo.x, hi.x), Mathf.Max(lo.y, hi.y)),
+                     $"\"{Trim(t.GetParsedText().Replace("\n", " "), 50)}\"");
+            }
+        }
+
         /// <summary>The credits card names a big number in words (none for small ones), on one line inside the card.</summary>
         void CheckCreditsLabel(string when, string words)
         {
@@ -1548,6 +1657,7 @@ namespace AgentClicker
             Debug.Log("[Tour] " + path);
             LogSmallestText(name);
             CollectCutText(name);
+            CollectOffscreen(name);
             yield return null;
             yield return null;
         }

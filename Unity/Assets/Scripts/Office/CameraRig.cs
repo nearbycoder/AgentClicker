@@ -318,8 +318,9 @@ namespace AgentClicker.Office
 
         // The monitor view's camera stays this close to the screen (metres): in front of Sam's head and hands when he leans
         // in (a facepalm at an outage, the morning stretch). Fitting the screen at 50° put it 0.37 m away on a 16:9 screen,
-        // where a facepalm's hand reached a corner of the screen, and farther on a 4:3 one or at 40°, behind his head.
-        const float MonitorMaxDistance = 0.30f;
+        // where a facepalm's hand reached a corner of the screen, and farther on a 4:3 one or at 40°, behind his head. At
+        // 0.30 m the right hand still clipped the bottom edge for a moment as a facepalm from typing came down.
+        const float MonitorMaxDistance = 0.28f;
 
         /// <summary>
         /// The monitor view's distance from the screen (unzoomed) and its field of view: no farther back than

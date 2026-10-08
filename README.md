@@ -273,6 +273,7 @@ Tools/make_trailer.sh          # record every shot with the scripted director, t
 Tools/make_trailer.sh --edit   # re-edit from Recordings/trailer without recording again
 Tools/tour.sh                  # screenshot tour of every phase, with layout checks (add -screen-width/-screen-height)
 Tools/nested.sh Tools/tour.sh  # the same inside a private nested KWin (no window on your desktop)
+Tools/tours.sh Logs/tour       # the tour at all five window shapes it's checked at, each in a nested KWin
 Tools/benchmark.sh             # uncapped frame times, GC and render stats in a late-game office
 Tools/soak.sh 60               # leave a late-game office alone for an hour; memory and objects every 30 s
 ```
@@ -345,7 +346,8 @@ release (v0.1.0).
 
 * **Tested on Linux only**: CachyOS with KDE Plasma on Wayland and an AMD Radeon 8060S. Other distributions
   and GPUs should work but haven't been tried. The screenshot tour checks every phase in a 16:9 (1600×900), a 4:3
-  (1024×768) and a 21:9 (1680×720) window; other shapes, such as 16:10, haven't been looked at shot by shot.
+  (1024×768), a 21:9 (1680×720), a 16:10 (1280×800, the Steam Deck's shape) and a 32:9 (2560×720) window
+  (`Tools/tours.sh` runs all five); no real Steam Deck or super-wide monitor has been tried.
 * **XWayland hang**: the Linux player can hang at startup through XWayland. Launch with `-force-wayland`
   (the `AgentClicker.sh` launcher in zips made by `Tools/package.sh`, and `Tools/play.sh`, do this for you).
 * **One unexplained crash**: in October 2026 the Linux player crashed once (SIGSEGV on a native worker thread,

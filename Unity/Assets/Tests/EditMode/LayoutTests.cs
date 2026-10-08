@@ -22,5 +22,22 @@ namespace AgentClicker.Tests
                 Assert.LessOrEqual(p.x + ComputerUI.DropCardWidth, ComputerUI.Width, "on the screen");
             }
         }
+
+        [Test]
+        public void OverlaysKeepTheirScaleUpTo21by9AndStayTallOnWiderScreens()
+        {
+            // 16:9, 4:3, 16:10 and 21:9 keep Unity's match 0.5, as before
+            foreach (var (w, h) in new[] { (1600, 900), (1920, 1080), (1024, 768), (1280, 800), (1680, 720) })
+                Assert.AreEqual(0.5f, OverlayScaler.Match(w, h), 1e-4f, $"{w}x{h}");
+            Assert.AreEqual(785f, OverlayScaler.CanvasHeight(1680, 720), 1f, "21:9 as before");
+            Assert.AreEqual(780f, OverlayScaler.CanvasHeight(2560, 1080), 1f, "a 64:27 monitor: 779 units before, now 780");
+            // 32:9 would get a 636-unit canvas at match 0.5; it leans toward the height until the canvas is 780 units tall
+            foreach (var (w, h) in new[] { (2560, 720), (3840, 1080), (5120, 1440) })
+            {
+                Assert.Greater(OverlayScaler.Match(w, h), 0.5f, $"{w}x{h}");
+                Assert.AreEqual(OverlayScaler.MinHeight, OverlayScaler.CanvasHeight(w, h), 0.5f, $"{w}x{h}");
+            }
+            Assert.AreEqual(0.5f, OverlayScaler.Match(0, 0), "no window yet");
+        }
     }
 }

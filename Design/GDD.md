@@ -181,7 +181,7 @@ Later divisions get a short victory lap instead of the full ending.
 ## 10. Presentation
 
 * **Office view**: an over-the-shoulder 3D camera. The monitor UI is live and still clickable.
-* **Monitor view**: the camera dollies into the main monitor, so the 2D game fills the screen. It stays within 0.30 m of
+* **Monitor view**: the camera dollies into the main monitor, so the 2D game fills the screen. It stays within 0.28 m of
   the screen, in front of Sam's head and hands when he leans in (the outage's facepalm, the morning stretch), and widens
   its field of view as far as the window's shape needs to fit the whole monitor; Settings → Field of view applies to
   every other view.
@@ -207,6 +207,8 @@ Later divisions get a short victory lap instead of the full ending.
   (101 s: A = the loop, B = Am7–Dm7–G7–Cmaj7, C = a breakdown without drums, A' = a new melody ending on the loop's last
   bar) takes over exactly where the loop comes round again. Its first 8 bars are the loop sample for sample.
 * Every scrolling list (store, Board Room, Stats, inbox) shows a slim scrollbar while its rows don't fit.
+* Menus, overlays and calls are laid out for 1600×900 and scaled by the window's width and height together; on a screen
+  wider than 21:9 (a 32:9 monitor) they lean toward the height so the layout stays at least 780 units tall (`OverlayScaler`).
 * Timed effects: production effects (Hype, Buzz, an outage) beside the rate with their seconds left, click effects
   (Caffeine Rush, Coffee) on SHIP CODE's line. The 5 PM card's quota line follows overtime while it's up.
 

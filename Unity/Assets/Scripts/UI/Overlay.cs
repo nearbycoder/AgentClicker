@@ -25,10 +25,7 @@ namespace AgentClicker.UI
             var canvas = go.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 50;
-            var scaler = go.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1600, 900);
-            scaler.matchWidthOrHeight = 0.5f;
+            OverlayScaler.Add(go);
             go.AddComponent<GraphicRaycaster>();
             _root = (RectTransform)go.transform;
 
@@ -88,8 +85,13 @@ namespace AgentClicker.UI
             _ending = Group("Ending", raycast: true);
             var endBg = UIKit.Image(_ending.transform, "Shade", new Color(0.02f, 0.02f, 0.05f, 0.72f));
             endBg.rectTransform.Anchor(0, 0, 1, 0.42f).Insets(0, 0, 0, 0);
-            UIKit.Text(_ending.transform, "Title", "100% AUTOMATED", 76, Theme.Gold, TextAlignmentOptions.Center, UIFonts.Bold)
-                 .rectTransform.Anchor(0, 0.27f, 1, 0.4f).Insets(0, 0, 0, 0);
+            // a fixed-height box above the stats: 13% of a short canvas was too little for the 76 pt line, which TextMesh Pro
+            // then dropped whole
+            var endTitle = UIKit.Text(_ending.transform, "Title", "100% AUTOMATED", 76, Theme.Gold, TextAlignmentOptions.Center, UIFonts.Bold).rectTransform;
+            endTitle.Anchor(0, 0.27f, 1, 0.27f);
+            endTitle.pivot = new Vector2(0.5f, 0);
+            endTitle.offsetMin = Vector2.zero;
+            endTitle.offsetMax = new Vector2(0, 110);
             _endingStats = UIKit.Text(_ending.transform, "Stats", "", 22, Color.white, TextAlignmentOptions.Center, UIFonts.Medium);
             _endingStats.rectTransform.Anchor(0, 0.13f, 1, 0.27f).Insets(40, 0, 40, 0);
             var epi = UIKit.Button(_ending.transform, "Epilogue", Theme.Accent, () => _gm.PlayEpilogue(), 14);

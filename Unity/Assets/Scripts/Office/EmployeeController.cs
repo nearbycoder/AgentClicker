@@ -70,6 +70,9 @@ namespace AgentClicker.Office
             return n;
         }
 
+        /// <summary>The animation state playing (or fading in).</summary>
+        public string Current => _current;
+
         public void PlayOneShot(string state, float seconds)
         {
             if (_model != null && _model.State.factoryBuilt && state != FeetUp) return;
