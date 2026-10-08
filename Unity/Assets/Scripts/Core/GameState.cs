@@ -56,6 +56,7 @@ namespace AgentClicker.Core
         public int asksDay;
         public List<AskState> asks = new List<AskState>();
         public int asksCompleted;
+        public List<DayRecord> history = new List<DayRecord>();  // this division's recent days, for the Stats chart
 
         // per-day counters (reset each morning)
         public double handmadeToday;
@@ -94,6 +95,7 @@ namespace AgentClicker.Core
             if (rapport == null || rapport.Length != 4) Array.Resize(ref rapport, 4);
             callsDone ??= new List<string>();
             asks ??= new List<AskState>();
+            history ??= new List<DayRecord>();
             mailRead ??= new List<string>();
             perks ??= new List<string>();
             achievements ??= new List<string>();

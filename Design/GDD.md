@@ -126,6 +126,10 @@ Cost of the *n*-th copy: `baseCost × 1.15^n`. Bulk buys: x1, x10, x100 and MAX.
 * 17:00 clock out. The **performance review** compares today's earnings with
   your quota (`max(150 × day, 0.9 × yesterday)`). Meeting the quota earns a
   ⭐ and a 10% bonus.
+  It also says how the day compares with yesterday ("Best day yet · +62% on yesterday", "38% below yesterday").
+  Every clock-out (the player's, the autopilot's, or the building closing at 23:30) is recorded: the save keeps the
+  division's last 30 days (`DayHistory`, cleared by a reorg), and the Stats tab opens with a chart of the last 14 (log
+  scale, green met, red missed, a tick at each quota, today's bar growing in cyan; hover or tap a bar for the day).
 * **Night shift**: agents earn 60 seconds of production at night (x1.5 with the Mini Fridge).
 * **Away from the keyboard** (`DayAutopilot`, on by default): agents only produce during the work day, so
   an idle game would otherwise stop at the review. With no input, the game clocks out 30 s after 17:00,

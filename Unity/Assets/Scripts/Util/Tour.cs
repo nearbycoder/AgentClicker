@@ -207,9 +207,11 @@ namespace AgentClicker
             // ---- review & night ----------------------------------------------
             _gm.Overlay.ShowChapterBanner(5); // clocking out under a banner (round 9's tour drew it across the review)
             yield return new WaitForSeconds(0.3f);
+            SeedDayHistory();
             M.ClockOut();
             yield return new WaitForSeconds(0.8f);
             yield return Shot("08_review");
+            CheckReviewTrend();
             CheckNoBanner("on the review");
             _gm.Computer.CloseModal();
             _gm.GoHome();
@@ -282,6 +284,7 @@ namespace AgentClicker
             _gm.Computer.SelectStoreTab(StorePanel.StatsTabIndex);
             yield return new WaitForSeconds(0.6f);
             yield return Shot("17_stats");
+            CheckDayChart();
             CheckScrollbar("Stats tab", ActiveList("Stats"), true);
             _gm.Computer.ShowCareer(false);
             yield return new WaitForSeconds(0.6f);
@@ -590,6 +593,66 @@ namespace AgentClicker
             M.RandomEventsEnabled = wasEvents;
             Debug.Log(ok ? $"[Tour] PASS hold to keep shipping: {string.Join("; ", results)}"
                          : $"[Tour] FAIL hold to keep shipping: {string.Join("; ", results)}");
+        }
+
+        /// <summary>
+        /// Two weeks of earlier days for the review and the Stats chart (the tour jumps between saved states, so it has no
+        /// real history): each day about a third up on the one before, against a quota of 90% of it, with day 15 missed.
+        /// Yesterday is today's earnings over 1.62, so the review can say exactly what it should.
+        /// </summary>
+        void SeedDayHistory()
+        {
+            var s = M.State;
+            s.history.Clear();
+            double earned = s.earnedToday / 1.62;
+            var days = new System.Collections.Generic.List<DayRecord>();
+            for (int d = s.day - 1; d >= System.Math.Max(1, s.day - 14); d--)
+            {
+                bool missed = d == 15;
+                days.Insert(0, new DayRecord { day = d, earned = earned, quota = missed ? earned * 1.25 : earned * 0.9 });
+                earned /= 1.33;
+            }
+            s.history.AddRange(days);
+        }
+
+        void CheckReviewTrend()
+        {
+            var t = _gm.Computer.ReviewNumbers;
+            string text = t ? t.GetParsedText() : "";
+            bool ok = text.Contains("Best day yet · +62% on yesterday");
+            if (t) t.ForceMeshUpdate();
+            Debug.Log(ok && t && !t.isTextOverflowing
+                ? $"[Tour] PASS the review says how the day compares (\"{text.Replace("\n", " / ")}\")"
+                : $"[Tour] FAIL the review's comparison: \"{text.Replace("\n", " / ")}\" (overflowing {t?.isTextOverflowing})");
+        }
+
+        /// <summary>The Stats chart: one bar per day shown, heights in the order of the values, colours by met and missed.</summary>
+        void CheckDayChart()
+        {
+            var store = _gm.Computer.Store;
+            var bars = store.DayBars;
+            var bad = new System.Collections.Generic.List<string>();
+            int met = 0, missed = 0, today = 0;
+            for (int i = 0; i < bars.Count; i++)
+            {
+                var img = store.DayBarImage(i);
+                if (!img.gameObject.activeInHierarchy) bad.Add($"day {bars[i].Day} has no bar");
+                var want = bars[i].Today ? Theme.Accent : bars[i].Met ? Theme.Good : Theme.Bad;
+                if (img.color != want) bad.Add($"day {bars[i].Day} is the wrong colour");
+                if (bars[i].Today) today++; else if (bars[i].Met) met++; else missed++;
+                for (int j = 0; j < i; j++)
+                {
+                    float hi = img.rectTransform.anchorMax.y, hj = store.DayBarImage(j).rectTransform.anchorMax.y;
+                    if (bars[i].Earned > bars[j].Earned * 1.01 && hi <= hj) bad.Add($"day {bars[i].Day} isn't taller than day {bars[j].Day}");
+                    if (bars[i].Earned < bars[j].Earned * 0.99 && hi >= hj) bad.Add($"day {bars[i].Day} isn't shorter than day {bars[j].Day}");
+                }
+            }
+            if (bars.Count != DayHistory.Shown) bad.Add($"{bars.Count} bars, not {DayHistory.Shown}");
+            if (today != 1 || missed < 1) bad.Add($"today {today}, missed {missed}");
+            Debug.Log(bad.Count == 0
+                ? $"[Tour] PASS the Stats chart shows the last {bars.Count} days (day {bars[0].Day} to today, {met} met, {missed} missed), heights in order of the credits shipped " +
+                  $"({string.Join(", ", System.Linq.Enumerable.Select(bars, b => $"{b.Day}: {NumberFormat.Short(b.Earned)}"))})"
+                : $"[Tour] FAIL the Stats chart: {string.Join(" | ", bad)}");
         }
 
         IEnumerator GoalCardSegment()

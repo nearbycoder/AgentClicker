@@ -49,6 +49,7 @@ namespace AgentClicker.Core
         public double Earned, Quota, Bonus;
         public bool Met;
         public int Stars;
+        public string Trend;   // "Best day yet · +62% on yesterday", or "" with nothing to compare
         public string ManagerName, ManagerSays;
     }
 
@@ -437,6 +438,8 @@ namespace AgentClicker.Core
                 _dirty = true;
             }
             review.Stars = State.stars;
+            DayHistory.Record(State.history, State.day, State.earnedToday, State.quotaToday);
+            review.Trend = DayHistory.Trend(State.history);
             review.ManagerName = FlavorText.ManagerName(this);
             review.ManagerSays = FlavorText.ManagerReview(review, this, _rng);
             State.Phase = GamePhase.Review;

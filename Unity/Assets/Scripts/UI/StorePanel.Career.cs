@@ -349,6 +349,7 @@ namespace AgentClicker.UI
         {
             var content = UIKit.ScrollList(page, "List", 0, out _);
             content.parent.GetComponent<RectTransform>().TopLeft(0, 0, 524, 580);
+            BuildDayChart(content);
             _stats = UIKit.Text(content, "Stats", "", 15, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Medium);
             _stats.lineSpacing = 4;
             _stats.overflowMode = TextOverflowModes.Overflow; // the list's layout sizes it to its preferred height
@@ -372,8 +373,111 @@ namespace AgentClicker.UI
         // grouped digits say it plainly up to a quadrillion; past that, the suffix gets its name
         static string InWords(double v) => v >= 1e15 && NumberFormat.Words(v).Length > 0 ? $"  <color=#828EA5>({NumberFormat.Words(v)})</color>" : "";
 
+        // ------------------------------------------------------------------ the last 14 days
+        sealed class DaySlot
+        {
+            public RectTransform Slot;
+            public Image Bar, Tick, Hit;
+        }
+
+        readonly List<DaySlot> _daySlots = new List<DaySlot>();
+        List<DayBar> _dayBars = new List<DayBar>();
+        TextMeshProUGUI _chartTitle, _chartFirst, _chartLast, _chartEmpty;
+
+        /// <summary>The chart's bars as shown (oldest first, today last while the day runs), for the tour.</summary>
+        public IReadOnlyList<DayBar> DayBars => _dayBars;
+
+        /// <summary>The bar image for a shown day (index into <see cref="DayBars"/>).</summary>
+        public Image DayBarImage(int i) => _daySlots[DayHistory.Shown - _dayBars.Count + i].Bar;
+
+        void BuildDayChart(RectTransform content)
+        {
+            var chart = UIKit.Rect("Days", content).Height(158);
+            _chartTitle = UIKit.Text(chart, "Title", "", 15, Theme.Text, TextAlignmentOptions.TopLeft, UIFonts.Medium);
+            _chartTitle.rectTransform.Anchor(0, 1, 1, 1).Insets(0, -22, 0, 0);
+            _chartTitle.textWrappingMode = TextWrappingModes.NoWrap;
+            var area = UIKit.Rect("Bars", chart);
+            area.Anchor(0, 0, 1, 1).Insets(0, 22, 0, 30);
+            UIKit.Image(area, "Floor", Theme.Border).rectTransform.Anchor(0, 0, 1, 0).Insets(0, -1, 0, -1);
+            for (int i = 0; i < DayHistory.Shown; i++)
+            {
+                var slot = UIKit.Rect("Day" + i, area);
+                slot.Anchor(i / (float)DayHistory.Shown, 0, (i + 1) / (float)DayHistory.Shown, 1).Insets(0, 0, 0, 0);
+                var hit = UIKit.Image(slot, "Hit", new Color(0, 0, 0, 0.001f), true);
+                hit.rectTransform.Fill();
+                var bar = UIKit.Panel(slot, "Bar", Theme.Good, 3);
+                bar.rectTransform.Anchor(0.16f, 0, 0.84f, 0.5f).Insets(0, 0, 0, 0);
+                var tick = UIKit.Image(slot, "Quota", Color.white.WithAlpha(0.75f));
+                tick.rectTransform.Anchor(0.04f, 0.5f, 0.96f, 0.5f).Insets(0, -1, 0, -1);
+                int index = i;
+                Hover(hit, () => DayInfo(index));
+                _daySlots.Add(new DaySlot { Slot = slot, Bar = bar, Tick = tick, Hit = hit });
+            }
+            _chartFirst = UIKit.Text(chart, "First", "", 14, Theme.TextFaint, TextAlignmentOptions.TopLeft, UIFonts.Medium);
+            _chartFirst.rectTransform.Anchor(0, 0, 0.5f, 0).Insets(0, 0, 0, -20);
+            _chartLast = UIKit.Text(chart, "Last", "", 14, Theme.TextFaint, TextAlignmentOptions.TopRight, UIFonts.Medium);
+            _chartLast.rectTransform.Anchor(0.5f, 0, 1, 0).Insets(0, 0, 0, -20);
+            _chartEmpty = UIKit.Text(area, "Empty", "Each day's credits show here once you clock out.", 14, Theme.TextFaint,
+                                     TextAlignmentOptions.Center, UIFonts.Medium);
+            _chartEmpty.rectTransform.Fill();
+        }
+
+        /// <summary>The info panel for the bar in this slot: the day, what it shipped against its quota, and the change.</summary>
+        (string, string, string) DayInfo(int slot)
+        {
+            int i = slot - (DayHistory.Shown - _dayBars.Count);
+            if (i < 0 || i >= _dayBars.Count) return ("Last 14 days", "Each day's credits shipped against its quota.", "");
+            var b = _dayBars[i];
+            string title = $"Day {b.Day} · {FlavorText.Weekday(b.Day)}{(b.Today ? " (today)" : "")}";
+            string body = b.Today
+                ? $"Shipped {NumberFormat.Short(b.Earned)} so far against a {NumberFormat.Short(b.Quota)} quota{(b.Met ? ": ★ met" : "")}."
+                : $"Shipped {NumberFormat.Short(b.Earned)} against a {NumberFormat.Short(b.Quota)} quota: {(b.Met ? "★ met" : "missed")}.";
+            string foot = "";
+            if (i > 0 && _dayBars[i - 1].Day == b.Day - 1 && _dayBars[i - 1].Earned > 0 && !b.Today)
+            {
+                double r = b.Earned / _dayBars[i - 1].Earned - 1;
+                foot = r >= 0 ? $"+{NumberFormat.Percent(r)} on day {b.Day - 1}" : $"{NumberFormat.Percent(-r)} below day {b.Day - 1}";
+            }
+            return (title, body, foot);
+        }
+
+        void RefreshDayChart(GameModel m)
+        {
+            _dayBars = DayHistory.Bars(m.State);
+            DayHistory.Range(_dayBars, out double lo, out double hi);
+            int first = DayHistory.Shown - _dayBars.Count;
+            for (int s = 0; s < _daySlots.Count; s++)
+            {
+                var slot = _daySlots[s];
+                int i = s - first;
+                bool shown = i >= 0;
+                UIKit.SetActive(slot.Bar, shown);
+                UIKit.SetActive(slot.Tick, shown);
+                if (!shown) continue;
+                var b = _dayBars[i];
+                float h = Mathf.Max(0.015f, DayHistory.Height(b.Earned, lo, hi));
+                var rt = slot.Bar.rectTransform;
+                if (Mathf.Abs(rt.anchorMax.y - h) > 0.001f) rt.anchorMax = new Vector2(rt.anchorMax.x, h);
+                var color = b.Today ? Theme.Accent : b.Met ? Theme.Good : Theme.Bad;
+                if (slot.Bar.color != color) slot.Bar.color = color;
+                float q = DayHistory.Height(b.Quota, lo, hi);
+                var trt = slot.Tick.rectTransform;
+                if (Mathf.Abs(trt.anchorMin.y - q) > 0.001f) { trt.anchorMin = new Vector2(trt.anchorMin.x, q); trt.anchorMax = new Vector2(trt.anchorMax.x, q); }
+            }
+            int met = 0;
+            foreach (var b in _dayBars) if (!b.Today && b.Met) met++;
+            int done = _dayBars.Count - (_dayBars.Count > 0 && _dayBars[_dayBars.Count - 1].Today ? 1 : 0);
+            UIKit.Set(_chartTitle, $"<color=#4DD0E1>LAST {DayHistory.Shown} DAYS</color>  <color=#828EA5>credits shipped · " +
+                                   (done > 0 ? $"<color=#3DDC97>{met} met</color> · <color=#FF5D5D>{done - met} missed</color> · " : "") +
+                                   "tick = quota</color>");
+            UIKit.SetActive(_chartEmpty, done == 0);
+            UIKit.Set(_chartFirst, _dayBars.Count > 1 ? $"Day {_dayBars[0].Day}" : "");
+            UIKit.Set(_chartLast, _dayBars.Count == 0 ? "" : _dayBars[_dayBars.Count - 1].Today ? "today" : $"Day {_dayBars[_dayBars.Count - 1].Day}");
+        }
+
         void RefreshStats(GameModel m)
         {
+            RefreshDayChart(m);
             var s = m.State;
             int types = 0;
             foreach (var c in s.agentCounts) if (c > 0) types++;

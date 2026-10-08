@@ -713,6 +713,9 @@ namespace AgentClicker.UI
         public TextMeshProUGUI DayEndQuota => _dayEndQuota;
         public bool DayEndPromptOpen => _dayEndQuota != null;
 
+        /// <summary>The review's numbers (shipped, bonus, how the day compares), for the tour.</summary>
+        public TextMeshProUGUI ReviewNumbers { get; private set; }
+
         public void ShowReview(DayReview r)
         {
             HideDrop();
@@ -723,10 +726,12 @@ namespace AgentClicker.UI
             UIKit.Text(card, "Verdict", r.Met ? "QUOTA MET ★" : "QUOTA MISSED", 52, r.Met ? Theme.Gold : Theme.Bad,
                        TextAlignmentOptions.Top, UIFonts.Bold).rectTransform.TopLeft(0, 64, 760, 64);
 
-            UIKit.Text(card, "Numbers",
+            ReviewNumbers = UIKit.Text(card, "Numbers",
                 $"Shipped today: <b>{NumberFormat.Short(r.Earned)}</b>  <color=#828EA5>/</color>  quota {NumberFormat.Short(r.Quota)}" +
-                (r.Met ? $"\nPerformance bonus: <color=#3DDC97>+{NumberFormat.Credits(r.Bonus)}</color>   ·   ★ {r.Stars} total (+{r.Stars}% credits/sec)" : ""),
-                21, Theme.Text, TextAlignmentOptions.Top, UIFonts.Medium).rectTransform.TopLeft(40, 150, 680, 70);
+                (r.Met ? $"\nPerformance bonus: <color=#3DDC97>+{NumberFormat.Credits(r.Bonus)}</color>   ·   ★ {r.Stars} total (+{r.Stars}% credits/sec)" : "") +
+                (string.IsNullOrEmpty(r.Trend) ? "" : $"\n<size=85%><color={(r.Trend.Contains("below") ? "#FF8A8A" : "#4DD0E1")}>{r.Trend}</color></size>"),
+                21, Theme.Text, TextAlignmentOptions.Top, UIFonts.Medium);
+            ReviewNumbers.rectTransform.TopLeft(40, 146, 680, 96);
 
             var bubble = UIKit.Panel(card, "Manager", Theme.PanelLight, 14);
             bubble.rectTransform.TopLeft(60, 248, 640, 130);

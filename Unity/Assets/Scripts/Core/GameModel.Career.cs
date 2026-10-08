@@ -87,6 +87,7 @@ namespace AgentClicker.Core
             s.agentDiscount = 0;
             s.asksDay = 0;
             s.asks.Clear();
+            s.history.Clear();
             s.handmadeToday = 0;
             s.hiresToday = s.upgradesToday = s.dropsToday = s.callsToday = s.officeToday = 0;
             if (HasBoardPerk("starter_kit")) GrantStarterKit();

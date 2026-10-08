@@ -124,7 +124,8 @@ four coworkers, and at +3 each one unlocks a perk. Answering any call breaks you
 **Model drops** are the golden cookie: click the card before it vanishes for Benchmark Hype (x7 production),
 a Funding Round or a Caffeine Rush (x77 clicks). **API outages** halve production until you click the banner
 enough times to fail over. Every morning Dana hands you two **asks**, and at 5 PM a **performance review**
-compares the day against your quota for a star and a bonus.
+compares the day against your quota for a star and a bonus, and says how it went against yesterday ("Best day yet ·
++62% on yesterday"). The Stats tab charts the division's last 14 days: what each shipped, its quota, met or missed.
 
 ### A story told in emails
 
