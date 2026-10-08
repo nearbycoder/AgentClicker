@@ -30,6 +30,7 @@ namespace AgentClicker
         public OfficeDirector Office { get; private set; }
         public EmployeeController Employee { get; private set; }
         public TimeOfDay TimeOfDay { get; private set; }
+        public FidelityEffects FidelityFx { get; private set; }
         public ComputerUI Computer { get; private set; }
         public Overlay Overlay { get; private set; }
         public MenuUI Menu { get; private set; }
@@ -85,7 +86,7 @@ namespace AgentClicker
             bool benchmark = false, demo = false;
             string recordPath = null, trailerDir = null;
             bool trailerStills = false;
-            string soakDir = null;
+            string soakDir = null, fidelityDir = null;
             float soakMinutes = 60f;
             for (int i = 0; i < args.Length; i++)
             {
@@ -93,6 +94,7 @@ namespace AgentClicker
                 if (args[i] == "-daylength" && i + 1 < args.Length && float.TryParse(args[i + 1], out var d)) dayLengthOverride = d;
                 if (args[i] == "-tour" && i + 1 < args.Length) tourDir = args[i + 1];
                 if (args[i] == "-benchmark") benchmark = true;
+                if (args[i] == "-fidelity" && i + 1 < args.Length) fidelityDir = args[i + 1];
                 if (args[i] == "-demo") demo = true;
                 if (args[i] == "-soak" && i + 1 < args.Length)
                 {
@@ -107,7 +109,7 @@ namespace AgentClicker
                 }
             }
             _dayLengthOverride = dayLengthOverride;
-            _automated = tourDir != null || benchmark || soakDir != null;
+            _automated = tourDir != null || benchmark || soakDir != null || fidelityDir != null;
             // the soak test leaves the game alone, so the day autopilot is what it exercises
             AutopilotAllowed = (!_automated || soakDir != null) && !demo && trailerDir == null;
 
@@ -142,6 +144,7 @@ namespace AgentClicker
             Office = gameObject.AddComponent<OfficeDirector>();
             Employee = gameObject.AddComponent<EmployeeController>();
             TimeOfDay = gameObject.AddComponent<TimeOfDay>();
+            FidelityFx = gameObject.AddComponent<FidelityEffects>();
             Computer = gameObject.AddComponent<ComputerUI>();
             Overlay = gameObject.AddComponent<Overlay>();
             Menu = gameObject.AddComponent<MenuUI>();
@@ -158,6 +161,11 @@ namespace AgentClicker
             }
             else if (demo)
                 gameObject.AddComponent<Demo>().RecordPath = recordPath;
+            else if (fidelityDir != null)
+            {
+                SavingEnabled = false;
+                gameObject.AddComponent<FidelityCheck>().OutputDir = fidelityDir;
+            }
             else if (benchmark)
             {
                 SavingEnabled = false;
@@ -182,6 +190,7 @@ namespace AgentClicker
             UIFonts.Prewarm();
             Cam.Init(Refs);
             TimeOfDay.Init(Refs);
+            FidelityFx.Init(Refs, Cam);
             Office.Init(Model, Refs);
             Employee.Init(Model, Refs);
             Computer.Init(this);

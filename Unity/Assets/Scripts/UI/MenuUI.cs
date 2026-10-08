@@ -297,8 +297,7 @@ namespace AgentClicker.UI
             switch (tab)
             {
                 case SettingsTab.Graphics:
-                    Stepper("Quality preset", GameSettings.QualityNames, () => s.quality, v => s.quality = v, y,
-                            "Low: no SSAO, hard shadows, 85% scale · Ultra: 4K shadows"); Next();
+                    FidelitySlider(y, () => s.quality, v => s.quality = v); Next();
                     if (!Platform.IsWeb) // the browser owns the window and the frame rate
                     {
                         Stepper("Display mode", GameSettings.DisplayModeNames, () => s.displayMode, v => s.displayMode = v, y); Next();
@@ -453,10 +452,47 @@ namespace AgentClicker.UI
             Refresh();
         }
 
+        /// <summary>Graphics fidelity: a slider with a notch per step, its name on the right and what it does underneath.</summary>
+        void FidelitySlider(float y, Func<int> get, Action<int> set)
+        {
+            var row = SettingRow("Graphics fidelity", y, Fidelity.Step(get()).Summary);
+            var hint = row.Find("Hint").GetComponent<TextMeshProUGUI>();
+            int last = Fidelity.Steps.Length - 1;
+            var slider = Slider(row, 0, last, () => get(), v =>
+            {
+                int step = Mathf.RoundToInt(v);
+                if (step == get()) return;
+                set(step);
+                _gm.Sfx.Play(Sound.UiClick, 0.6f, 0.9f + 0.1f * step);
+                hint.text = Fidelity.Step(step).Summary;
+                _gm.ApplySettings();
+            }, v => Fidelity.Step(Mathf.RoundToInt(v)).Name, 560, 220, 110);
+            slider.wholeNumbers = true;
+            // a notch at each step, over the track and behind the handle
+            for (int i = 0; i <= last; i++)
+            {
+                var notch = UIKit.Panel(slider.transform, "Notch" + i, Theme.TextFaint, 2);
+                var rt = notch.rectTransform;
+                float x = (float)i / last;
+                rt.anchorMin = rt.anchorMax = new Vector2(x, 0.5f);
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                // the handle area is inset 10 units each side, so the notches sit where the handle stops
+                rt.anchoredPosition = new Vector2(10 - 20 * x, 0);
+                rt.sizeDelta = new Vector2(4, 18);
+                rt.SetSiblingIndex(slider.handleRect.parent.GetSiblingIndex());
+            }
+        }
+
         void Slider(string label, float min, float max, Func<float> get, Action<float> set, float y, Func<float, string> fmt)
         {
             var row = SettingRow(label, y);
-            var area = UIKit.Rect("Slider", row).TopLeft(560, 13, 250, 24);
+            Slider(row, min, max, get, v => { set(v); _gm.ApplySettings(); }, fmt);
+        }
+
+        UnityEngine.UI.Slider Slider(RectTransform row, float min, float max, Func<float> get, Action<float> changed, Func<float, string> fmt,
+                                     float x = 560, float width = 250, float valueWidth = 80)
+        {
+            var area = UIKit.Rect("Slider", row).TopLeft(x, 13, width, 24);
             var bg = UIKit.Panel(area, "Bg", Theme.PanelLight, 6, true);
             bg.rectTransform.Anchor(0, 0.3f, 1, 0.7f).Insets(0, 0, 0, 0);
             var fillArea = UIKit.Rect("Fill Area", area);
@@ -476,13 +512,13 @@ namespace AgentClicker.UI
             slider.maxValue = max;
             slider.value = get();
             var value = UIKit.Text(row, "Value", fmt(get()), 18, Theme.Accent, TextAlignmentOptions.MidlineRight, UIFonts.Bold);
-            value.rectTransform.TopLeft(820, 0, 80, 50);
+            value.rectTransform.TopLeft(900 - valueWidth, 0, valueWidth, 50);
             slider.onValueChanged.AddListener(v =>
             {
-                set(v);
+                changed(v);
                 value.text = fmt(v);
-                _gm.ApplySettings();
             });
+            return slider;
         }
 
         // ------------------------------------------------------------------ info / how to play

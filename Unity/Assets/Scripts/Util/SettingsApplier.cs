@@ -11,21 +11,6 @@ namespace AgentClicker.Util
     /// <summary>Pushes <see cref="GameSettings"/> into Unity: URP quality, display, frame pacing, audio, camera.</summary>
     public static class SettingsApplier
     {
-        struct Preset
-        {
-            public int Msaa, ShadowRes, Cascades, AdditionalLights;
-            public float ShadowDistance, ScaleMult;
-            public bool SoftShadows, Ssao, Shadows, PointShadows;
-        }
-
-        static readonly Preset[] Presets =
-        {
-            new Preset { Msaa = 1, ShadowRes = 1024, Cascades = 1, ShadowDistance = 9, AdditionalLights = 3, ScaleMult = 0.85f, Shadows = true },
-            new Preset { Msaa = 2, ShadowRes = 2048, Cascades = 2, ShadowDistance = 12, AdditionalLights = 5, ScaleMult = 1f, Shadows = true, SoftShadows = true },
-            new Preset { Msaa = 4, ShadowRes = 2048, Cascades = 2, ShadowDistance = 14, AdditionalLights = 8, ScaleMult = 1f, Shadows = true, SoftShadows = true, Ssao = true },
-            new Preset { Msaa = 4, ShadowRes = 4096, Cascades = 2, ShadowDistance = 16, AdditionalLights = 8, ScaleMult = 1f, Shadows = true, SoftShadows = true, Ssao = true },
-        };
-
         static List<Resolution> _resolutions;
 
         /// <summary>Distinct window sizes the display supports, largest last.</summary>
@@ -49,23 +34,59 @@ namespace AgentClicker.Util
             UI.UIKit.ReduceMotion = s.reduceMotion;
         }
 
+        static ScriptableRendererFeature _ssaoUltra;
+        static bool _ssaoUltraLooked;
+
+        /// <summary>Ultra's ambient occlusion: a second SSAO feature on the renderer with more samples and finer normals.</summary>
+        static ScriptableRendererFeature SsaoUltra
+        {
+            get
+            {
+                if (_ssaoUltraLooked) return _ssaoUltra;
+                _ssaoUltraLooked = true;
+                foreach (var f in Resources.FindObjectsOfTypeAll<ScreenSpaceAmbientOcclusion>())
+                    if (f.name == "SSAO Ultra") _ssaoUltra = f;
+                if (_ssaoUltra == null) Debug.LogWarning("[Settings] no SSAO Ultra feature on the renderer; Ultra uses the standard SSAO");
+                return _ssaoUltra;
+            }
+        }
+
+        /// <summary>Settings → Graphics → Graphics fidelity (and the toggles that go with it).</summary>
         public static void ApplyGraphics(GameSettings s, SceneRefs refs)
         {
-            var p = Presets[Mathf.Clamp(s.quality, 0, Presets.Length - 1)];
+            var p = Fidelity.Step(s.quality);
             if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urp)
             {
                 urp.msaaSampleCount = p.Msaa;
-                urp.renderScale = Mathf.Clamp(s.renderScale * p.ScaleMult, 0.4f, 1f);
+                urp.renderScale = Mathf.Clamp(s.renderScale * p.RenderScale, 0.4f, 2f);
                 urp.shadowDistance = p.ShadowDistance;
                 urp.shadowCascadeCount = p.Cascades;
                 urp.mainLightShadowmapResolution = p.ShadowRes;
+                urp.additionalLightsShadowmapResolution = p.LampShadows ? 2048 : 1024;
                 urp.maxAdditionalLightsCount = p.AdditionalLights;
+                urp.hdrColorBufferPrecision = p.HighPrecision ? HDRColorBufferPrecision._64Bits : HDRColorBufferPrecision._32Bits;
+                urp.colorGradingLutSize = p.HighPrecision ? 64 : 32;
             }
 
             if (refs == null) return;
             if (refs.Sun)
-                refs.Sun.shadows = !p.Shadows ? LightShadows.None : p.SoftShadows ? LightShadows.Soft : LightShadows.Hard;
-            if (refs.Ssao) refs.Ssao.SetActive(p.Ssao && s.postProcessing);
+            {
+                refs.Sun.shadows = p.SoftShadows ? LightShadows.Soft : LightShadows.Hard;
+                SoftQuality(refs.Sun, p);
+            }
+            if (refs.CeilingLights != null)
+                foreach (var l in refs.CeilingLights)
+                {
+                    if (!l) continue;
+                    l.shadows = p.LampShadows ? LightShadows.Soft : LightShadows.None;
+                    l.shadowStrength = 0.7f;
+                    l.shadowNearPlane = 0.2f;
+                    SoftQuality(l, p);
+                }
+            var ultra = SsaoUltra;
+            if (refs.Ssao) refs.Ssao.SetActive(s.postProcessing && (p.Ssao == 1 || (p.Ssao == 2 && ultra == null)));
+            if (ultra) ultra.SetActive(s.postProcessing && p.Ssao == 2);
+            if (FidelityEffects.Instance) FidelityEffects.Instance.Apply(p);
 
             var cam = refs.MainCamera;
             if (cam)
@@ -75,6 +96,13 @@ namespace AgentClicker.Util
                 // MSAA already smooths edges; only fall back to FXAA when it's off.
                 data.antialiasing = p.Msaa > 1 ? AntialiasingMode.None : AntialiasingMode.FastApproximateAntialiasing;
             }
+        }
+
+        static void SoftQuality(Light light, FidelityStep p)
+        {
+            var data = light.GetComponent<UniversalAdditionalLightData>();
+            if (!data) data = light.gameObject.AddComponent<UniversalAdditionalLightData>();
+            data.softShadowQuality = p.HighSoftShadows ? SoftShadowQuality.High : SoftShadowQuality.UsePipelineSettings;
         }
 
         public static void ApplyDisplay(GameSettings s)

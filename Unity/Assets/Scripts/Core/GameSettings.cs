@@ -9,7 +9,7 @@ namespace AgentClicker.Core
     {
         public const string PrefsKey = "agentclicker.settings";
 
-        public static readonly string[] QualityNames = { "Low", "Medium", "High", "Ultra" };
+        public static readonly string[] QualityNames = Array.ConvertAll(Fidelity.Steps, f => f.Name);
         public static readonly string[] DisplayModeNames = { "Windowed", "Borderless", "Fullscreen" };
         public static readonly int[] FpsCaps = { 30, 60, 120, 144, 240, 0 };
         public static readonly string[] FpsCapNames = { "30", "60", "120", "144", "240", "Unlimited" };
@@ -18,7 +18,7 @@ namespace AgentClicker.Core
         public static readonly string[] NumberStyleNames = { "Short (1.23 Qa)", "Scientific (1.23e15)" };
 
         // graphics
-        public int quality = 2;
+        public int quality = Fidelity.Default;   // Graphics fidelity: index into Fidelity.Steps (it was the "quality preset")
         public int displayMode;
         public int resolutionIndex = -1;   // -1: keep the current window size
         public bool vsync = true;

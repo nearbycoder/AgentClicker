@@ -162,6 +162,21 @@ namespace AgentClicker.Office
         public float Pitch => _pitch;
         public float Distance => _dist;
 
+        /// <summary>What the view is about, for depth of field: the gadget being shown off, the screen, or Sam.</summary>
+        public Vector3 FocusPoint
+        {
+            get
+            {
+                if (Mode == CamMode.Showcase && _showcaseTarget) return _showcaseTarget.position;
+                if (Mode == CamMode.Monitor && _refs.MainScreen) return _refs.MainScreen.bounds.center;
+                if (Mode == CamMode.Fixed) return _fixedLook;
+                Vector3 head = _refs.Employee ? _refs.Employee.position + Vector3.up * 1.05f : _refs.OfficeViewPivot.position;
+                // the phone call is a close-up of Sam; everywhere else, halfway between Sam and his screen keeps both sharp
+                if (Mode == CamMode.Call || !_refs.MainScreen) return head;
+                return Vector3.Lerp(head, _refs.MainScreen.bounds.center, 0.5f);
+            }
+        }
+
         /// <summary>Office view on a gamepad: the right stick looks around, the shoulder buttons zoom (RB sits back down).</summary>
         void HandleGamepad()
         {

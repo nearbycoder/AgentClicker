@@ -27,6 +27,7 @@ namespace AgentClicker.EditorTools
             var urp = EnsureUrp();
             EnsurePostFx();
             EnsureSsao();
+            EnsureSsaoUltra();
             ConfigurePlayer();
             AlwaysIncludeShaders("TextMeshPro/Mobile/Distance Field", "TextMeshPro/Distance Field",
                 "Universal Render Pipeline/Lit", "Universal Render Pipeline/Unlit", "UI/Default");
@@ -94,20 +95,56 @@ namespace AgentClicker.EditorTools
             else p.intValue = value;
         }
 
-        /// <summary>Screen-space ambient occlusion as a renderer feature (toggled at runtime by the quality preset).</summary>
-        static void EnsureSsao()
+        /// <summary>Screen-space ambient occlusion as a renderer feature (toggled at runtime by Graphics fidelity).</summary>
+        static void EnsureSsao() => AddSsao("SSAO", true, so =>
+        {
+            Set(so, "m_Settings.Intensity", 0.9f);
+            Set(so, "m_Settings.Radius", 0.22f);
+            Set(so, "m_Settings.DirectLightingStrength", 0.2f);
+        });
+
+        /// <summary>
+        /// Graphics fidelity's Ultra step: the same occlusion with 12 samples instead of 8 and high-quality reconstructed
+        /// normals, so creases (desk legs, the chair, the keyboard) shade smoothly instead of with a faint grain.
+        ///   Tools/unity.sh exec AgentClicker.EditorTools.ProjectSetup.EnsureSsaoUltra
+        /// </summary>
+        public static void EnsureSsaoUltra()
+        {
+            AddSsao("SSAO Ultra", false, so =>
+            {
+                Set(so, "m_Settings.Intensity", 0.9f);
+                Set(so, "m_Settings.Radius", 0.24f);
+                Set(so, "m_Settings.DirectLightingStrength", 0.2f);
+                SetInt(so, "m_Settings.Samples", 0);       // High: 12 samples
+                SetInt(so, "m_Settings.NormalSamples", 2); // High
+                SetInt(so, "m_Settings.BlurQuality", 0);   // High: bilateral
+            });
+        }
+
+        static void Set(SerializedObject so, string path, float v)
+        {
+            var p = so.FindProperty(path);
+            if (p != null) p.floatValue = v; else Debug.LogWarning("[ProjectSetup] SSAO prop missing: " + path);
+        }
+
+        static void SetInt(SerializedObject so, string path, int v)
+        {
+            var p = so.FindProperty(path);
+            if (p == null) { Debug.LogWarning("[ProjectSetup] SSAO prop missing: " + path); return; }
+            if (p.propertyType == SerializedPropertyType.Enum) p.enumValueIndex = v; else p.intValue = v;
+        }
+
+        static void AddSsao(string name, bool active, System.Action<SerializedObject> configure)
         {
             var data = AssetDatabase.LoadAssetAtPath<UniversalRendererData>(UrpRendererPath);
-            if (data == null || data.rendererFeatures.Any(f => f is ScreenSpaceAmbientOcclusion)) return;
+            if (data == null || data.rendererFeatures.Any(f => f is ScreenSpaceAmbientOcclusion && f.name == name)) return;
             var ssao = ScriptableObject.CreateInstance<ScreenSpaceAmbientOcclusion>();
-            ssao.name = "SSAO";
+            ssao.name = name;
+            ssao.SetActive(active);
             AssetDatabase.AddObjectToAsset(ssao, data);
             data.rendererFeatures.Add(ssao);
             var so = new SerializedObject(ssao);
-            void F(string path, float v) { var p = so.FindProperty(path); if (p != null) p.floatValue = v; else Debug.LogWarning("[ProjectSetup] SSAO prop missing: " + path); }
-            F("m_Settings.Intensity", 0.9f);
-            F("m_Settings.Radius", 0.22f);
-            F("m_Settings.DirectLightingStrength", 0.2f);
+            configure(so);
             so.ApplyModifiedPropertiesWithoutUndo();
             var dso = new SerializedObject(data);
             var map = dso.FindProperty("m_RendererFeatureMap");
@@ -120,7 +157,7 @@ namespace AgentClicker.EditorTools
             }
             EditorUtility.SetDirty(data);
             AssetDatabase.SaveAssets();
-            Debug.Log("[ProjectSetup] added SSAO renderer feature");
+            Debug.Log("[ProjectSetup] added " + name + " renderer feature");
         }
 
         static void EnsurePostFx()
@@ -162,6 +199,7 @@ namespace AgentClicker.EditorTools
             PlayerSettings.defaultScreenWidth = 1600;
             PlayerSettings.defaultScreenHeight = 900;
             PlayerSettings.visibleInBackground = true;
+            PlayerSettings.enableFrameTimingStats = true; // GPU frame times for the -fidelity and -benchmark runs
         }
 
         static void AlwaysIncludeShaders(params string[] names)

@@ -26,21 +26,8 @@ namespace AgentClicker
             _gm.SuppressShowcase = true;
             yield return new WaitForSeconds(1.5f);
 
-            // late-game office with everything installed
+            LateGameOffice(_gm);
             var s = M.State;
-            s.day = 22;
-            s.lifetimeEarned = 2e11;
-            int[] late = { 150, 120, 100, 100, 80, 60, 40, 25, 8, 2 };
-            for (int i = 0; i < late.Length; i++) s.agentCounts[i] = late[i];
-            M.MarkDirty();
-            foreach (var o in GameDatabase.OfficeItems)
-                if (o.Id != "recliner") { s.credits = 1e12; M.BuyOffice(o.Id); }
-            s.titleIndex = 5;
-            s.dayMinutes = 6.5f * 60;
-            _gm.Office.Refresh(false);
-            _gm.Settings.autoOpenStoryMail = false;
-            _gm.Login();
-            _gm.Computer.CloseModal();
             yield return new WaitForSeconds(2f);
 
             _gm.Cam.SetMode(CamMode.Office, 0.01f);
@@ -96,6 +83,26 @@ namespace AgentClicker
             yield return AllocBisect();
             Debug.Log("[Bench] done");
             Application.Quit();
+        }
+
+        /// <summary>A late-game office with every gadget but the recliner, logged in at 3:30 PM (also used by the -fidelity run).</summary>
+        public static void LateGameOffice(GameManager gm)
+        {
+            var m = gm.Model;
+            var s = m.State;
+            s.day = 22;
+            s.lifetimeEarned = 2e11;
+            int[] late = { 150, 120, 100, 100, 80, 60, 40, 25, 8, 2 };
+            for (int i = 0; i < late.Length; i++) s.agentCounts[i] = late[i];
+            m.MarkDirty();
+            foreach (var o in GameDatabase.OfficeItems)
+                if (o.Id != "recliner") { s.credits = 1e12; m.BuyOffice(o.Id); }
+            s.titleIndex = 5;
+            s.dayMinutes = 6.5f * 60;
+            gm.Office.Refresh(false);
+            gm.Settings.autoOpenStoryMail = false;
+            gm.Login();
+            gm.Computer.CloseModal();
         }
 
         /// <summary>Per-subsystem main-thread cost via profiler markers (development builds only).</summary>
