@@ -1,6 +1,6 @@
 // Loads the hosted browser build and checks that it reaches the title screen cleanly. Exit 0 only if it does:
 // every file downloads, the game signals its title screen, the tab is titled "Agent Clicker", and there are no page
-// errors or console errors. Prints the download size and load time.
+// errors or console errors, and the phone-and-tablet touch controls stay hidden. Prints the download size and load time.
 //
 //   node Tools/check-pages.mjs <url> [chromium|firefox] [out dir]
 //   node Tools/check-pages.mjs https://nearbycoder.github.io/AgentClicker/ firefox
@@ -103,7 +103,21 @@ async function main() {
       return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
     });
 
+    // the on-screen touch controls are for phones and tablets: a desktop browser must not show them, before or after
+    // the mouse moves and clicks
+    const touchControls = () => page.evaluate(() => {
+      const el = document.querySelector("#touch-controls");
+      return el ? getComputedStyle(el).display : "absent";
+    });
+    const touchAtTitle = await touchControls();
+    await page.mouse.move(800, 450);
+    await page.mouse.move(820, 470, { steps: 4 });
+    await page.mouse.click(1400, 80);
+    await sleep(500);
+    const touchAfterMouse = await touchControls();
     console.log(`[Pages] ${engine} ${browser.version()}, renderer: ${renderer}`);
+    console.log(`[Pages] touch controls: ${touchAtTitle} at the title, ${touchAfterMouse} after the mouse moved and clicked`);
+    if (touchAtTitle === "block" || touchAfterMouse === "block") problems.push("the touch controls showed in a desktop browser");
     console.log(`[Pages] ${url}: ${outcome} in ${seconds.toFixed(1)} s, ${files} files, ${mb(bytes)} downloaded, tab title "${title}"`);
     if (outcome !== "title") problems.push("did not reach the title screen: " + outcome);
     if (title !== "Agent Clicker") problems.push(`tab title "${title}"`);

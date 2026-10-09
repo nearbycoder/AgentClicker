@@ -45,10 +45,16 @@ namespace AgentClicker.Core
         /// </summary>
         public const int WebDefault = 1;
 
-        /// <summary>The step a new player starts on in this build.</summary>
-        public const int PlayerDefault =
+        /// <summary>
+        /// Phones and tablets in the browser start on Low: iOS closes a tab that uses much more than about 1 GB, and Low
+        /// halves the render targets (no MSAA, 85% scale, a 1K shadow map). The slider still reaches every step.
+        /// </summary>
+        public const int MobileWebDefault = 0;
+
+        /// <summary>The step a new player starts on in this build (in the browser, on this device).</summary>
+        public static int PlayerDefault =>
 #if UNITY_WEBGL && !UNITY_EDITOR
-            WebDefault;
+            Util.Platform.TouchFirst ? MobileWebDefault : WebDefault;
 #else
             Default;
 #endif
@@ -57,7 +63,7 @@ namespace AgentClicker.Core
         {
             new FidelityStep
             {
-                Name = "Low", Summary = "For weak GPUs: 85% scale, FXAA, hard shadows, no AO or sunbeams",
+                Name = "Low", Summary = "Phones, weak GPUs: 85% scale, FXAA, no AO or sunbeams",
                 Msaa = 1, RenderScale = 0.85f, ShadowRes = 1024, Cascades = 1, ShadowDistance = 9, AdditionalLights = 3,
                 BloomQuarterRes = true, BloomIterations = 4, ReflectionRes = 64,
             },
@@ -85,7 +91,9 @@ namespace AgentClicker.Core
         public static FidelityStep Step(int index) => Steps[index < 0 ? 0 : index >= Steps.Length ? Steps.Length - 1 : index];
 
         /// <summary>The line under the slider: the step's summary, marked "(default)" on the step this build starts on.</summary>
-        public static string Hint(int index, int playerDefault = PlayerDefault) =>
+        public static string Hint(int index) => Hint(index, PlayerDefault);
+
+        public static string Hint(int index, int playerDefault) =>
             Step(index).Summary + (Mathf.Clamp(index, 0, Steps.Length - 1) == playerDefault ? " (default)" : "");
     }
 }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using AgentClicker.Office;
+using AgentClicker.Util;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -15,6 +16,9 @@ namespace AgentClicker.UI
     /// button, a list or the monitor's login screen leaves the camera alone. In the monitor view two fingers zoom into
     /// the screen and move around it, like a page, because the whole monitor makes small text on a phone. Touch also
     /// counts as being at the keyboard, and while it's the last thing used the prompts say "tap" instead of naming keys.
+    /// In the browser on a phone or tablet the page adds thumb-sized buttons over the game (index.html: menu, sound, the
+    /// office view, a zoom that steps through the monitor, SHIP): this tells the page which of them apply and takes their
+    /// presses (<see cref="TouchButton"/>).
     /// </summary>
     public class TouchControls : MonoBehaviour
     {
@@ -48,17 +52,110 @@ namespace AgentClicker.UI
         // the monitor's raycasters, switched off while two fingers zoom so lifting them can't click (or buy) anything
         readonly List<GraphicRaycaster> _muted = new List<GraphicRaycaster>();
         int _idleFrames;
+        // the page's buttons: a press since the last frame, SHIP presses not yet shipped, the zoom button's step (0 the
+        // whole monitor, 1 SHIP CODE's column, 2 the store), and the state last sent to the page
+        bool _buttonInput;
+        int _shipPresses;
+        int _zoomStep, _sentKey = -1;
+        const float ButtonZoom = 2.2f;
 
         public void Init(GameManager gm) => _gm = gm;
+
+        /// <summary>SHIP on the page's touch controls is held down (it ships like a held Space key).</summary>
+        public bool ShipHeld { get; private set; }
+
+        /// <summary>
+        /// How many times SHIP on the page's touch controls was pressed since the last call: two fingers landing in the same
+        /// frame are two presses.
+        /// </summary>
+        public int TakeShipPresses()
+        {
+            int n = _shipPresses;
+            _shipPresses = 0;
+            return n;
+        }
+
+        /// <summary>
+        /// A press on the page's on-screen touch controls (<c>unityInstance.SendMessage("Game", "TouchButton", name)</c>):
+        /// "menu", "mute", "view", "zoom", "ship-down" or "ship-up".
+        /// </summary>
+        public void TouchButton(string name)
+        {
+            if (_gm == null) return;
+            _buttonInput = true;
+            _lastTouch = Time.unscaledTime;
+            if (!Active)
+            {
+                Active = true;
+                Debug.Log("[Touch] on: the page's touch controls");
+            }
+            bool free = !_gm.OnTitle && !_gm.InEnding && !_gm.Menu.Blocking && !_gm.Calls.Busy;
+            switch (name)
+            {
+                case "ship-down":
+                    _shipPresses++;
+                    ShipHeld = true;
+                    return;
+                case "ship-up":
+                    ShipHeld = false;
+                    return;
+                case "menu":
+                    if (free) _gm.Menu.OpenPause();
+                    break;
+                case "mute":
+                    if (!_gm.Menu.SettingsOpen) _gm.ToggleMute();
+                    break;
+                case "view":
+                    if (free) _gm.Cam.Toggle();
+                    break;
+                case "zoom":
+                    if (free && _gm.Cam.Mode == CamMode.Monitor && !_gm.Cam.InTransition) StepZoom();
+                    break;
+            }
+            Debug.Log($"[Touch] button {name}");
+        }
+
+        /// <summary>The zoom button: the whole monitor → SHIP CODE's column → the store → the whole monitor.</summary>
+        void StepZoom()
+        {
+            _zoomStep = _gm.Cam.MonitorZoom <= 1.001f ? 1 : (_zoomStep + 1) % 3;
+            _gm.Cam.ResetMonitorZoom();
+            if (_zoomStep == 0) return;
+            var target = _zoomStep == 1 ? _gm.Computer.ShipButton : _gm.Computer.Store.AgentRowRect(0);
+            _gm.Cam.ZoomMonitor(ButtonZoom, new Vector2(Screen.width, Screen.height) * 0.5f, Vector2.zero);
+            if (target) _gm.Cam.PanMonitorTo(target.TransformPoint(target.rect.center));
+        }
+
+        /// <summary>
+        /// Tells the page which touch controls apply: the screen (title, menu, call, monitor, office or busy), whether SHIP
+        /// works, the sound and the zoom step. Sent only when something changed.
+        /// </summary>
+        void SendState()
+        {
+            if (!Platform.IsWeb) return;
+            int screen = _gm.OnTitle || _gm.Menu.TitleOpen ? 0 : _gm.Menu.Blocking || _gm.InEnding ? 1 : _gm.Calls.Busy ? 2
+                       : _gm.Cam.Mode == CamMode.Monitor ? 3 : _gm.Cam.Mode == CamMode.Office ? 4 : 5;
+            bool ship = _gm.Model.IsWorking && _gm.Computer.CanShip;
+            int zoom = _gm.Cam.MonitorZoom <= 1.001f ? 0 : Mathf.Max(1, _zoomStep);
+            if (zoom == 0) _zoomStep = 0;
+            int key = screen | (ship ? 8 : 0) | (_gm.Settings.muted ? 16 : 0) | zoom << 5;
+            if (key == _sentKey) return;
+            _sentKey = key;
+            string[] names = { "title", "menu", "call", "monitor", "office", "busy" };
+            Platform.SetTouchState($"{{\"screen\":\"{names[screen]}\",\"ship\":{(ship ? "true" : "false")}," +
+                                   $"\"muted\":{(_gm.Settings.muted ? "true" : "false")},\"zoom\":{zoom}}}");
+        }
 
         /// <summary>Whether a UI pointer event came from a finger (touch has no hover).</summary>
         public static bool IsTouch(PointerEventData e) => e is ExtendedPointerEventData x && x.pointerType == UIPointerType.Touch;
 
         void Update()
         {
-            InputThisFrame = false;
-            var ts = Touchscreen.current;
+            InputThisFrame = _buttonInput || ShipHeld;
+            _buttonInput = false;
             if (_gm == null) return;
+            SendState();
+            var ts = Touchscreen.current;
             if (ts == null || !ts.added)
             {
                 _fingers.Clear();
@@ -81,7 +178,7 @@ namespace AgentClicker.UI
                 if (!StillPressed(ts, kv.Key)) _lifted.Add(kv.Key);
             foreach (int id in _lifted) _fingers.Remove(id);
 
-            InputThisFrame = pressed > 0;
+            InputThisFrame |= pressed > 0;
             // give the monitor its taps back once the fingers have been off the screen for a frame (the UI module has seen
             // them lift by then)
             _idleFrames = pressed > 0 ? 0 : _idleFrames + 1;

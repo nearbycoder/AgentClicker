@@ -92,7 +92,18 @@ namespace AgentClicker.Tests
             {
                 Assert.LessOrEqual(Fidelity.Hint(i, Fidelity.Default).Length, 64, S[i].Name);
                 Assert.LessOrEqual(Fidelity.Hint(i, Fidelity.WebDefault).Length, 64, S[i].Name + " (web)");
+                Assert.LessOrEqual(Fidelity.Hint(i, Fidelity.MobileWebDefault).Length, 64, S[i].Name + " (phone)");
             }
+        }
+
+        [Test]
+        public void PhonesAndTabletsInTheBrowserStartOnLow()
+        {
+            Assert.AreEqual("Low", S[Fidelity.MobileWebDefault].Name);
+            Assert.AreEqual(1, S[Fidelity.MobileWebDefault].Msaa); // no multisampled render targets
+            Assert.Less(S[Fidelity.MobileWebDefault].RenderScale, 1f);
+            for (int i = 0; i < S.Length; i++)
+                Assert.AreEqual(i == Fidelity.MobileWebDefault, Fidelity.Hint(i, Fidelity.MobileWebDefault).EndsWith(" (default)"), S[i].Name);
         }
 
         [Test]

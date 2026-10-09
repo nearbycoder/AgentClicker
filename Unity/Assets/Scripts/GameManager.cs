@@ -609,8 +609,14 @@ namespace AgentClicker
             {
                 _padHold.Release();
                 _keyHold.Release();
+                _touchHold.Release();
+                Touch.TakeShipPresses();
                 return;
             }
+            // SHIP on the page's touch controls (phones and tablets): like Space, one ship per finger that comes down
+            int presses = Touch.TakeShipPresses();
+            for (int i = 0; i < presses; i++) HoldOrPress(_touchHold, true, true);
+            if (presses == 0) HoldOrPress(_touchHold, false, Touch.ShipHeld);
             var pad = Gamepad.current;
             if (pad != null)
             {
@@ -633,7 +639,7 @@ namespace AgentClicker
             }
         }
 
-        readonly HoldToShip _keyHold = new HoldToShip(), _padHold = new HoldToShip();
+        readonly HoldToShip _keyHold = new HoldToShip(), _padHold = new HoldToShip(), _touchHold = new HoldToShip();
 
         /// <summary>A press ships once; with Hold to keep shipping on, holding it on keeps shipping until it's let go.</summary>
         void HoldOrPress(HoldToShip hold, bool pressed, bool down)
@@ -796,6 +802,28 @@ namespace AgentClicker
             var urp = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
             Debug.Log($"[Probe] fps {fps.ToString("0.0", CultureInfo.InvariantCulture)} focused {Application.isFocused} " +
                       $"cap {Application.targetFrameRate} fidelity {Fidelity.Step(Settings.quality).Name} msaa {(urp ? urp.msaaSampleCount : 0)}");
+        }
+
+        /// <summary>
+        /// Test hook for the browser tests (<c>unityInstance.SendMessage("Game", "LogMemory", "")</c>): logs Unity's own
+        /// memory figures (the managed heap, the engine's allocators) and the audio clips' samples, for Tools/webmobile.mjs.
+        /// </summary>
+        public void LogMemory(string unused)
+        {
+            const double MB = 1024.0 * 1024.0;
+            long samples = 0;
+            int clips = 0;
+            foreach (var c in Resources.FindObjectsOfTypeAll<AudioClip>())
+            {
+                samples += (long)c.samples * c.channels;
+                clips++;
+            }
+            var inv = CultureInfo.InvariantCulture;
+            string Mb(long bytes) => (bytes / MB).ToString("0.0", inv);
+            Debug.Log($"[Probe] memory managed {Mb(UnityEngine.Profiling.Profiler.GetMonoUsedSizeLong())} of " +
+                      $"{Mb(UnityEngine.Profiling.Profiler.GetMonoHeapSizeLong())} MB, engine " +
+                      $"{Mb(UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong())} of " +
+                      $"{Mb(UnityEngine.Profiling.Profiler.GetTotalReservedMemoryLong())} MB, {clips} audio clips {Mb(samples * 4)} MB as floats");
         }
 
         public void OnSaveFileLoaded(string text)

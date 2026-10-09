@@ -68,6 +68,14 @@ namespace AgentClicker.Util
         System.Collections.IEnumerator RenderMusicInSteps()
         {
             yield return LofiMusic.RenderInSteps(MusicRate, 7, 6.0, SetMusic);
+            // Phones and tablets keep the 25 s loop: the long piece took the page's WebAssembly heap from 171 to 246 MB in
+            // Chrome (the engine reserved 64 MB more for its 13 MB of samples), and the heap never shrinks. iOS closes tabs
+            // that use much more than about 1 GB.
+            if (Platform.TouchFirst)
+            {
+                Debug.Log("[Sfx] phone or tablet: the music stays on the 25 s loop (the long piece costs about 75 MB of memory)");
+                yield break;
+            }
             yield return LofiMusic.RenderInSteps(MusicRate, 7, 6.0, SetSong, song: true);
         }
 #endif

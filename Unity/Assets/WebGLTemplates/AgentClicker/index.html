@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>{{{ PRODUCT_NAME }}}</title>
     <meta name="description" content="Automate yourself out of a job. Keep the paycheck. An idle clicker about a developer who hands their whole job to AI agents.">
     <!-- added to the home screen, the game opens full-screen and landscape with its own icon: phones lose the browser's bars -->
@@ -19,7 +19,9 @@
                    font: 16px/1.4 "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
                    overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
                    -webkit-tap-highlight-color: transparent; }
-      #game { position: fixed; inset: 0; }
+      html { touch-action: none; }
+      /* the game stays clear of a notch or camera cut-out held sideways; the page's colour fills the space beside it */
+      #game { position: fixed; top: 0; bottom: 0; left: env(safe-area-inset-left, 0px); right: env(safe-area-inset-right, 0px); }
       /* the game takes every gesture: fast taps on SHIP CODE must not zoom, scroll or pull-to-refresh the page */
       #unity-canvas { width: 100%; height: 100%; display: block; background: #0B111B; outline: none; touch-action: none; }
       .overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -53,6 +55,48 @@
       #error-bar { position: fixed; left: 0; right: 0; top: 0; z-index: 4; display: none; padding: 8px 44px 8px 12px;
                    background: #5A1D24; color: #FFD9D9; font-size: 14px; }
       #error-bar button { position: absolute; right: 6px; top: 4px; padding: 2px 10px; background: transparent; color: #FFD9D9; }
+      /* a note under the loading bar: the last visit ended suddenly (most likely the browser ran out of memory) */
+      #notice { display: none; max-width: 520px; color: #F2C14E; font-size: 14px; }
+
+      /* On-screen touch controls, phones and tablets only: shown while touch is the input in use (html.touch-ui), hidden
+         again by a key, a mouse or a gamepad. Every button is at least 48 CSS px (Apple asks for 44 pt), sits inside the
+         safe area, and takes its own finger, so SHIP can be drummed with two while another button is held. The game says
+         which ones apply (html[data-touch-screen], data-touch-ship, ...). */
+      #touch-controls { display: none; position: fixed; inset: 0; z-index: 2; pointer-events: none; }
+      html.touch-ui[data-touch-screen] #touch-controls { display: block; }
+      .tc-col { position: absolute; display: flex; flex-direction: column; gap: 10px; }
+      #tc-left { left: calc(env(safe-area-inset-left, 0px) + 8px); top: calc(env(safe-area-inset-top, 0px) + 8px); }
+      #tc-right { right: calc(env(safe-area-inset-right, 0px) + 8px); top: calc(env(safe-area-inset-top, 0px) + 8px); }
+      #touch-controls button { pointer-events: auto; touch-action: none; width: 48px; height: 48px; padding: 0;
+                               display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+                               color: #E6ECF5; background: rgba(11, 17, 27, 0.78); border: 1px solid rgba(77, 208, 225, 0.45);
+                               border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35); font-size: 9px; font-weight: 700;
+                               letter-spacing: 0.3px; text-transform: uppercase; }
+      #touch-controls button svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2;
+                                   stroke-linecap: round; stroke-linejoin: round; }
+      #touch-controls button.down { background: #4DD0E1; color: #0B111B; }
+      #tc-ship { position: absolute; right: calc(env(safe-area-inset-right, 0px) + 8px);
+                 bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); width: 76px !important; height: 76px !important;
+                 border-radius: 50% !important; background: rgba(77, 208, 225, 0.92) !important; color: #0B111B !important;
+                 border: 2px solid #B2F1F8 !important; font-size: 14px !important; letter-spacing: 0.5px !important; }
+      #tc-ship.down { background: #B2F1F8 !important; transform: scale(0.94); }
+      /* which buttons the current screen has */
+      #tc-view, #tc-zoom, #tc-ship, #tc-menu { display: none !important; }
+      html[data-touch-screen="monitor"] #tc-view, html[data-touch-screen="office"] #tc-view,
+      html[data-touch-screen="monitor"] #tc-zoom,
+      html[data-touch-screen="monitor"] #tc-menu, html[data-touch-screen="office"] #tc-menu, html[data-touch-screen="busy"] #tc-menu { display: flex !important; }
+      html[data-touch-ship="true"][data-touch-screen="monitor"] #tc-ship,
+      html[data-touch-ship="true"][data-touch-screen="office"] #tc-ship { display: flex !important; }
+      html[data-touch-screen="title"] #tc-mute, html[data-touch-screen="menu"] #tc-mute { display: none; }
+      html[data-touch-screen="office"] #tc-view .tc-office, html[data-touch-screen="monitor"] #tc-view .tc-desk,
+      html[data-touch-muted="true"] #tc-mute .tc-on, html[data-touch-muted="false"] #tc-mute .tc-off { display: none; }
+      html[data-touch-zoom="0"] #tc-zoom .tc-z1, html[data-touch-zoom="0"] #tc-zoom .tc-z2,
+      html[data-touch-zoom="1"] #tc-zoom .tc-z0, html[data-touch-zoom="1"] #tc-zoom .tc-z2,
+      html[data-touch-zoom="2"] #tc-zoom .tc-z0, html[data-touch-zoom="2"] #tc-zoom .tc-z1 { display: none; }
+      @media (min-width: 900px) and (min-height: 600px) {
+        #touch-controls button { width: 56px; height: 56px; font-size: 10px; }
+        #tc-ship { width: 92px !important; height: 92px !important; font-size: 16px !important; }
+      }
     </style>
   </head>
   <body>
@@ -62,6 +106,7 @@
       <div class="tagline">Automate yourself out of a job. Keep the paycheck.</div>
       <div id="progress"><div></div></div>
       <div id="status">Loading…</div>
+      <div id="notice" role="status"></div>
       <div id="failed" role="alert">
         <h2 id="failed-title">Agent Clicker can't start</h2>
         <p id="failed-help"></p>
@@ -75,6 +120,17 @@
       <p>Turn your device sideways. Agent Clicker is laid out for a wide screen.</p>
     </div>
     <button id="fullscreen" title="Fullscreen">⛶ Fullscreen</button>
+    <div id="touch-controls" aria-label="Touch controls">
+      <div id="tc-left" class="tc-col">
+        <button id="tc-menu" data-cmd="menu" aria-label="Menu"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>Menu</button>
+        <button id="tc-mute" data-cmd="mute" aria-label="Sound on or off"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="tc-on" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/><path class="tc-off" d="M16 9l5 6M21 9l-5 6"/></svg>Sound</button>
+      </div>
+      <div id="tc-right" class="tc-col">
+        <button id="tc-view" data-cmd="view" aria-label="Look around the office, or back to the desk"><svg viewBox="0 0 24 24"><path class="tc-office" d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12z"/><circle class="tc-office" cx="12" cy="12" r="2.5"/><rect class="tc-desk" x="3" y="4" width="18" height="12" rx="1.5"/><path class="tc-desk" d="M9 20h6M12 16v4"/></svg><span class="tc-office">Office</span><span class="tc-desk">Desk</span></button>
+        <button id="tc-zoom" data-cmd="zoom" aria-label="Zoom into the monitor"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/><path class="tc-z0" d="M10.5 7.5v6M7.5 10.5h6"/><path class="tc-z1 tc-z2" d="M7.5 10.5h6"/></svg><span class="tc-z0">Zoom</span><span class="tc-z1">Store</span><span class="tc-z2">All</span></button>
+      </div>
+      <button id="tc-ship" data-cmd="ship" aria-label="Ship code">Ship</button>
+    </div>
     <script>
       var canvas = document.querySelector("#unity-canvas");
       var statusEl = document.querySelector("#status");
@@ -111,8 +167,13 @@
       // (3840x2160 pixels): phones, tablets and laptops are sharp, and a huge high-DPI window never renders beyond 4K.
       // Never below one pixel per CSS pixel.
       var maxPixels = 3840 * 2160;
+      // Phones and tablets: at most 2.5x and about 1920x1200 pixels. An iPhone's 3x drew 2.3 million pixels on a 6-inch
+      // screen, and every render target the game keeps is that size: memory a phone's browser closes tabs over. (2.5x, not
+      // 2x: they start on Low, which renders at 85%, and the monitor's small text needs the pixels.)
+      var touchFirst = matchMedia("(pointer: coarse)").matches && !matchMedia("(any-pointer: fine)").matches;
+      if (touchFirst) maxPixels = 1920 * 1200;
       function pixelRatio() {
-        var dpr = window.devicePixelRatio || 1;
+        var dpr = Math.min(window.devicePixelRatio || 1, touchFirst ? 2.5 : 8);
         var css = Math.max(1, window.innerWidth * window.innerHeight);
         return Math.max(1, Math.min(dpr, Math.sqrt(maxPixels / css)));
       }
@@ -173,6 +234,136 @@
         showFsButton();
       };
 
+      // ---- phones and tablets ----
+      var root = document.documentElement;
+      // iOS Safari ignores user-scalable=no: stop pinch-zooming and double-tap-zooming the page (the game has its own pinch)
+      ["gesturestart", "gesturechange", "gestureend"].forEach(function (t) {
+        document.addEventListener(t, function (e) { e.preventDefault(); }, { passive: false });
+      });
+      document.addEventListener("dblclick", function (e) { e.preventDefault(); }, { passive: false });
+      document.addEventListener("touchmove", function (e) { if (e.cancelable) e.preventDefault(); }, { passive: false });
+      document.addEventListener("contextmenu", function (e) { if (e.target.closest && e.target.closest("#touch-controls")) e.preventDefault(); });
+
+      // Sound starts with the first tap: Safari only lets a page start audio inside a touchend, click or key handler, and
+      // the engine's own retry runs on a timer, which doesn't count. Every audio context the page makes is resumed there.
+      var audioContexts = [];
+      ["AudioContext", "webkitAudioContext"].forEach(function (name) {
+        var Base = window[name];
+        if (!Base) return;
+        var Wrapped = function (options) {
+          var ctx = options === undefined ? new Base() : new Base(options);
+          audioContexts.push(ctx);
+          return ctx;
+        };
+        Wrapped.prototype = Base.prototype;
+        window[name] = Wrapped;
+      });
+      function unlockAudio() {
+        audioContexts.forEach(function (ctx) { if (ctx.state === "suspended") ctx.resume().catch(function () {}); });
+      }
+      ["touchend", "pointerup", "click", "keydown"].forEach(function (t) { document.addEventListener(t, unlockAudio, true); });
+      window.agentClickerAudio = function () { return audioContexts.map(function (c) { return c.state; }).join(",") || "none"; }; // for tests
+
+      // The touch controls show on a phone or tablet, or once a finger touches the screen, and hide when a key, a mouse
+      // or a gamepad is used. A tap is followed by emulated mouse events in some browsers, so the mouse counts only once
+      // the fingers have been off the screen for a moment.
+      var lastTouch = touchFirst ? Date.now() : -1e9;
+      function touchUi(on) { root.classList.toggle("touch-ui", on); }
+      touchUi(touchFirst);
+      document.addEventListener("pointerdown", function (e) {
+        if (e.pointerType === "touch" || e.pointerType === "pen") { lastTouch = Date.now(); touchUi(true); }
+        else if (e.pointerType === "mouse" && Date.now() - lastTouch > 800) touchUi(false);
+      }, true);
+      document.addEventListener("touchstart", function () { lastTouch = Date.now(); touchUi(true); }, { capture: true, passive: true });
+      var mouseAt = null; // where the mouse was last seen (Safari reports no movementX for it)
+      document.addEventListener("pointermove", function (e) {
+        if (e.pointerType !== "mouse") return;
+        var moved = mouseAt ? Math.abs(e.clientX - mouseAt.x) + Math.abs(e.clientY - mouseAt.y) : 0;
+        mouseAt = { x: e.clientX, y: e.clientY };
+        if (moved > 2 && Date.now() - lastTouch > 800) touchUi(false);
+      }, true);
+      document.addEventListener("keydown", function () { touchUi(false); }, true);
+      window.addEventListener("gamepadconnected", function pollPads() {
+        (function poll() {
+          var pads = navigator.getGamepads ? navigator.getGamepads() : [];
+          for (var i = 0; i < pads.length; i++) {
+            var p = pads[i];
+            if (!p) continue;
+            if (p.buttons.some(function (b) { return b.pressed; }) || p.axes.some(function (a) { return Math.abs(a) > 0.5; })) touchUi(false);
+          }
+          if (pads.length && Array.prototype.some.call(pads, function (p) { return p; })) requestAnimationFrame(poll);
+        })();
+      });
+      // the game says which buttons apply now (Platform.SetTouchState)
+      window.agentClickerTouchState = function (json) {
+        try {
+          var st = JSON.parse(json);
+          root.dataset.touchScreen = st.screen;
+          root.dataset.touchShip = String(!!st.ship);
+          root.dataset.touchMuted = String(!!st.muted);
+          root.dataset.touchZoom = String(st.zoom | 0);
+        } catch (e) { console.warn("touch state: " + e); }
+      };
+      function send(cmd) { if (window.unityInstance) window.unityInstance.SendMessage("Game", "TouchButton", cmd); }
+      Array.prototype.forEach.call(document.querySelectorAll("#touch-controls button"), function (b) {
+        var cmd = b.dataset.cmd, fingers = 0;
+        b.addEventListener("pointerdown", function (e) {
+          e.preventDefault();
+          lastTouch = Date.now();
+          try { b.setPointerCapture(e.pointerId); } catch (err) { /* fine */ }
+          fingers++;
+          b.classList.add("down");
+          if (navigator.vibrate && cmd === "ship") navigator.vibrate(8);
+          send(cmd === "ship" ? "ship-down" : cmd);
+        });
+        var up = function () {
+          if (fingers === 0) return;
+          fingers = Math.max(0, fingers - 1);
+          if (fingers > 0) return;
+          b.classList.remove("down");
+          if (cmd === "ship") send("ship-up");
+        };
+        b.addEventListener("pointerup", up);
+        b.addEventListener("pointercancel", up);
+        document.addEventListener("visibilitychange", function () { if (document.hidden) { fingers = 1; up(); } });
+      });
+
+      // A tab the browser closed for using too much memory (iOS does this without a word) comes back as a reload: say so,
+      // instead of a dead tab. The page marks itself as running while it's visible, and clears the mark when it's hidden
+      // or closed; a mark still there on the next load means the last visit ended while the game was on screen.
+      var aliveKey = "agentclicker.alive";
+      var store = null;
+      try { store = window.localStorage; } catch (e) { /* storage blocked */ }
+      var crashed = false;
+      try { crashed = !!(store && store.getItem(aliveKey) && Date.now() - Number(store.getItem(aliveKey)) < 10 * 60 * 1000); } catch (e) { /* fine */ }
+      if (crashed) {
+        var notice = document.querySelector("#notice");
+        notice.textContent = "The game closed unexpectedly last time, most likely because the browser ran out of memory. " +
+          "If it happens again, close other tabs, or choose Settings → Graphics → Low.";
+        notice.style.display = "block";
+        console.warn("[Page] the last visit ended while the game was on screen (the tab may have run out of memory)");
+      }
+      var aliveTimer = 0;
+      function markAlive(on) {
+        try {
+          clearInterval(aliveTimer);
+          if (!store) return;
+          if (!on) { store.removeItem(aliveKey); return; }
+          store.setItem(aliveKey, String(Date.now()));
+          aliveTimer = setInterval(function () { store.setItem(aliveKey, String(Date.now())); }, 5000);
+        } catch (e) { /* fine */ }
+      }
+      document.addEventListener("visibilitychange", function () { markAlive(started && !document.hidden); });
+      window.addEventListener("pagehide", function () { markAlive(false); });
+      window.addEventListener("pageshow", function () { markAlive(started && !document.hidden); });
+
+      // the browser took the graphics away (out of GPU memory, or the GPU reset): the game can't draw again without a reload
+      canvas.addEventListener("webglcontextlost", function () {
+        markAlive(false);
+        fail("The game's graphics were reset", "The browser took back the graphics memory (this can happen on phones with " +
+             "many tabs open). Your progress is saved; reload to carry on.", "WebGL context lost.");
+      });
+
       function start() {
         var script = document.createElement("script");
         script.src = buildUrl + "/{{{ LOADER_FILENAME }}}";
@@ -183,6 +374,7 @@
           }).then(function (unityInstance) {
             started = true;
             window.unityInstance = unityInstance;
+            markAlive(!document.hidden);
             // the budget depends on the window size: follow resizes and phone rotation
             window.addEventListener("resize", function () { unityInstance.Module.devicePixelRatio = pixelRatio(); });
             document.querySelector("#loading").style.display = "none";

@@ -17,6 +17,19 @@ namespace AgentClicker.Util
         [DllImport("__Internal")] static extern int AgentClicker_CanFullscreen();
         [DllImport("__Internal")] static extern void AgentClicker_RequestFullscreen(bool on);
         [DllImport("__Internal")] static extern void AgentClicker_SetTitle(string title);
+        [DllImport("__Internal")] static extern int AgentClicker_TouchFirst();
+        [DllImport("__Internal")] static extern void AgentClicker_TouchState(string state);
+
+        static int _touchFirst = -1;
+
+        /// <summary>
+        /// A phone or tablet: the browser says the main pointer is a finger and there's no mouse or trackpad. These get
+        /// the lighter graphics default and the page's on-screen touch controls.
+        /// </summary>
+        public static bool TouchFirst => (_touchFirst < 0 ? _touchFirst = AgentClicker_TouchFirst() : _touchFirst) != 0;
+
+        /// <summary>Tells the page what its on-screen touch controls should offer (a small JSON object).</summary>
+        public static void SetTouchState(string state) => AgentClicker_TouchState(state);
 
         /// <summary>Sets the browser tab's title.</summary>
         public static void SetTitle(string title) => AgentClicker_SetTitle(title);
@@ -61,6 +74,10 @@ namespace AgentClicker.Util
         public static void RequestFullscreen(bool on) { }
 
         public static void SetTitle(string title) { }
+
+        public static bool TouchFirst => false;
+
+        public static void SetTouchState(string state) { }
 
         public static void SaveWhenHidden(string objectName, string methodName) { }
 

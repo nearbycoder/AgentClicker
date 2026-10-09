@@ -107,4 +107,16 @@ mergeInto(LibraryManager.library, {
     };
     input.click();
   },
+
+  // A phone or tablet: the main pointer is a finger and there's no mouse or trackpad (Platform.TouchFirst). A laptop with
+  // a touch screen has a fine pointer too, so it isn't one.
+  AgentClicker_TouchFirst: function () {
+    try { return matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches ? 1 : 0; }
+    catch (e) { return 0; }
+  },
+
+  // What the page's on-screen touch controls should offer now (UI/TouchControls.cs): a small JSON object the page reads.
+  AgentClicker_TouchState: function (state) {
+    if (window.agentClickerTouchState) window.agentClickerTouchState(UTF8ToString(state));
+  },
 });

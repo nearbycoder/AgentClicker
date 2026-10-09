@@ -63,6 +63,12 @@ namespace AgentClicker.UI
             }
             var fa = TMP_FontAsset.CreateFontAsset(font, 64, 8, GlyphRenderMode.SDFAA, 1024, 1024, AtlasPopulationMode.Dynamic, true);
             fa.name = file + " SDF";
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // A glyph added while drawing text would also load the font's OpenType features (kerning and ligature tables):
+            // the first one made the engine allocate about 135 MB that it never gave back, taking the page's WebAssembly heap
+            // from 205 to 355 MB. The glyphs added up front (Prewarm) never had them either.
+            fa.getFontFeatures = false;
+#endif
             if (monoFallback)
                 fa.fallbackFontAssetTable = new List<TMP_FontAsset> { Mono };
             return fa;
