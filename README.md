@@ -16,8 +16,8 @@ An idle clicker about a developer who quietly hands their whole job to AI agents
 </p>
 
 <p align="center">
-  <a href="docs/media/trailer.mp4"><img src="docs/media/trailer-poster.jpg" alt="Watch the Agent Clicker trailer (1:41)" width="800"></a><br>
-  <sub>▶ <a href="docs/media/trailer.mp4">Watch the trailer</a> (1:41, 1080p, with sound) · 🎮 <a href="https://nearbycoder.github.io/AgentClicker/"><b>Play it in your browser</b></a></sub>
+  <a href="docs/media/trailer.mp4"><img src="docs/media/trailer-poster.jpg" alt="Watch the Agent Clicker trailer (1:46)" width="800"></a><br>
+  <sub>▶ <a href="docs/media/trailer.mp4">Watch the trailer</a> (1:46, 1080p, with sound, recorded at Ultra) · 🎮 <a href="https://nearbycoder.github.io/AgentClicker/"><b>Play it in your browser</b></a></sub>
 </p>
 
 ---
@@ -70,11 +70,15 @@ of it went past the hour.
 | `1` `2` `3` | D-pad left, up, right | Tap a reply | Pick a reply during a call |
 | ✉ **Inbox** (CorpOS top bar) | **A** on it | Tap it | Read the story emails |
 | `Esc` or ⚙ | **Start** (**B** closes menus) | ⚙ | Pause menu: settings, how to play, save and exit |
+| Arrow keys or `WASD`, then `Enter` / `Space` | D-pad, then **A** | | Move the focus ring through a menu and press; Left / Right change the focused setting or tab |
+| `Enter` | **A** (after a D-pad press) | | GO HOME on the review, CLOCK IN on the night screen, LOG IN in the morning |
 | `M` or ♪ (CorpOS top bar) | **A** on ♪ | Tap ♪ | Mute all sound, or turn it back on (kept in the settings) |
 | `F12` | | | Save a screenshot |
 
 A gamepad drives an on-screen cursor, so everything a mouse can do works with a controller too; the cursor appears when
-you touch the gamepad and steps aside when you move the mouse. On a touch screen (the browser build on a tablet, or a
+you touch the gamepad and steps aside when you move the mouse. The menus (title, pause, settings, how to play and the
+confirm dialogs) also have a focus ring for the arrow keys and the D-pad, so a whole day can be played without a mouse; the
+ring appears with the first key or D-pad press and goes away when the mouse moves. On a touch screen (the browser build on a tablet, or a
 phone held sideways) taps work as clicks, the store keeps the details of the last thing you tapped, and the prompts drop
 the key names. On a phone the whole monitor makes small text, so spread two fingers on it to zoom in (up to 3×), move them
 to look around and pinch to zoom back out; the game shows a tip the first time. While you're zoomed in, a model drop or an
@@ -110,6 +114,9 @@ an espresso machine, a homelab server rack, a monitor wall, a "SHIP IT" neon sig
 recliner. Every purchase pops into the 3D office with a camera showcase and has a real bonus. Promotions
 change the room too: the cubicle walls disappear, and a rug, a bookshelf, a sofa and trophies arrive. Sticky
 notes, pizza boxes and posters pile up as the days go by.
+
+The window follows the clock: a blue morning sky, a sunbeam with dust drifting in it across the floor, a golden afternoon,
+a sunset around five and the city's windows lighting up at night.
 
 ### Interruptions
 
@@ -152,20 +159,38 @@ the pipeline booting, the camera pulls back, and Sam puts their feet up. Then th
 * **Big numbers**: every power of a thousand up to a centillion (1e303) has a name, and the credits card spells it
   out ("22.0Qa", with "22.0 quadrillion" above it). Scientific notation is one setting away, and nothing ever overflows.
 
-### Settings and quality of life
+### Graphics fidelity
 
-A **Graphics fidelity** slider from Low to Ultra: Low is for weak GPUs (85% resolution, FXAA, hard shadows, no ambient
-occlusion or sunbeams), High is the default, and Ultra adds 8x MSAA, 125% resolution, 4K shadows over four cascades,
-shadows from the ceiling lights, finer ambient occlusion, a 64-bit HDR buffer, denser dust in the sunbeams and a depth of
-field that keeps Sam and his screens sharp and never touches the monitor's text. Also display mode, resolution, V-Sync, a
-frame cap, field of view (the monitor view always fits the whole screen) and post-processing. Every menu works with the
-mouse, the keyboard (arrows, Enter, Esc) and a gamepad (the D-pad and A, or the stick's cursor), and so do the day's own
-buttons: GO HOME, CLOCK IN and LOG IN take Enter. Separate volume sliders for effects, music and ambience. A ♪ button on the CorpOS top bar (or `M`) mutes everything at once. Work
-days of 3, 5, 8 or 12 minutes, running the day while you're away, **reduce motion** (camera cuts instead of
-flying, no gadget showcases, and buttons, pulses and floating numbers hold still), **hold to keep shipping** (hold SHIP
-CODE, a key or a trigger instead of clicking, so your hands get a rest; Focus builds as it does with steady clicks), tutorial tips, a purchase
-camera toggle and mouse sensitivity. The game
-autosaves every 15 seconds, and your agents keep earning at a reduced rate while the game is closed.
+<img src="docs/media/screenshots/11-graphics-fidelity.jpg" alt="Settings → Graphics: the Graphics fidelity slider at Ultra, with the keyboard focus ring on it" width="49%"> <img src="docs/media/improvements/round12/fidelity_office.jpg" alt="The same frame of the office at Low, Medium, High and Ultra" width="49%">
+
+Settings → Graphics opens with a **Graphics fidelity** slider (mouse, keyboard or D-pad), and a line under it says what the
+step does:
+
+| Step | What it does | GPU time, office view* |
+|---|---|---|
+| **Low** | For weak GPUs: 85% render scale, FXAA instead of MSAA, hard 1K shadows, no ambient occlusion, no sunbeam or dust | 0.42 ms |
+| **Medium** | 2x MSAA, soft 2K shadows, the sunbeam with a little dust | 0.79 ms |
+| **High** (default) | 4x MSAA, soft shadows, ambient occlusion, the sunbeam with more dust | 1.33 ms |
+| **Ultra** | 8x MSAA, 125% render scale, 4K shadows over four cascades, shadows from the ceiling lights, finer ambient occlusion, high-quality bloom, a 64-bit HDR buffer, the densest dust, and a depth of field that keeps Sam and his screens sharp and never blurs the monitor's text | 3.74 ms |
+
+\*Measured on an AMD Radeon 8060S at 1600×900 with Vulkan (`Tools/fidelity.sh`); a larger screen or a weaker GPU costs more.
+
+### Settings, accessibility and quality of life
+
+* **Graphics**: display mode, resolution, V-Sync, a frame cap, render scale, field of view (the monitor view always fits the
+  whole screen), post-processing, an FPS counter, and 15 fps while another window is in front.
+* **Audio**: master volume and separate sliders for sound effects, music and office ambience, mute when in the background,
+  and a ♪ button on the CorpOS top bar (or `M`) that mutes everything at once.
+* **Gameplay**: work days of 3, 5, 8 or 12 minutes, running the work day while you're away, tutorial tips, showing off new
+  gadgets with the camera, opening important emails automatically, mouse look sensitivity, and short (22.0Qa) or
+  scientific (2.20e16) numbers.
+* **Accessibility**: **reduce motion** (camera cuts instead of flying, no gadget showcases, and buttons, cards, pulses and
+  floating numbers hold still or simply fade), **hold to keep shipping** (hold SHIP CODE, a key or a trigger instead of
+  clicking; Focus builds as it does with steady clicks), every menu by keyboard or D-pad, and text sized to stay readable
+  on the monitor.
+* **Controls**: a Controls tab lists every action for keyboard and mouse, gamepad and touch.
+
+The game autosaves every 15 seconds, and your agents keep earning at a reduced rate while the game is closed.
 
 ## Content at a glance
 
@@ -192,10 +217,26 @@ autosaves every 15 seconds, and your agents keep earning at a reduced rate while
 | ![CorpOS late in the game](docs/media/screenshots/05-corpos-late-game.jpg) | ![The office on day 31](docs/media/screenshots/06-office-late-game.jpg) |
 | ![Performance review](docs/media/screenshots/07-performance-review.jpg) | ![100% automated](docs/media/screenshots/08-software-factory.jpg) |
 | ![Frontier agents](docs/media/screenshots/09-frontier-agents.jpg) | ![The Board Room](docs/media/screenshots/10-board-room.jpg) |
+| ![Settings: Graphics fidelity at Ultra, reached by keyboard](docs/media/screenshots/11-graphics-fidelity.jpg) | ![The Stats tab: the last 14 days](docs/media/screenshots/12-last-14-days.jpg) |
 
 ## Play it
 
-Download the latest build from the [**Releases**](https://github.com/nearbycoder/AgentClicker/releases/latest) page.
+> **Which version is where.** The game on `main` (0.2.0 in the project settings) has had twelve rounds of improvements
+> since launch; they're listed in [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md). The only published release,
+> [**v0.1.0**](https://github.com/nearbycoder/AgentClicker/releases/latest), is the launch-day build of October 4, 2026,
+> and the browser copy was last updated on October 6 (it's missing rounds 5–12). For everything described here, including
+> the Graphics fidelity slider, the light through the window and the keyboard menus, [build from source](#build-from-source).
+
+### System requirements
+
+* **Desktop**: Linux on x86_64 with a GPU that runs OpenGL Core (the player's default) or Vulkan (`-force-vulkan`); Wayland or X11.
+  It has only been tried on CachyOS with KDE Plasma (Wayland) and an AMD Radeon 8060S, where Ultra costs about 3.7 ms
+  of GPU time at 1600×900. Low is the step for weak or integrated GPUs.
+* **Browser**: a desktop browser with WebGL 2 (checked in headless Chrome and Firefox on Linux), or a tablet or phone
+  held sideways (a browser build from `main`; the hosted copy predates touch play); about 15 MB to download.
+* **Input**: mouse and keyboard, keyboard alone, a gamepad, or touch in the browser.
+
+### Downloads
 
 **Linux (x86_64).** Unzip the Linux zip and run `./AgentClicker.sh`. The launcher starts the game with Unity's
 native Wayland backend on a Wayland desktop, because the X11 path can hang at startup under XWayland (set
@@ -207,10 +248,12 @@ shortens the work day (seconds).
 build made on Linux. It is unsigned and hasn't been tested on a Mac. If macOS refuses to open it, run
 `xattr -cr "Agent Clicker.app"` and then `codesign --force --deep -s - "Agent Clicker.app"`.
 
-**In a browser.** Play it at **<https://nearbycoder.github.io/AgentClicker/>** (GitHub Pages, about 15 MB to download; a mouse and keyboard, a gamepad, or a touch screen
-held sideways). The hosted copy is the `gh-pages` branch, a plain copy of a browser build; it was published before touch
-play, monitor zoom, home-screen play, the memory fix below and the later polish (the away card for a closed game, one-tap
-FULLSCREEN, the zoom chip, the mute button, scrollbars, the longer music, the tab's title, hold to keep shipping, the day chart) were added, so they arrive on the site with its next update.
+**In a browser.** Play it at **<https://nearbycoder.github.io/AgentClicker/>** (GitHub Pages, about 15 MB to download; a mouse and keyboard or a gamepad, and a touch screen held
+sideways once the site is updated). The hosted copy is the `gh-pages` branch, a plain copy of a browser build from October 6, 2026. It is older
+than the game described here: it doesn't have rounds 5–12 (touch play and monitor zoom, home-screen play, the memory fix
+below, the away card for a closed game, one-tap FULLSCREEN, the mute button, scrollbars, the longer music, the tab's title,
+hold to keep shipping, the day chart, the Graphics fidelity slider, the window's sky and sunbeam, and the keyboard menus),
+so those arrive on the site with its next update.
 `Tools/unity.sh build-webgl` makes the same build in `Builds/WebGL`. Serve the folder with any static web server, for example
 `python3 -m http.server -d Builds/WebGL 8000`, and open <http://localhost:8000>. The page (from
 `Unity/Assets/WebGLTemplates/AgentClicker`) fills the browser window, shows a progress bar while loading, has a
@@ -277,7 +320,7 @@ hours, or if later divisions aren't clearly faster than the first. For a ten-div
 **Media.** The trailer, the teaser loop and the screenshots in `docs/media` are made from the running game:
 
 ```sh
-Tools/make_trailer.sh          # record every shot with the scripted director, then edit (needs ffmpeg, python3)
+Tools/make_trailer.sh          # record every shot at Ultra in a private nested KWin, then edit (needs ffmpeg, python3)
 Tools/make_trailer.sh --edit   # re-edit from Recordings/trailer without recording again
 Tools/tour.sh                  # screenshot tour of every phase, with layout checks (add -screen-width/-screen-height)
 Tools/nested.sh Tools/tour.sh  # the same inside a private nested KWin (no window on your desktop)
@@ -335,8 +378,9 @@ docs/media/                   trailer, teaser loop, poster and screenshots
   development machine the same benchmark has read anywhere from 2.0 to 5.6 ms for v0.1.0 and later builds alike,
   swinging run to run with the machine's load, so treat absolute numbers from `Tools/benchmark.sh` as
   machine-dependent.
-* **A scripted trailer director.** `-trailer` mode plays a shot list with an on-screen cursor that clicks real
-  UI through Input System events. `VideoCapture` locks time to a fixed 30 fps step, pipes frames to ffmpeg and
+* **A scripted trailer director.** `-trailer` mode plays a shot list at the Ultra step with an on-screen cursor that
+  clicks real UI and key presses that drive the menus, all through Input System events; its close-ups use the game's own
+  monitor zoom. `VideoCapture` locks time to a fixed 30 fps step, pipes frames to ffmpeg and
   records the game's own audio with `AudioRenderer`. `Tools/make_trailer.py` then cuts the shots, adds the
   captions and title cards, and lays the game's music under the sound effects.
 
@@ -355,8 +399,10 @@ generated or written for this game.
 
 ## Status and known issues
 
-Agent Clicker is complete and playable from the first click to the endless game. This is the first public
-release (v0.1.0).
+Agent Clicker is complete and playable from the first click to the endless game. Since the first public release
+(v0.1.0, October 4, 2026) it has had twelve rounds of improvements on `main`, each with its plan, results and checks in
+[docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md); they haven't been published as a release yet, and the browser copy is
+older still (see [Play it](#play-it)).
 
 * **Tested on Linux only**: CachyOS with KDE Plasma on Wayland and an AMD Radeon 8060S. Other distributions
   and GPUs should work but haven't been tried. The screenshot tour checks every phase in a 16:9 (1600×900), a 4:3
@@ -399,6 +445,9 @@ release (v0.1.0).
   level are tested, but nobody has listened to it on this machine.
 * **Pacing is tuned by a bot.** The balance tests keep the first Factory between 1.5 and 5 hours for a greedy
   bot; real players will vary.
-* **The trailer and screenshots** come from the scripted `-trailer` mode, which jumps between prepared save
-  states to reach each moment. Everything on screen is rendered by the game itself; nothing is mocked up.
+* **The trailer and screenshots** come from the scripted `-trailer` mode at the Ultra step, recorded offline at a fixed
+  30 fps, which jumps between prepared save states to reach each moment. The window-light shot runs the clock from 9 AM to
+  8 PM in six seconds, the fidelity shot switches steps on one live view, and the review and Stats chart get two weeks of
+  seeded history. Everything on screen is rendered by the game itself; the edit only adds captions, step labels and the
+  title and end cards.
 * **No license has been chosen yet.** Until one is added, all rights are reserved.
