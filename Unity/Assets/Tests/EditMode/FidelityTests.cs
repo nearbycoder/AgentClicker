@@ -14,6 +14,7 @@ namespace AgentClicker.Tests
         {
             CollectionAssert.AreEqual(new[] { "Low", "Medium", "High", "Ultra" }, Array.ConvertAll(S, f => f.Name));
             Assert.AreEqual(2, Fidelity.Default);
+            Assert.AreEqual(Fidelity.Default, Fidelity.PlayerDefault); // the editor and the desktop players
             Assert.AreEqual(Fidelity.Default, new GameSettings().quality);
             CollectionAssert.AreEqual(Array.ConvertAll(S, f => f.Name), GameSettings.QualityNames);
         }
@@ -87,6 +88,24 @@ namespace AgentClicker.Tests
             Assert.AreEqual("Ultra", Fidelity.Step(17).Name);
             // the hint line is one 15-point line about 540 units wide
             foreach (var f in S) Assert.LessOrEqual(f.Summary.Length, 64, f.Name);
+            for (int i = 0; i < S.Length; i++)
+            {
+                Assert.LessOrEqual(Fidelity.Hint(i, Fidelity.Default).Length, 64, S[i].Name);
+                Assert.LessOrEqual(Fidelity.Hint(i, Fidelity.WebDefault).Length, 64, S[i].Name + " (web)");
+            }
+        }
+
+        [Test]
+        public void TheBrowserStartsOnMediumAndOnlyTheDefaultStepSaysSo()
+        {
+            Assert.AreEqual("Medium", S[Fidelity.WebDefault].Name);
+            Assert.AreEqual(1, Fidelity.WebDefault);
+            for (int i = 0; i < S.Length; i++)
+            {
+                Assert.AreEqual(i == Fidelity.Default, Fidelity.Hint(i, Fidelity.Default).EndsWith(" (default)"), S[i].Name);
+                Assert.AreEqual(i == Fidelity.WebDefault, Fidelity.Hint(i, Fidelity.WebDefault).EndsWith(" (default)"), S[i].Name + " (web)");
+            }
+            Assert.AreEqual("4x MSAA, soft shadows, ambient occlusion, sunbeams (default)", Fidelity.Hint(2, Fidelity.Default));
         }
 
         [Test]

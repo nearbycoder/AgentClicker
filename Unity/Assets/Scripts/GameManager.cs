@@ -778,7 +778,8 @@ namespace AgentClicker
 
         /// <summary>
         /// Test hook for the browser tests (<c>unityInstance.SendMessage("Game", "LogFrameRate", "2")</c>): logs the game's
-        /// own frame rate over the next few seconds (the page's animation frames keep their pace when the game caps its own).
+        /// own frame rate over the next few seconds (the page's animation frames keep their pace when the game caps its own),
+        /// with the Graphics fidelity step and the MSAA it set.
         /// </summary>
         public void LogFrameRate(string seconds)
         {
@@ -792,8 +793,9 @@ namespace AgentClicker
             float start = Time.realtimeSinceStartup;
             yield return new WaitForSecondsRealtime(seconds);
             float fps = (Time.frameCount - frames) / Mathf.Max(0.001f, Time.realtimeSinceStartup - start);
+            var urp = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
             Debug.Log($"[Probe] fps {fps.ToString("0.0", CultureInfo.InvariantCulture)} focused {Application.isFocused} " +
-                      $"cap {Application.targetFrameRate}");
+                      $"cap {Application.targetFrameRate} fidelity {Fidelity.Step(Settings.quality).Name} msaa {(urp ? urp.msaaSampleCount : 0)}");
         }
 
         public void OnSaveFileLoaded(string text)

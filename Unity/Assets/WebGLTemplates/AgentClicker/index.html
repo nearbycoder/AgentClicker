@@ -42,6 +42,17 @@
       #fullscreen { position: fixed; right: 12px; bottom: 12px; padding: 8px 12px; font-size: 13px; color: #C9D3E3;
                     background: rgba(27, 36, 51, 0.85); display: none; z-index: 1; }
       #fullscreen:hover { background: #2A3547; }
+      /* the game can't start here: say why and what to try, instead of a progress bar that stops */
+      #failed { display: none; max-width: 560px; }
+      #failed h2 { margin: 0 0 8px; font-size: 22px; color: #FF7A7A; }
+      #failed p { margin: 0 0 10px; color: #C9D3E3; }
+      #failed code { display: block; white-space: pre-wrap; color: #8A97AD; font-size: 13px; margin-bottom: 14px; }
+      #loading.failed #progress, #loading.failed #status { display: none; }
+      #loading.failed #failed { display: block; }
+      /* an error once the game is running: a bar along the top that can be closed */
+      #error-bar { position: fixed; left: 0; right: 0; top: 0; z-index: 4; display: none; padding: 8px 44px 8px 12px;
+                   background: #5A1D24; color: #FFD9D9; font-size: 14px; }
+      #error-bar button { position: absolute; right: 6px; top: 4px; padding: 2px 10px; background: transparent; color: #FFD9D9; }
     </style>
   </head>
   <body>
@@ -51,7 +62,14 @@
       <div class="tagline">Automate yourself out of a job. Keep the paycheck.</div>
       <div id="progress"><div></div></div>
       <div id="status">Loading…</div>
+      <div id="failed" role="alert">
+        <h2 id="failed-title">Agent Clicker can't start</h2>
+        <p id="failed-help"></p>
+        <code id="failed-detail"></code>
+        <button onclick="location.reload()">Try again</button>
+      </div>
     </div>
+    <div id="error-bar" role="alert"><span></span><button title="Close" onclick="this.parentNode.style.display='none'">✕</button></div>
     <div id="rotate" class="overlay">
       <div class="phone"></div>
       <p>Turn your device sideways. Agent Clicker is laid out for a wide screen.</p>
@@ -62,9 +80,31 @@
       var statusEl = document.querySelector("#status");
       var bar = document.querySelector("#progress div");
 
+      var started = false;
+      // Before the game is running an error stops the load: the loading screen says so. Afterwards it's a bar along the top.
+      function fail(title, help, detail) {
+        document.querySelector("#failed-title").textContent = title;
+        document.querySelector("#failed-help").textContent = help;
+        document.querySelector("#failed-detail").textContent = detail || "";
+        var loading = document.querySelector("#loading");
+        loading.classList.add("failed");
+        loading.style.display = "flex";
+      }
       function showBanner(msg, type) {
-        if (type === "error") { statusEl.textContent = msg; statusEl.style.color = "#FF5D5D"; }
-        else console.warn(msg);
+        if (type !== "error") { console.warn(msg); return; }
+        if (!started) {
+          fail("Agent Clicker can't start", "Something went wrong while loading. Reloading usually fixes it; if not, try another browser.", String(msg));
+          return;
+        }
+        var errorBar = document.querySelector("#error-bar");
+        errorBar.querySelector("span").textContent = "Something went wrong: " + msg + " Your progress is saved; reloading the page should fix it.";
+        errorBar.style.display = "block";
+      }
+
+      // Unity 6 needs WebGL 2. Check first, so a browser without it gets a clear answer instead of a stalled bar.
+      function hasWebGL2() {
+        try { return !!(window.WebGL2RenderingContext && document.createElement("canvas").getContext("webgl2")); }
+        catch (e) { return false; }
       }
 
       // Render at the screen's real pixel density (3x on an iPhone, 2x on a Retina laptop) up to a 4K budget
@@ -125,33 +165,47 @@
 
       // the Fullscreen button shows on the title screen only (the game says when); in the game the pause menu has one
       var fsButton = document.querySelector("#fullscreen"), fsReady = false, fsWanted = true;
+      function showFsButton() { fsButton.style.display = fsWanted && fsReady ? "block" : "none"; }
       window.agentClickerFullscreenButton = function (show) {
         fsWanted = show;
-        fsButton.style.display = show && fsReady ? "block" : "none";
+        // the game calls this on entering and leaving the title screen; Tools/check-pages.mjs waits for "title"
+        document.documentElement.dataset.screen = show ? "title" : "game";
+        showFsButton();
       };
 
-      var script = document.createElement("script");
-      script.src = buildUrl + "/{{{ LOADER_FILENAME }}}";
-      script.onload = function () {
-        createUnityInstance(canvas, config, function (progress) {
-          bar.style.width = Math.round(100 * progress) + "%";
-          statusEl.textContent = progress < 0.9 ? "Loading… " + Math.round(100 * progress) + "%" : "Starting CorpOS…";
-        }).then(function (unityInstance) {
-          window.unityInstance = unityInstance;
-          // the budget depends on the window size: follow resizes and phone rotation
-          window.addEventListener("resize", function () { unityInstance.Module.devicePixelRatio = pixelRatio(); });
-          document.querySelector("#loading").style.display = "none";
-          // iPhones have no fullscreen for pages; there "Add to Home Screen" is the way to lose the browser bars
-          fsReady = document.fullscreenEnabled || document.webkitFullscreenEnabled;
-          fsButton.onclick = function () { unityInstance.SetFullscreen(1); };
-          window.agentClickerFullscreenButton(fsWanted);
-          canvas.focus();
-        }).catch(function (message) {
-          showBanner(String(message), "error");
-        });
-      };
-      script.onerror = function () { showBanner("The game files could not be loaded.", "error"); };
-      document.body.appendChild(script);
+      function start() {
+        var script = document.createElement("script");
+        script.src = buildUrl + "/{{{ LOADER_FILENAME }}}";
+        script.onload = function () {
+          createUnityInstance(canvas, config, function (progress) {
+            bar.style.width = Math.round(100 * progress) + "%";
+            statusEl.textContent = progress < 0.9 ? "Loading… " + Math.round(100 * progress) + "%" : "Starting CorpOS…";
+          }).then(function (unityInstance) {
+            started = true;
+            window.unityInstance = unityInstance;
+            // the budget depends on the window size: follow resizes and phone rotation
+            window.addEventListener("resize", function () { unityInstance.Module.devicePixelRatio = pixelRatio(); });
+            document.querySelector("#loading").style.display = "none";
+            // iPhones have no fullscreen for pages; there "Add to Home Screen" is the way to lose the browser bars
+            fsReady = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+            fsButton.onclick = function () { unityInstance.SetFullscreen(1); };
+            showFsButton();
+            canvas.focus();
+          }).catch(function (message) {
+            showBanner(String(message), "error");
+          });
+        };
+        script.onerror = function () {
+          fail("Agent Clicker couldn't be downloaded", "The game files didn't arrive. Check your connection and try again.", script.src);
+        };
+        document.body.appendChild(script);
+      }
+
+      if (hasWebGL2()) start();
+      else fail("Your browser can't show 3D graphics here",
+                "Agent Clicker needs WebGL 2. It's in every current version of Chrome, Edge, Firefox and Safari (15 or later), " +
+                "but it can be turned off: check that hardware acceleration is on in your browser's settings, or try another browser.",
+                "WebGL 2 is not available.");
     </script>
   </body>
 </html>

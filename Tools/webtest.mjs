@@ -8,6 +8,9 @@
 // playwright-core 1.63 supports with channel "moz-firefox"; no Playwright Firefox build is needed. Its temporary
 // profile goes under Logs/tmp instead of the shared /tmp.
 //
+// WEBTEST_URL=http://127.0.0.1:8123/AgentClicker/ tests a build someone else serves (for example Builds/Pages copied
+// under a /AgentClicker/ path, as GitHub Pages serves it) instead of serving Builds/WebGL at the root.
+//
 // Needs a playwright-core whose browsers are in ~/.cache/ms-playwright (1.63 matches webkit-2359). For Chromium,
 // CHROMIUM_PATH may point at a cached headless shell of another revision. Coordinates assume the 1600x900 viewport.
 import { createRequire } from "node:module";
@@ -105,9 +108,9 @@ const readSave = async (page) => {
 };
 
 async function main() {
-  const port = await freePort();
-  const server = spawn("python3", ["-m", "http.server", String(port), "--bind", "127.0.0.1", "-d", path.join(root, "Builds", "WebGL")],
-                       { stdio: "ignore" });
+  const port = process.env.WEBTEST_URL ? 0 : await freePort();
+  const server = port ? spawn("python3", ["-m", "http.server", String(port), "--bind", "127.0.0.1", "-d", path.join(root, "Builds", "WebGL")],
+                              { stdio: "ignore" }) : null;
   const launch = { headless: true };
   if (engine === "chromium") {
     if (process.env.CHROMIUM_PATH) launch.executablePath = process.env.CHROMIUM_PATH;
@@ -137,7 +140,8 @@ async function main() {
       for (const end = Date.now() + ms; Date.now() < end; await sleep(250)) if (log.some((l) => l.includes(text))) return true;
       return false;
     };
-    const url = `http://127.0.0.1:${port}/`;
+    const url = process.env.WEBTEST_URL || `http://127.0.0.1:${port}/`;
+    console.log("[Web] " + url);
 
     const loaded = async () => {
       await page.waitForFunction(() => document.querySelector("#loading")?.style.display === "none", null, { timeout: 240000 });
@@ -180,6 +184,35 @@ async function main() {
             `the web app manifest parses (${(m.errors ?? []).length} errors, display ${parsed?.display}, ${parsed?.orientation}) and its icons ` +
             `load (${loadedIcons.join(", ")}); iOS home-screen tags present`);
     }
+
+    // Graphics fidelity: a new browser player starts on Medium; Right on the focused slider raises it to High, which the
+    // reload below must keep. The frame-rate probe also reports the step and the MSAA it set.
+    const fidelity = async () => {
+      const from = log.length;
+      await page.evaluate(() => window.unityInstance.SendMessage("Game", "LogFrameRate", "0.5"));
+      for (let i = 0; i < 40; i++) {
+        await sleep(250);
+        const line = log.slice(from).find((l) => l.includes("[Probe] fps"));
+        if (line) return (/fidelity (\w+) msaa (\d+)/.exec(line) ?? []).slice(1).join(" ");
+      }
+      return "no answer";
+    };
+    const startStep = await fidelity();
+    check(startStep === "Medium 2", `a new browser player starts on the Medium graphics step (${startStep})`);
+    await page.keyboard.press("ArrowDown"); // the focus ring on NEW GAME
+    await sleep(300);
+    await page.keyboard.press("ArrowDown"); // SETTINGS
+    await sleep(300);
+    await page.keyboard.press("Enter"); // Settings, with Graphics fidelity focused
+    await sleep(1000);
+    await shot("01b_settings_fidelity_default");
+    await page.keyboard.press("ArrowRight");
+    await sleep(600);
+    await shot("01c_settings_fidelity_high");
+    const raisedStep = await fidelity();
+    await page.keyboard.press("Escape");
+    await sleep(800);
+    check(raisedStep === "High 4", `Right on the Graphics fidelity slider raises it to High (${raisedStep})`);
 
     // settings are kept in PlayerPrefs, in the same IndexedDB file system: switch numbers to scientific
     await page.mouse.click(250, 579); // SETTINGS
@@ -385,7 +418,9 @@ async function main() {
       open.onerror = () => resolve([]);
     }))));
     const prefs = await page.evaluate(readIdb, "/PlayerPrefs");
-    check(!!prefs && prefs.includes('"numberStyle":1'), "a settings change survives the reload (PlayerPrefs in IndexedDB)");
+    const reloadedStep = await fidelity();
+    check(!!prefs && prefs.includes('"numberStyle":1') && prefs.includes('"quality":2') && reloadedStep === "High 4",
+          `settings changes survive the reload (PlayerPrefs in IndexedDB: number format, Graphics fidelity ${reloadedStep})`);
     const overlaps = log.filter((l) => l.includes("syncfs operations in flight")).length;
     check(overlaps === 0, `IndexedDB syncs never overlap (${overlaps} warnings)`);
 
@@ -486,7 +521,7 @@ async function main() {
   } finally {
     writeFileSync(path.join(out, "console.log"), log.join("\n").slice(-400000));
     if (browser) await browser.close();
-    server.kill();
+    if (server) server.kill();
   }
   const failed = results.filter((r) => !r.ok).length;
   console.log(`[Web] ${engine}: ${results.length - failed}/${results.length} checks passed`);

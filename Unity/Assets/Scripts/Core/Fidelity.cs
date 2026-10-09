@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace AgentClicker.Core
 {
     /// <summary>One step of Settings → Graphics → Graphics fidelity. Applied by Util.SettingsApplier.</summary>
@@ -30,12 +32,26 @@ namespace AgentClicker.Core
     }
 
     /// <summary>
-    /// The Graphics fidelity ladder, Low to Ultra. High is the default and the game's long-standing look; every step costs
-    /// at least as much as the one below it (EditMode tests hold it to that).
+    /// The Graphics fidelity ladder, Low to Ultra. High is the desktop default and the game's long-standing look; every step
+    /// costs at least as much as the one below it (EditMode tests hold it to that).
     /// </summary>
     public static class Fidelity
     {
         public const int Default = 2;
+
+        /// <summary>
+        /// The browser starts on Medium: it plays on whatever laptop opens the page, often at 2x pixel density, and WebGL
+        /// renders with more overhead than the desktop player. The slider still reaches every step.
+        /// </summary>
+        public const int WebDefault = 1;
+
+        /// <summary>The step a new player starts on in this build.</summary>
+        public const int PlayerDefault =
+#if UNITY_WEBGL && !UNITY_EDITOR
+            WebDefault;
+#else
+            Default;
+#endif
 
         public static readonly FidelityStep[] Steps =
         {
@@ -53,7 +69,7 @@ namespace AgentClicker.Core
             },
             new FidelityStep
             {
-                Name = "High", Summary = "4x MSAA, soft shadows, ambient occlusion, sunbeams (default)",
+                Name = "High", Summary = "4x MSAA, soft shadows, ambient occlusion, sunbeams",
                 Msaa = 4, RenderScale = 1f, ShadowRes = 2048, Cascades = 2, ShadowDistance = 14, AdditionalLights = 8,
                 SoftShadows = true, Ssao = 1, BloomIterations = 6, ReflectionRes = 128, Sunbeams = true, Dust = 48,
             },
@@ -67,5 +83,9 @@ namespace AgentClicker.Core
         };
 
         public static FidelityStep Step(int index) => Steps[index < 0 ? 0 : index >= Steps.Length ? Steps.Length - 1 : index];
+
+        /// <summary>The line under the slider: the step's summary, marked "(default)" on the step this build starts on.</summary>
+        public static string Hint(int index, int playerDefault = PlayerDefault) =>
+            Step(index).Summary + (Mathf.Clamp(index, 0, Steps.Length - 1) == playerDefault ? " (default)" : "");
     }
 }

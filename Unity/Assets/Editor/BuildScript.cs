@@ -35,6 +35,9 @@ namespace AgentClicker.EditorTools
         {
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
             PlayerSettings.WebGL.decompressionFallback = true;
+            // content-hash file names: a host that caches for a while (GitHub Pages: 10 minutes) never pairs an old loader
+            // with a new build's code or data
+            PlayerSettings.WebGL.nameFilesAsHashes = true;
             PlayerSettings.WebGL.template = "PROJECT:AgentClicker"; // Assets/WebGLTemplates/AgentClicker: full-window page
             Build(BuildTarget.WebGL, "WebGL");
         }

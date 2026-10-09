@@ -96,7 +96,7 @@ namespace AgentClicker.Office
                 go.GetComponent<MeshFilter>().sharedMesh = _dustMesh;
                 _dustRenderer = Quiet(go.GetComponent<MeshRenderer>(), _dust);
             }
-            SetFidelity(Fidelity.Step(Fidelity.Default), false);
+            SetFidelity(Fidelity.Step(Fidelity.PlayerDefault), false);
         }
 
         static MeshRenderer Quiet(MeshRenderer r, Material m)

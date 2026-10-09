@@ -18,7 +18,7 @@ namespace AgentClicker.Core
         public static readonly string[] NumberStyleNames = { "Short (1.23 Qa)", "Scientific (1.23e15)" };
 
         // graphics
-        public int quality = Fidelity.Default;   // Graphics fidelity: index into Fidelity.Steps (it was the "quality preset")
+        public int quality = Fidelity.PlayerDefault;   // Graphics fidelity: index into Fidelity.Steps (it was the "quality preset")
         public int displayMode;
         public int resolutionIndex = -1;   // -1: keep the current window size
         public bool vsync = true;

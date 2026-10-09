@@ -525,7 +525,7 @@ namespace AgentClicker.UI
         /// <summary>Graphics fidelity: a slider with a notch per step, its name on the right and what it does underneath.</summary>
         void FidelitySlider(float y, Func<int> get, Action<int> set)
         {
-            var row = SettingRow("Graphics fidelity", y, Fidelity.Step(get()).Summary);
+            var row = SettingRow("Graphics fidelity", y, Fidelity.Hint(get()));
             var hint = row.Find("Hint").GetComponent<TextMeshProUGUI>();
             int last = Fidelity.Steps.Length - 1;
             var slider = Slider(row, 0, last, () => get(), v =>
@@ -534,7 +534,7 @@ namespace AgentClicker.UI
                 if (step == get()) return;
                 set(step);
                 _gm.Sfx.Play(Sound.UiClick, 0.6f, 0.9f + 0.1f * step);
-                hint.text = Fidelity.Step(step).Summary;
+                hint.text = Fidelity.Hint(step);
                 _gm.ApplySettings();
             }, v => Fidelity.Step(Mathf.RoundToInt(v)).Name, 560, 220, 110);
             slider.wholeNumbers = true;
