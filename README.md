@@ -20,6 +20,15 @@ An idle clicker about a developer who quietly hands their whole job to AI agents
   <sub>▶ <a href="docs/media/trailer.mp4">Watch the trailer</a> (1:46, 1080p, with sound, recorded at Ultra) · 🎮 <a href="https://nearbycoder.github.io/AgentClicker/"><b>Play it in your browser</b></a></sub>
 </p>
 
+> 🎮 **[Play in your browser](https://nearbycoder.github.io/AgentClicker/)** at <https://nearbycoder.github.io/AgentClicker/>:
+> about 14 MB to download, no install. It needs WebGL 2 (current Chrome, Edge or Firefox; tested headless in Chromium 151
+> and Firefox 157 on Linux, not yet in Safari or on real phones). It's the same game as the desktop build, with these
+> differences: it starts on the Medium graphics step (the slider still goes up to Ultra), the save and settings live in that
+> browser's storage, sound starts with your first click or key press (browsers require that), there's no Quit button, no
+> window, resolution or frame-cap settings and no F12 screenshot, and a tab in the background earns at the offline rate.
+> Mouse, keyboard and emulated touch were tested in the browser; a gamepad wasn't. The site is updated from `main` separately, so it can
+> lag behind this README (see [Play it](#play-it)).
+
 ---
 
 ## About
@@ -233,7 +242,8 @@ The game autosaves every 15 seconds, and your agents keep earning at a reduced r
   It has only been tried on CachyOS with KDE Plasma (Wayland) and an AMD Radeon 8060S, where Ultra costs about 3.7 ms
   of GPU time at 1600×900. Low is the step for weak or integrated GPUs.
 * **Browser**: a desktop browser with WebGL 2 (checked in headless Chrome and Firefox on Linux), or a tablet or phone
-  held sideways (a browser build from `main`; the hosted copy predates touch play); about 15 MB to download.
+  held sideways (a browser build from `main`; the hosted copy predates touch play); about 14 MB to download. A browser
+  without WebGL 2 gets a page that says so instead of the game.
 * **Input**: mouse and keyboard, keyboard alone, a gamepad, or touch in the browser.
 
 ### Downloads
@@ -254,19 +264,26 @@ than the game described here: it doesn't have rounds 5–12 (touch play and moni
 below, the away card for a closed game, one-tap FULLSCREEN, the mute button, scrollbars, the longer music, the tab's title,
 hold to keep shipping, the day chart, the Graphics fidelity slider, the window's sky and sunbeam, and the keyboard menus),
 so those arrive on the site with its next update.
-`Tools/unity.sh build-webgl` makes the same build in `Builds/WebGL`. Serve the folder with any static web server, for example
-`python3 -m http.server -d Builds/WebGL 8000`, and open <http://localhost:8000>. The page (from
-`Unity/Assets/WebGLTemplates/AgentClicker`) fills the browser window, shows a progress bar while loading, has a
+`Tools/build-pages.sh` makes the site: it runs `Tools/unity.sh build-webgl` (Brotli files that decompress themselves,
+since GitHub Pages can't send `Content-Encoding`; file names are content hashes, so a cached old page never mixes with a
+new build) and lays out `Builds/WebGL` as `Builds/Pages` with a `.nojekyll`, ready to copy onto the `gh-pages` branch. Every
+URL is relative, so it works under `/AgentClicker/`. To try it as Pages serves it, copy `Builds/Pages` to
+`<dir>/AgentClicker/`, run `python3 -m http.server -d <dir> 8000` and open <http://localhost:8000/AgentClicker/>.
+`node Tools/check-pages.mjs <url> [chromium|firefox]` loads a served copy (or the live site) in a headless browser and exits 0
+only if it reaches the title screen with every file downloaded and no page or console errors. The page (from
+`Unity/Assets/WebGLTemplates/AgentClicker`) fills the browser window, shows a progress bar while loading (and a clear
+message with a Try again button if WebGL 2 is missing or a file fails to load), has a
 fullscreen button on the title screen (where the browser allows one; iPhones don't; in the game it's in the pause menu and works
 in one tap), and asks a phone or
 tablet held upright to turn sideways. On a phone, **Add to Home Screen** (Safari's share menu, or Chrome's menu) gives the game its own icon
 and opens it full-screen and landscape, without the browser's bars. While another window is in front of the page the game drops to
-15 fps to save power (Settings → Graphics). The tab's title shows your credits ("22.0Qa credits · Agent Clicker") and puts a model drop,
+15 fps to save power (Settings → Graphics). A new browser player starts on the Medium graphics step rather than High: the page
+runs on whatever laptop opens it, often at twice the pixel density, and WebGL costs more than the desktop player. The tab's title shows your credits ("22.0Qa credits · Agent Clicker") and puts a model drop,
 a ringing phone, an outage or the 5 PM card in front ("★ Model drop! · …"), so a tab beside your work tells you when to look. The save goes to the
 browser's storage (IndexedDB), is written the moment you hide or close the tab, and survives a reload. Browsers pause
 a tab you aren't looking at, so time in a hidden tab counts like time with the game closed. It has been tried in
 headless Chrome and Firefox on Linux; see the known issues below. `Tools/webtest.mjs chromium|firefox` repeats that
-check (load, new game, autopilot login, SHIP CODE, audio level, hire, save on hide, settings, CONTINUE after a reload,
+check (load, the Medium start and a fidelity change that survives a reload, new game, autopilot login, SHIP CODE, audio level, hire, save on hide, settings, CONTINUE after a reload,
 moving a save file into a fresh browser profile, the 15 fps cap behind another window, the web app manifest, the away
 card after reopening the page "two hours later", the pause menu's FULLSCREEN, `M` muting the sound, the tab's title, and the long music piece taking over from the loop). Firefox
 is driven over WebDriver BiDi, so the system Firefox works without a Playwright browser download. `Tools/webtouch.mjs` plays it by touch alone in Chromium's touch emulation,
@@ -440,7 +457,7 @@ older still (see [Play it](#play-it)).
   controller or Steam Deck has been tried. English only.
 * **Graphics fidelity was measured on one GPU**: on this Radeon 8060S at 1600×900, Low to Ultra cost about 0.4, 0.8, 1.3 and 3.7 ms
   of GPU time in the office view (`Tools/fidelity.sh`, Vulkan). Ultra renders at 125% with 8x MSAA, so on a large screen or a weaker
-  GPU it can cost far more; nothing else has been tried, and the browser build was only checked at the default step.
+  GPU it can cost far more; nothing else has been tried, and the browser build starts on Medium and was checked at Medium and High.
 * **The music was checked by measurement, not by ear**: the long piece's length, its sections, its loop points and its
   level are tested, but nobody has listened to it on this machine.
 * **Pacing is tuned by a bot.** The balance tests keep the first Factory between 1.5 and 5 hours for a greedy
