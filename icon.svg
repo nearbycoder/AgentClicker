@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Agent Clicker's home-screen icon: the favicon's diamond, full-bleed so phones can round or mask the corners -->
+  <rect width="512" height="512" fill="#0B111B"/>
+  <circle cx="256" cy="256" r="190" fill="#4DD0E1" opacity="0.08"/>
+  <path d="M256 112 400 256 256 400 112 256Z" fill="#4DD0E1"/>
+  <path d="M256 176 336 256 256 336 176 256Z" fill="#0B111B" opacity="0.28"/>
+</svg>

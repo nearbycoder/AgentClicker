@@ -5,12 +5,23 @@
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
     <title>Agent Clicker</title>
     <meta name="description" content="Automate yourself out of a job. Keep the paycheck. An idle clicker about a developer who hands their whole job to AI agents.">
+    <!-- added to the home screen, the game opens full-screen and landscape with its own icon: phones lose the browser's bars -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#0B111B">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Agent Clicker">
+    <link rel="apple-touch-icon" href="icon-180.png">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B111B'/%3E%3Cpath d='M16 5 27 16 16 27 5 16Z' fill='%234DD0E1'/%3E%3C/svg%3E">
     <style>
       html, body { margin: 0; height: 100%; overflow: hidden; background: #0B111B; color: #E6ECF5;
-                   font: 16px/1.4 "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
+                   font: 16px/1.4 "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+                   overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+                   -webkit-tap-highlight-color: transparent; }
       #game { position: fixed; inset: 0; }
-      #unity-canvas { width: 100%; height: 100%; display: block; background: #0B111B; outline: none; }
+      /* the game takes every gesture: fast taps on SHIP CODE must not zoom, scroll or pull-to-refresh the page */
+      #unity-canvas { width: 100%; height: 100%; display: block; background: #0B111B; outline: none; touch-action: none; }
       .overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
                  gap: 18px; background: #0B111B; text-align: center; padding: 24px; box-sizing: border-box; }
       .logo { font-weight: 800; font-size: clamp(40px, 8vw, 88px); line-height: 0.9; letter-spacing: -1px; }
@@ -19,13 +30,29 @@
       #progress { width: min(420px, 70vw); height: 8px; border-radius: 4px; background: #1B2433; overflow: hidden; }
       #progress div { width: 0; height: 100%; background: #4DD0E1; transition: width 0.2s; }
       #status { color: #56627A; font-size: 14px; min-height: 1.4em; }
-      #touch { display: none; z-index: 2; }
-      #touch p { max-width: 460px; color: #C9D3E3; margin: 0; }
+      /* a touch screen held upright: the game is laid out for landscape */
+      #rotate { display: none; z-index: 3; }
+      #rotate p { max-width: 360px; color: #C9D3E3; margin: 0; }
+      #rotate .phone { width: 46px; height: 76px; border: 4px solid #4DD0E1; border-radius: 10px; animation: turn 2.4s ease-in-out infinite; }
+      @keyframes turn { 0%, 25% { transform: rotate(0deg); } 55%, 100% { transform: rotate(-90deg); } }
+      @media (orientation: portrait) and (hover: none) and (pointer: coarse) { #rotate { display: flex; } }
+      @media (prefers-reduced-motion: reduce) { #rotate .phone { animation: none; } }
       button { font: inherit; font-weight: 700; color: #0B111B; background: #4DD0E1; border: 0; border-radius: 10px;
                padding: 12px 22px; cursor: pointer; }
       #fullscreen { position: fixed; right: 12px; bottom: 12px; padding: 8px 12px; font-size: 13px; color: #C9D3E3;
                     background: rgba(27, 36, 51, 0.85); display: none; z-index: 1; }
       #fullscreen:hover { background: #2A3547; }
+      /* the game can't start here: say why and what to try, instead of a progress bar that stops */
+      #failed { display: none; max-width: 560px; }
+      #failed h2 { margin: 0 0 8px; font-size: 22px; color: #FF7A7A; }
+      #failed p { margin: 0 0 10px; color: #C9D3E3; }
+      #failed code { display: block; white-space: pre-wrap; color: #8A97AD; font-size: 13px; margin-bottom: 14px; }
+      #loading.failed #progress, #loading.failed #status { display: none; }
+      #loading.failed #failed { display: block; }
+      /* an error once the game is running: a bar along the top that can be closed */
+      #error-bar { position: fixed; left: 0; right: 0; top: 0; z-index: 4; display: none; padding: 8px 44px 8px 12px;
+                   background: #5A1D24; color: #FFD9D9; font-size: 14px; }
+      #error-bar button { position: absolute; right: 6px; top: 4px; padding: 2px 10px; background: transparent; color: #FFD9D9; }
     </style>
   </head>
   <body>
@@ -35,12 +62,17 @@
       <div class="tagline">Automate yourself out of a job. Keep the paycheck.</div>
       <div id="progress"><div></div></div>
       <div id="status">Loading…</div>
+      <div id="failed" role="alert">
+        <h2 id="failed-title">Agent Clicker can't start</h2>
+        <p id="failed-help"></p>
+        <code id="failed-detail"></code>
+        <button onclick="location.reload()">Try again</button>
+      </div>
     </div>
-    <div id="touch" class="overlay">
-      <div class="logo">AGENT<span>CLICKER</span></div>
-      <p>Agent Clicker is played with a mouse and keyboard. It hasn't been made for touch screens yet, so on this device
-         you may not be able to reach everything.</p>
-      <button id="touch-continue">Try it anyway</button>
+    <div id="error-bar" role="alert"><span></span><button title="Close" onclick="this.parentNode.style.display='none'">✕</button></div>
+    <div id="rotate" class="overlay">
+      <div class="phone"></div>
+      <p>Turn your device sideways. Agent Clicker is laid out for a wide screen.</p>
     </div>
     <button id="fullscreen" title="Fullscreen">⛶ Fullscreen</button>
     <script>
@@ -48,9 +80,31 @@
       var statusEl = document.querySelector("#status");
       var bar = document.querySelector("#progress div");
 
+      var started = false;
+      // Before the game is running an error stops the load: the loading screen says so. Afterwards it's a bar along the top.
+      function fail(title, help, detail) {
+        document.querySelector("#failed-title").textContent = title;
+        document.querySelector("#failed-help").textContent = help;
+        document.querySelector("#failed-detail").textContent = detail || "";
+        var loading = document.querySelector("#loading");
+        loading.classList.add("failed");
+        loading.style.display = "flex";
+      }
       function showBanner(msg, type) {
-        if (type === "error") { statusEl.textContent = msg; statusEl.style.color = "#FF5D5D"; }
-        else console.warn(msg);
+        if (type !== "error") { console.warn(msg); return; }
+        if (!started) {
+          fail("Agent Clicker can't start", "Something went wrong while loading. Reloading usually fixes it; if not, try another browser.", String(msg));
+          return;
+        }
+        var errorBar = document.querySelector("#error-bar");
+        errorBar.querySelector("span").textContent = "Something went wrong: " + msg + " Your progress is saved; reloading the page should fix it.";
+        errorBar.style.display = "block";
+      }
+
+      // Unity 6 needs WebGL 2. Check first, so a browser without it gets a clear answer instead of a stalled bar.
+      function hasWebGL2() {
+        try { return !!(window.WebGL2RenderingContext && document.createElement("canvas").getContext("webgl2")); }
+        catch (e) { return false; }
       }
 
       // Render at the screen's real pixel density (3x on an iPhone, 2x on a Retina laptop) up to a 4K budget
@@ -67,9 +121,9 @@
       var config = {
         // test tools pass player arguments in the URL (?arg=-soak&arg=&arg=30); players never need this
         arguments: new URLSearchParams(location.search).getAll("arg"),
-        dataUrl: buildUrl + "/WebGL.data.unityweb",
-        frameworkUrl: buildUrl + "/WebGL.framework.js.unityweb",
-        codeUrl: buildUrl + "/WebGL.wasm.unityweb",
+        dataUrl: buildUrl + "/a40aeaa02c0f4770630bf4bccd12dfa7.data.unityweb",
+        frameworkUrl: buildUrl + "/650680a0bf56e42e48998a52e7a41c90.framework.js.unityweb",
+        codeUrl: buildUrl + "/513ec37554d7e31d641bc9044d38ee93.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "Nearby Games",
         productName: "Agent Clicker",
@@ -81,36 +135,67 @@
         devicePixelRatio: pixelRatio(),
       };
 
-      // touch-only devices: say so up front instead of letting the game look broken
-      var touchOnly = matchMedia("(pointer: coarse)").matches && !matchMedia("(any-pointer: fine)").matches;
-      if (touchOnly) {
-        document.querySelector("#touch").style.display = "flex";
-        document.querySelector("#touch-continue").onclick = function () {
-          document.querySelector("#touch").style.display = "none";
+      // test tools only (Tools/websoak.mjs detached): ?report=/path posts each [Soak] sample the game logs, with the
+      // page's JS heap and the WebGL id tables, to that path on this server, so a long run needs no DevTools connection. Installed before the
+      // loader, which keeps its own reference to console.log.
+      var report = new URLSearchParams(location.search).get("report");
+      if (report && report.charAt(0) === "/") {
+        var log = console.log;
+        console.log = function () {
+          log.apply(console, arguments);
+          var text = String(arguments[0]);
+          if (text.indexOf("[Soak]") !== 0) return;
+          var mem = performance.memory;
+          fetch(report, { method: "POST", body: JSON.stringify({ text: text, js: mem ? mem.usedJSHeapSize : -1,
+                                                                 jsTotal: mem ? mem.totalJSHeapSize : -1,
+                                                                 gl: window.agentClickerGL ? window.agentClickerGL() : null }) })
+            .catch(function () {});
         };
       }
 
-      var script = document.createElement("script");
-      script.src = buildUrl + "/WebGL.loader.js";
-      script.onload = function () {
-        createUnityInstance(canvas, config, function (progress) {
-          bar.style.width = Math.round(100 * progress) + "%";
-          statusEl.textContent = progress < 0.9 ? "Loading… " + Math.round(100 * progress) + "%" : "Starting CorpOS…";
-        }).then(function (unityInstance) {
-          window.unityInstance = unityInstance;
-          // the budget depends on the window size: follow resizes and phone rotation
-          window.addEventListener("resize", function () { unityInstance.Module.devicePixelRatio = pixelRatio(); });
-          document.querySelector("#loading").style.display = "none";
-          var fs = document.querySelector("#fullscreen");
-          fs.style.display = "block";
-          fs.onclick = function () { unityInstance.SetFullscreen(1); };
-          canvas.focus();
-        }).catch(function (message) {
-          showBanner(String(message), "error");
-        });
+      // the Fullscreen button shows on the title screen only (the game says when); in the game the pause menu has one
+      var fsButton = document.querySelector("#fullscreen"), fsReady = false, fsWanted = true;
+      function showFsButton() { fsButton.style.display = fsWanted && fsReady ? "block" : "none"; }
+      window.agentClickerFullscreenButton = function (show) {
+        fsWanted = show;
+        // the game calls this on entering and leaving the title screen; Tools/check-pages.mjs waits for "title"
+        document.documentElement.dataset.screen = show ? "title" : "game";
+        showFsButton();
       };
-      script.onerror = function () { showBanner("The game files could not be loaded.", "error"); };
-      document.body.appendChild(script);
+
+      function start() {
+        var script = document.createElement("script");
+        script.src = buildUrl + "/0ee740f8f9f5e200109f6a6d648e177d.loader.js";
+        script.onload = function () {
+          createUnityInstance(canvas, config, function (progress) {
+            bar.style.width = Math.round(100 * progress) + "%";
+            statusEl.textContent = progress < 0.9 ? "Loading… " + Math.round(100 * progress) + "%" : "Starting CorpOS…";
+          }).then(function (unityInstance) {
+            started = true;
+            window.unityInstance = unityInstance;
+            // the budget depends on the window size: follow resizes and phone rotation
+            window.addEventListener("resize", function () { unityInstance.Module.devicePixelRatio = pixelRatio(); });
+            document.querySelector("#loading").style.display = "none";
+            // iPhones have no fullscreen for pages; there "Add to Home Screen" is the way to lose the browser bars
+            fsReady = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+            fsButton.onclick = function () { unityInstance.SetFullscreen(1); };
+            showFsButton();
+            canvas.focus();
+          }).catch(function (message) {
+            showBanner(String(message), "error");
+          });
+        };
+        script.onerror = function () {
+          fail("Agent Clicker couldn't be downloaded", "The game files didn't arrive. Check your connection and try again.", script.src);
+        };
+        document.body.appendChild(script);
+      }
+
+      if (hasWebGL2()) start();
+      else fail("Your browser can't show 3D graphics here",
+                "Agent Clicker needs WebGL 2. It's in every current version of Chrome, Edge, Firefox and Safari (15 or later), " +
+                "but it can be turned off: check that hardware acceleration is on in your browser's settings, or try another browser.",
+                "WebGL 2 is not available.");
     </script>
   </body>
 </html>
