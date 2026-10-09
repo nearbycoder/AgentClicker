@@ -26,8 +26,10 @@ An idle clicker about a developer who quietly hands their whole job to AI agents
 > differences: it starts on the Medium graphics step (the slider still goes up to Ultra), the save and settings live in that
 > browser's storage, sound starts with your first click or key press (browsers require that), there's no Quit button, no
 > window, resolution or frame-cap settings and no F12 screenshot, and a tab in the background earns at the offline rate.
-> Mouse, keyboard and emulated touch were tested in the browser; a gamepad wasn't. The site is updated from `main` separately, so it can
-> lag behind this README (see [Play it](#play-it)).
+> Mouse, keyboard and emulated touch were tested in the browser; a gamepad wasn't. On a phone or tablet, hold it sideways:
+> it starts on the Low step, keeps the short music loop, and adds thumb-sized touch buttons (see [Phones and
+> tablets](#phones-and-tablets)); that was tested in headless WebKit and Chromium with iPhone, iPad and Pixel profiles, not on
+> a real device. The site is updated from `main` separately, so it can lag behind this README (see [Play it](#play-it)).
 
 ---
 
@@ -66,22 +68,22 @@ of it went past the hour.
 | Keyboard and mouse | Gamepad | Touch (browser) | Action |
 |---|---|---|---|
 | Mouse | Left stick moves a cursor, **A** clicks | Tap | Point and click anything |
-| Click **SHIP CODE**, or `Space` / `Enter` | **RT** or **X** | Tap **SHIP CODE** (two fingers work) | Ship code by hand |
-| Hold **SHIP CODE**, `Space` or `Enter` | Hold **RT** or **X** | Hold **SHIP CODE** | Keep shipping, 6 lines a second (with Settings → Gameplay → **Hold to keep shipping** on) |
+| Click **SHIP CODE**, or `Space` / `Enter` | **RT** or **X** | Tap **SHIP CODE** or the round **SHIP** button (two fingers work) | Ship code by hand |
+| Hold **SHIP CODE**, `Space` or `Enter` | Hold **RT** or **X** | Hold **SHIP CODE** or **SHIP** | Keep shipping, 6 lines a second (with Settings → Gameplay → **Hold to keep shipping** on) |
 | Click the monitor | **A** on the monitor | Tap the monitor | Log in each morning |
 | Click agents, upgrades, gadgets | **A** on them | Tap them | Buy them (x1, x10, x100 or MAX at a time; **BUY ALL** for upgrades) |
-| `Tab` or the on-screen button | **View** | The on-screen button | Switch between the monitor and the office |
+| `Tab` or the on-screen button | **View** | **OFFICE** / **DESK** | Switch between the monitor and the office |
 | Right-drag (office view) | Right stick | Drag the room | Look around the office |
 | Mouse wheel (office view) | **LB** / **RB** | Pinch | Zoom, and zoom in to sit back down |
-| | | Two fingers on the monitor | Zoom into the monitor and move around it (small text on a phone) |
+| | | Two fingers on the monitor, or **ZOOM** | Zoom into the monitor and move around it (small text on a phone); **ZOOM** steps through SHIP CODE's column, the store and the whole screen |
 | Mouse wheel | Right stick | Drag the list | Scroll a list |
 | `E` / `Q` | **Y** / **B** | Tap ANSWER / DECLINE | Answer or decline a ringing phone |
 | `1` `2` `3` | D-pad left, up, right | Tap a reply | Pick a reply during a call |
 | ✉ **Inbox** (CorpOS top bar) | **A** on it | Tap it | Read the story emails |
-| `Esc` or ⚙ | **Start** (**B** closes menus) | ⚙ | Pause menu: settings, how to play, save and exit |
+| `Esc` or ⚙ | **Start** (**B** closes menus) | **MENU** or ⚙ | Pause menu: settings, how to play, save and exit |
 | Arrow keys or `WASD`, then `Enter` / `Space` | D-pad, then **A** | | Move the focus ring through a menu and press; Left / Right change the focused setting or tab |
 | `Enter` | **A** (after a D-pad press) | | GO HOME on the review, CLOCK IN on the night screen, LOG IN in the morning |
-| `M` or ♪ (CorpOS top bar) | **A** on ♪ | Tap ♪ | Mute all sound, or turn it back on (kept in the settings) |
+| `M` or ♪ (CorpOS top bar) | **A** on ♪ | **SOUND** or ♪ | Mute all sound, or turn it back on (kept in the settings) |
 | `F12` | | | Save a screenshot |
 
 A gamepad drives an on-screen cursor, so everything a mouse can do works with a controller too; the cursor appears when
@@ -93,6 +95,15 @@ the key names. On a phone the whole monitor makes small text, so spread two fing
 to look around and pinch to zoom back out; the game shows a tip the first time. While you're zoomed in, a model drop or an
 outage that appears out of view gets a chip at that edge of the screen (tap it to go there), and a dialog such as the 5 PM
 prompt shows the whole monitor again.
+
+**On-screen touch controls (phones and tablets in the browser).** CorpOS's own buttons are drawn about 10 points tall on a
+phone, so the page adds thumb-sized buttons beside the monitor: **MENU** and **SOUND** on the left, **OFFICE** / **DESK**
+and **ZOOM** on the right, and a round **SHIP** button in the bottom right corner (hold it to keep shipping, or drum it with
+two fingers). Each is at least 48 CSS pixels, sits inside the safe area (clear of a notch or camera cut-out and the home
+indicator), and takes its own finger. They show only on a touch-first device (a finger is the main pointer and there's no
+mouse or trackpad) or once you touch the screen, only for what the current screen offers (none on the title screen or under
+a menu, no SHIP while it can't ship), and they hide as soon as you use a keyboard, a mouse or a gamepad. Desktop browsers
+never show them.
 
 ## Features
 
@@ -177,7 +188,7 @@ step does:
 
 | Step | What it does | GPU time, office view* |
 |---|---|---|
-| **Low** | For weak GPUs: 85% render scale, FXAA instead of MSAA, hard 1K shadows, no ambient occlusion, no sunbeam or dust | 0.42 ms |
+| **Low** | For weak GPUs (and where phones and tablets start in the browser): 85% render scale, FXAA instead of MSAA, hard 1K shadows, no ambient occlusion, no sunbeam or dust | 0.42 ms |
 | **Medium** | 2x MSAA, soft 2K shadows, the sunbeam with a little dust | 0.79 ms |
 | **High** (default) | 4x MSAA, soft shadows, ambient occlusion, the sunbeam with more dust | 1.33 ms |
 | **Ultra** | 8x MSAA, 125% render scale, 4K shadows over four cascades, shadows from the ceiling lights, finer ambient occlusion, high-quality bloom, a 64-bit HDR buffer, the densest dust, and a depth of field that keeps Sam and his screens sharp and never blurs the monitor's text | 3.74 ms |
@@ -242,7 +253,8 @@ The game autosaves every 15 seconds, and your agents keep earning at a reduced r
   It has only been tried on CachyOS with KDE Plasma (Wayland) and an AMD Radeon 8060S, where Ultra costs about 3.7 ms
   of GPU time at 1600×900. Low is the step for weak or integrated GPUs.
 * **Browser**: a desktop browser with WebGL 2 (checked in headless Chrome and Firefox on Linux), or a tablet or phone
-  held sideways (a browser build from `main`; the hosted copy predates touch play); about 14 MB to download. A browser
+  held sideways (checked in headless WebKit and Chromium with phone and tablet profiles; the hosted copy predates touch
+  play until the site is next updated); about 14 MB to download. A browser
   without WebGL 2 gets a page that says so instead of the game.
 * **Input**: mouse and keyboard, keyboard alone, a gamepad, or touch in the browser.
 
@@ -288,6 +300,36 @@ moving a save file into a fresh browser profile, the 15 fps cap behind another w
 card after reopening the page "two hours later", the pause menu's FULLSCREEN, `M` muting the sound, the tab's title, and the long music piece taking over from the loop). Firefox
 is driven over WebDriver BiDi, so the system Firefox works without a Playwright browser download. `Tools/webtouch.mjs` plays it by touch alone in Chromium's touch emulation,
 at a tablet size and a phone held sideways, including zooming into the monitor.
+
+#### Phones and tablets
+
+A phone or tablet (the browser says a finger is the main pointer and there's no mouse or trackpad) gets a lighter page,
+because iOS closes a tab that uses much more than about 1 GB, without a word:
+
+* it starts on the **Low** graphics step and renders at most 2.5 pixels per CSS pixel and about 1920×1200 pixels (an
+  iPhone's 3× drew 2.3 million pixels on a 6-inch screen); the slider still reaches Ultra;
+* the music stays on its 25-second loop (the 101-second piece cost about 75 MB of memory that the page never gets back);
+* in every browser, the fonts no longer load their OpenType feature tables the first time a new character appears (the
+  CEO's first email did it with an em dash): the engine kept about 135 MB for them.
+
+`node Tools/webmobile.mjs` measures this in headless WebKit (Playwright's, as an iPhone 15 and an iPad Pro 11) and headless
+Chromium (as a Pixel 7), held sideways, while it plays by touch: the title, a new game, the login tap, the touch buttons
+(zoom, SHIP one tap at a time and two fingers at once, office and desk, sound, menu, hiding them with a key or a mouse), a
+hire, the office view and the pause menu. Before and after these changes (same 14.4 MB download; machine load average 30–90):
+
+| Profile | WebAssembly heap (peak) | WebGL memory the page allocated | Canvas | Browser's page process (peak) |
+|---|---|---|---|---|
+| iPhone 15, WebKit | 355 → 205 MB | 108 → 77 MB | 2202×1029 → 1835×858 | 1,362 → 1,208 MB* |
+| iPad Pro 11, WebKit | 355 → 205 MB | 169 → 103 MB | 2388×1668 → 1816×1269 | 1,685 → 1,439 MB* |
+| Pixel 7, Chromium | 355 → 205 MB | 155 → 89 MB | 2265×945 → 2158×900 | 623 → 526 MB |
+
+\*Headless WebKit renders WebGL in its page process: with nothing but an empty WebGL canvas that process already takes
+about 440 MB, so these figures overstate what a phone holds. Nothing here enforces iOS's limit; only a real device can say
+whether a given iPhone keeps the tab. If a visit does end suddenly, the next load says so under the progress bar (it
+suggests closing other tabs or choosing Low), and if the browser takes the graphics away mid-game the page says that a
+reload carries on from the save instead of showing a frozen frame. The page also stops Safari's pinch and double-tap zoom
+of the page itself (the game has its own pinch), starts the sound inside the first tap (Safari ignores the engine's own
+timer), and keeps the game clear of a notch or camera cut-out held sideways.
 
 Saves live in `~/.config/unity3d/Nearby Games/Agent Clicker/` on Linux (Unity's `persistentDataPath`), and
 settings are stored separately in PlayerPrefs. **Settings → Gameplay → Save file** moves a career around: the browser

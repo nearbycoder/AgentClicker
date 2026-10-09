@@ -1722,3 +1722,58 @@ Owner decisions: unchanged. Redeploying `gh-pages` (it would bring rounds 5–12
 1 hour), Windows Build Support, license, signing, releases and tags, whether the long music piece is a keeper, and whether day 1 after a
 reorg should scale its quota and asks. New: whether OpenGL should stay the Linux player's default graphics API (Vulkan worked in every
 fidelity run here and reports GPU timing; switching would need testing on other machines).
+
+## Phones and tablets (2026-10-09, `web-mobile`)
+
+The owner opened one of the browser games on an iPhone and the tab crashed, and asked for every game to work on phones with
+on-screen controls shown only there. Agent Clicker already played by touch (round 7); this round measured it on phone
+profiles, fixed what would get the tab closed, and added thumb-sized controls.
+
+**Measured first** (`Tools/webmobile.mjs`, headless WebKit as an iPhone 15 and an iPad Pro 11, headless Chromium as a Pixel 7,
+held sideways). Every profile reached the title and played by tap, but the WebAssembly heap peaked at 355 MB everywhere (it
+never shrinks), an iPhone drew its canvas at 3× (2202×1029) and the page allocated 105–170 MB through WebGL. Headless WebKit's
+page process peaked at 1,362 MB as an iPhone and 1,685 MB as an iPad, over the roughly 1 GB iOS lets a tab keep. CorpOS's own
+buttons (⚙, ♪, Look around, Inbox) were drawn about 10 points tall on the iPhone.
+
+**Where the heap went.** A `LogMemory` test hook (Unity's managed and engine figures) and a page-side log of each heap growth
+traced two causes:
+* The first character a text added to a font atlas also loaded the font's OpenType feature tables (TMP's per-glyph path calls
+  the FontEngine's pair-adjustment and ligature lookups; the batch `TryAddCharacters` used by `Prewarm` doesn't): the engine
+  kept about 135 MB for them, and the heap went 205 → 355 MB. The CEO's first email did it with an em dash; "–" and "é"
+  did it too, one at a time in fresh pages. The browser's runtime fonts now skip font features (`getFontFeatures = false`;
+  the prewarmed glyphs never had them). Heap peak 355 → 205 MB in all three profiles.
+* The 101-second music piece took the heap from 171 to 246 MB on its own (with only the loop, or no music, it stayed at 171).
+  Phones and tablets keep the 25-second loop; desktop browsers still get the long piece.
+
+**Lighter defaults on touch-first devices** (`(pointer: coarse)` and no `(any-pointer: fine)`): the Low step
+(`Fidelity.MobileWebDefault`), at most 2.5× and about 1920×1200 pixels. Low's hint was shortened to fit the slider with
+"(default)" after it.
+
+**On-screen controls** (`index.html`, wired through `TouchControls.TouchButton` and `Platform.SetTouchState`): MENU and SOUND
+on the left, OFFICE/DESK and ZOOM on the right (ZOOM steps through SHIP CODE's column, the store and the whole monitor), and a
+round SHIP button (one ship per finger, hold to keep shipping). 48 CSS px or more, inside `env(safe-area-inset-*)`, one
+pointer each; shown on touch-first devices or after a touch, only where they apply, hidden by a key, a mouse or a gamepad.
+The page also blocks Safari's page pinch and double-tap zoom, resumes audio inside the first tap, shows a note after a visit
+that ended while the game was on screen, and says so if the WebGL context is lost.
+
+**Results** (final build; machine load average 30–100 throughout):
+
+| Profile | Heap peak | WebGL memory | Canvas | Page process peak |
+|---|---|---|---|---|
+| iPhone 15, WebKit | 355 → 205 MB | 108 → 77 MB | 2202×1029 → 1835×858 | 1,362 → 1,208 MB |
+| iPad Pro 11, WebKit | 355 → 205 MB | 169 → 103 MB | 2388×1668 → 1816×1269 | 1,685 → 1,439 MB |
+| Pixel 7, Chromium | 355 → 205 MB | 155 → 89 MB | 2265×945 → 2158×900 | 623 → 526 MB |
+
+Headless WebKit's page process takes about 440 MB with nothing but an empty WebGL canvas, so its figures overstate a phone.
+`webmobile.mjs` passes 49/49 (touch buttons shown, sized and apart; zoom steps; ten taps ship ten times; two fingers at once
+ship twice in Chromium; office and back; sound; menu; a key and a mouse hide them and a touch brings them back; no page scroll
+or zoom; the rotate prompt when held upright). The desktop `check-pages` fails if the controls show or touch turns on; the
+web tests, the touch test and the EditMode tests were rerun.
+
+Not done, and why:
+* **The game's own menus on a phone**: the title, pause and settings buttons are wide but about 23–28 CSS px tall on a phone
+  held sideways (below 44 pt). They work by tap; making them taller means a phone layout for every overlay.
+* **Real devices**: iOS's memory limit, Safari's audio unlock, the safe areas around a real notch and home indicator, and the
+  frame rate (headless WebKit ran at 4–26 fps here, on a loaded machine) can only be confirmed on a phone.
+
+Owner decisions: unchanged (deploying the build to `gh-pages` is the orchestrator's job).
