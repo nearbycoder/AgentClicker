@@ -82,6 +82,12 @@ namespace AgentClicker.UI
         public void TouchButton(string name)
         {
             if (_gm == null) return;
+            if (name == "ship-up")
+            {
+                // letting go isn't input (the page also sends it when the tab is hidden with SHIP down)
+                ShipHeld = false;
+                return;
+            }
             _buttonInput = true;
             _lastTouch = Time.unscaledTime;
             if (!Active)
@@ -95,9 +101,6 @@ namespace AgentClicker.UI
                 case "ship-down":
                     _shipPresses++;
                     ShipHeld = true;
-                    return;
-                case "ship-up":
-                    ShipHeld = false;
                     return;
                 case "menu":
                     if (free) _gm.Menu.OpenPause();

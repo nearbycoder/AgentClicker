@@ -325,7 +325,8 @@
         };
         b.addEventListener("pointerup", up);
         b.addEventListener("pointercancel", up);
-        document.addEventListener("visibilitychange", function () { if (document.hidden) { fingers = 1; up(); } });
+        // a hidden tab gets no pointerup: let go of a button that was down
+        document.addEventListener("visibilitychange", function () { if (document.hidden && fingers > 0) { fingers = 1; up(); } });
       });
 
       // A tab the browser closed for using too much memory (iOS does this without a word) comes back as a reload: say so,

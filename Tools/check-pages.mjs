@@ -118,6 +118,7 @@ async function main() {
     console.log(`[Pages] ${engine} ${browser.version()}, renderer: ${renderer}`);
     console.log(`[Pages] touch controls: ${touchAtTitle} at the title, ${touchAfterMouse} after the mouse moved and clicked`);
     if (touchAtTitle === "block" || touchAfterMouse === "block") problems.push("the touch controls showed in a desktop browser");
+    if (log.some((l) => l.includes("[Touch] on"))) problems.push("the game thought touch was in use in a desktop browser");
     console.log(`[Pages] ${url}: ${outcome} in ${seconds.toFixed(1)} s, ${files} files, ${mb(bytes)} downloaded, tab title "${title}"`);
     if (outcome !== "title") problems.push("did not reach the title screen: " + outcome);
     if (title !== "Agent Clicker") problems.push(`tab title "${title}"`);
